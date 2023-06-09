@@ -65,6 +65,14 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
     
     
 def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> List[np.ndarray]:
+    """For each object in the frame calculate its doppler value (if recognized).
+
+    :param loader: the loader of the current frame
+    :param transforms: the transformation matrix of the current frame
+
+    Returns: a list of doppler values
+    """
+    
     # TODO we read the files this way twice, which is a bit suboptimal :O
     labels = FrameLabels(loader.get_labels)
     
@@ -90,6 +98,14 @@ def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     
 
 def RAD_from_data(annotations: List[Dict], kitti_locations: KittiLocations) -> List[np.ndarray]:
+    """Get the Range, Azimuth, Doppler values for each frame and object in this dataset.
+    
+    :param annotations: the list of label annotations in this dataset
+    :param kitti_locations: the KittiLocation of this dataset
+    
+    Returns a list of range, azimuth, doppler arrays
+    """
+    
     locations, azimuths, dopplers: List[np.ndarray] = [], [], []
 
     for anno in annotations:
