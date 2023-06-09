@@ -31,6 +31,17 @@ This function returns a list of 3d corners of each label in a frame given a Fram
     :return: List of 3d corners.
     """
     label_corners = []
+    
+    # order of corners
+    #    7--------4
+    #   /|       /|
+    #  / |      / |
+    # 6--------5  |
+    # |  |     |  |
+    # |  3-----|--0
+    # | /      | /
+    # |/       |/
+    # 2--------1
 
     for label in labels.labels_dict:
         x_corners = [label['l'] / 2,
@@ -92,6 +103,14 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
                                              'score': label['score']})
 
     return transformed_3d_label_corners
+
+def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camer_lidar):
+    corners_3d = get_3d_label_corners(labels, transformation, t_camer_lidar)
+    hom_to_cart = lambda points: np.apply_along_axis(lambda p: np.array(p[0]/p[3], p[1]/p[3], p[2]/p[3]), axis=1, arr=points)
+        
+    return [{'label_class': label['label_class'],
+            'corners_3d_transformed': hom_to_cart(label['corners_3d_transformed']),
+            'score': label['score']} for label in corners_3d]
 
 
 def get_2d_label_corners(labels: FrameLabels, transformations_matrix: FrameTransformMatrix):

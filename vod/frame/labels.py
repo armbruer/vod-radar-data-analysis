@@ -9,17 +9,19 @@ class FrameLabels:
     def __init__(self,
                  raw_labels: List[str]):
         """
-Constructor which creates the label property, given a list of strings containing the label data.
+        Constructor which creates the label property, given a list of strings containing the label data.
         :param raw_labels: List of strings containing label data.
         """
         self.raw_labels: List[str] = raw_labels
 
         self._labels_dict: Optional[List[dict]] = None
+        
+        self._complete_labels_dict: Optional[List[dict]] = None
 
     @property
     def labels_dict(self):
         """
-Label dictionary property.
+        Label dictionary property.
         :return:
         """
         if self._labels_dict is not None:
@@ -29,21 +31,38 @@ Label dictionary property.
             # Load data if it is not loaded yet.
             self._labels_dict = self.get_labels_dict()
             return self._labels_dict
-
-    def get_labels_dict(self) -> List[dict]:
+        
+    @property
+    def complete_labels_dict(self):
         """
-This method returns a list of dictionaries containing the label data.
+        Label dictionary property containg all labels
+        :return:
+        """
+        if self._complete_labels_dict is not None:
+            # When the data is already loaded.
+            return self._labels_dict
+        else:
+            # Load data if it is not loaded yet.
+            self._complete_labels_dict = self.get_labels_dict(complete=True)
+            return self._labels_dict
+
+    def get_labels_dict(self, complete=False) -> List[dict]:
+        """
+        This method returns a list of dictionaries containing the label data.
         :return: List of dictionaries containing label data.
         """
+
 
         labels = []  # List to be filled
 
         for act_line in self.raw_labels:  # Go line by line to split the keys
             act_line = act_line.split()
-            label, _, _, _, _, _, _, _, h, w, l, x, y, z, rot, score = act_line
-            h, w, l, x, y, z, rot, score = map(float, [h, w, l, x, y, z, rot, score])
+            label, trunc, occl, alpha, l, t, r, b, h, w, l, x, y, z, rot, score = act_line
+            h, w, l, x, y, z, rot, score = map(float, [alpha, l, t, r, b, h, w, l, x, y, z, rot, score])
+            trunc, occl = map(int, [trunc, occl])
+            
 
-            labels.append({'label_class': label,
+            labels_dict = {'label_class': label,
                            'h': h,
                            'w': w,
                            'l': l,
@@ -52,7 +71,17 @@ This method returns a list of dictionaries containing the label data.
                            'z': z,
                            'rotation': rot,
                            'score': score}
-                          )
+            
+            if complete:
+                labels_dict.update({
+                           'trunc': trunc,
+                           'occl': occl,
+                           'alpha': alpha,
+                           'l': l,
+                           't': t,
+                           'r': r,
+                           'b': b})
+                
         return labels
 
 

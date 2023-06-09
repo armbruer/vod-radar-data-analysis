@@ -15,8 +15,8 @@ class FrameDataLoader:
                  kitti_locations: KittiLocations,
                  frame_number: str):
         """
-Constructor which creates the backing fields for the properties which can load and store data from the dataset
-upon request
+        Constructor which creates the backing fields for the properties which can load and store data from the dataset
+        upon request
         :param kitti_locations: KittiLocations object.
         :param frame_number: Specific frame number for which the data should be loaded.
         """
@@ -39,7 +39,7 @@ upon request
     @property
     def image(self):
         """
-Image information property in RGB format.
+        Image information property in RGB format.
         :return: RGB image.
         """
         if self._image is not None:
@@ -53,7 +53,7 @@ Image information property in RGB format.
     @property
     def lidar_data(self):
         """
-Ego-motion compensated 360 degree lidar data of a Nx4 array including x,y,z,reflectance values.
+        Ego-motion compensated 360 degree lidar data of a Nx4 array including x,y,z,reflectance values.
         :return: Lidar data.
         """
         if self._lidar_data is not None:
@@ -67,11 +67,11 @@ Ego-motion compensated 360 degree lidar data of a Nx4 array including x,y,z,refl
     @property
     def radar_data(self):
         """
-Ego-motion compensated radar data from the front bumper in the format of [x, y, z, RCS, v_r, v_r_compensated, time].
+        Ego-motion compensated radar data from the front bumper in the format of [x, y, z, RCS, v_r, v_r_compensated, time].
 
-* V_r is the relative radial velocity
-* v_r_compensated is the absolute (i.e. ego motion compensated) radial velocity of the point.
-* Time is the time id of the point, indicating which scan it originates from.
+        * V_r is the relative radial velocity
+        * v_r_compensated is the absolute (i.e. ego motion compensated) radial velocity of the point.
+        * Time is the time id of the point, indicating which scan it originates from.
 
         :return: Radar data.
         """
@@ -86,16 +86,16 @@ Ego-motion compensated radar data from the front bumper in the format of [x, y, 
     @property
     def raw_labels(self):
         """
-The labels include the ground truth data for the frame in kitti format including:
+        The labels include the ground truth data for the frame in kitti format including:
 
-* Class: Describes the type of object: 'Car', 'Pedestrian', 'Cyclist', etc.
-* Truncated: Not used, only there to be compatible with KITTI format.
-* Occluded: Integer (0,1,2) indicating occlusion state 0 = fully visible, 1 = partly occluded 2 = largely occluded.
-* Alpha: Observation angle of object, ranging [-pi..pi]
-* Bbox: 2D bounding box of object in the image (0-based index) contains left, top, right, bottom pixel coordinates.
-* Dimensions: 3D object dimensions: height, width, length (in meters)
-* Location: 3D object location x,y,z in camera coordinates (in meters)
-* Rotation: Rotation around -Z axis of the LiDAR sensor [-pi..pi]
+        * Class: Describes the type of object: 'Car', 'Pedestrian', 'Cyclist', etc.
+        * Truncated: Not used, only there to be compatible with KITTI format.
+        * Occluded: Integer (0,1,2) indicating occlusion state 0 = fully visible, 1 = partly occluded 2 = largely occluded.
+        * Alpha: Observation angle of object, ranging [-pi..pi]
+        * Bbox: 2D bounding box of object in the image (0-based index) contains left, top, right, bottom pixel coordinates.
+        * Dimensions: 3D object dimensions: height, width, length (in meters)
+        * Location: 3D object location x,y,z in camera coordinates (in meters)
+        * Rotation: Rotation around -Z axis of the LiDAR sensor [-pi..pi]
         :return: Label data in string format
         """
         if self._raw_labels is not None:
@@ -109,16 +109,16 @@ The labels include the ground truth data for the frame in kitti format including
     @property
     def predictions(self):
         """
-The predictions include the predicted information for the frame in kitti format including:
+        The predictions include the predicted information for the frame in kitti format including:
 
-* Class: Describes the type of object: 'Car', 'Pedestrian', 'Cyclist', etc.
-* Truncated: Not used, only there to be compatible with KITTI format.
-* Occluded: Integer (0,1,2) indicating occlusion state 0 = fully visible, 1 = partly occluded 2 = largely occluded.
-* Alpha: Observation angle of object, ranging [-pi..pi]
-* Bbox: 2D bounding box of object in the image (0-based index) contains left, top, right, bottom pixel coordinates.
-* Dimensions: 3D object dimensions: height, width, length (in meters)
-* Location: 3D object location x,y,z in camera coordinates (in meters)
-* Rotation: Rotation around -Z axis of the LiDAR sensor [-pi..pi]
+        * Class: Describes the type of object: 'Car', 'Pedestrian', 'Cyclist', etc.
+        * Truncated: Not used, only there to be compatible with KITTI format.
+        * Occluded: Integer (0,1,2) indicating occlusion state 0 = fully visible, 1 = partly occluded 2 = largely occluded.
+        * Alpha: Observation angle of object, ranging [-pi..pi]
+        * Bbox: 2D bounding box of object in the image (0-based index) contains left, top, right, bottom pixel coordinates.
+        * Dimensions: 3D object dimensions: height, width, length (in meters)
+        * Location: 3D object location x,y,z in camera coordinates (in meters)
+        * Rotation: Rotation around -Z axis of the LiDAR sensor [-pi..pi]
         :return: Label data in string format
         """
 
@@ -132,8 +132,8 @@ The predictions include the predicted information for the frame in kitti format 
 
     def get_image(self) -> Optional[np.ndarray]:
         """
-This method obtains the image information from the location specified by the KittiLocations object. If the file
-does not exist, it returns None.
+        This method obtains the image information from the location specified by the KittiLocations object. If the file
+        does not exist, it returns None.
 
         :return: Numpy array with image data.
         """
@@ -149,8 +149,8 @@ does not exist, it returns None.
 
     def get_radar_scan(self) -> Optional[np.ndarray]:
         """
-This method obtains the radar information from the location specified by the KittiLocations object. If the file
-does not exist, it returns None.
+        This method obtains the radar information from the location specified by the KittiLocations object. If the file
+        does not exist, it returns None.
 
         :return: Numpy array with radar data.
         """
@@ -167,8 +167,8 @@ does not exist, it returns None.
 
     def get_lidar_scan(self) -> Optional[np.ndarray]:
         """
-This method obtains the lidar information from the location specified by the KittiLocations object. If the file
-does not exist, it returns None.
+        This method obtains the lidar information from the location specified by the KittiLocations object. If the file
+        does not exist, it returns None.
 
         :return: Numpy array with lidar data.
         """
@@ -185,8 +185,8 @@ does not exist, it returns None.
 
     def get_labels(self) -> Optional[List[str]]:
         """
-This method obtains the label information from the location specified by the KittiLocations object. If the file
-does not exist, it returns None.
+        This method obtains the label information from the location specified by the KittiLocations object. If the file
+        does not exist, it returns None.
 
         :return: List of strings with label data.
         """
@@ -204,8 +204,8 @@ does not exist, it returns None.
 
     def get_predictions(self) -> Optional[List[str]]:
         """
-This method obtains the prediction information from the location specified by the KittiLocations object. If the file
-does not exist, it returns None.
+        This method obtains the prediction information from the location specified by the KittiLocations object. If the file
+        does not exist, it returns None.
 
         :return: List of strings with prediction data.
         """

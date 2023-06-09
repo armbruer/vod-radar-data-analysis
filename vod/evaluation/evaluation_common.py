@@ -17,9 +17,10 @@ def filter_annotations_low_score(image_annotations, thresh):
     return new_image_annotations
 
 
-def get_label_annotation(label_path):
+def get_label_annotation(label_path, idx=-1):
     annotations = {}
     annotations.update({
+        'frame_number': idx,
         'name': [],
         'truncated': [],
         'occluded': [],
@@ -68,6 +69,6 @@ def get_label_annotations(label_folder, image_ids=None):
     annos = []
     label_folder = pathlib.Path(label_folder)
     for idx in image_ids:
-        label_filename = label_folder / (idx + '.txt')
-        annos.append(get_label_annotation(label_filename))
+        label_filename = label_folder / (str(idx).zfill(5) + '.txt')
+        annos.append(get_label_annotation(label_filename, idx))
     return annos

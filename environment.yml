@@ -9,6 +9,8 @@ dependencies:
   - jupyter=1.0
   - matplotlib=3.3
   - numpy=1.19
+  - numba
+  - seaborn
   - python=3.7
   - ffmpeg
   - k3d=2.10.0 # Visualization library

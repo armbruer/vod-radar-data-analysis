@@ -225,7 +225,7 @@ Property which returns the homogeneous transform matrix from the UTM frame, to t
 
     def get_sensor_transforms(self, sensor: str):  # -> Optional[(np.ndarray, np.ndarray)]:
         """
-This method returns the corresponding intrinsic and extrinsic transformation from the dataset.
+        This method returns the corresponding intrinsic and extrinsic transformation from the dataset.
         :param sensor: Sensor name in string for which the transforms to be read from the dataset.
         :return: A numpy array tuple of the intrinsic, extrinsic transform matrix.
         """
@@ -279,11 +279,32 @@ This method returns the world transformations matrices from the dataset.
         t_utm_camera = np.array(jsons[2]["UTMToCamera"], dtype=np.float32).reshape(4, 4)
 
         return t_odom_camera, t_map_camera, t_utm_camera
+    
+    
+def homogenous_transformation_cartesian_coordinates(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
+    """
+    This function applies the homogenous transform using the dot product.
+    This function expects the points in cartesian coordinates and returns the points in cartesian coordinates.
+    
+    :param points: Points to be transformed in a Nx3 numpy array.
+    :param transform: 4x4 transformation matrix in a numpy array.
+    :return: Transformed points of shape Nx3 in a numpy array.
+    """
+    if transform.shape != (4, 4):
+        raise ValueError(f"{transform.shape} must be 4x4!")
+    if points.shape[1] != 3:
+        raise ValueError(f"{points.shape[1]} must be Nx3!")
+    
+    hom_points = homogeneous_coordinates(points)
+    transformed_points = transform.dot(hom_points.T).T
+    return cartesian_coordinates(transformed_points)
 
 
 def homogeneous_transformation(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
     """
-This function applies the homogenous transform using the dot product.
+    This function applies the homogenous transform using the dot product.
+    This function expects the points in homogenous coordinates and returns the points in homogenous coordinates.
+    
     :param points: Points to be transformed in a Nx4 numpy array.
     :param transform: 4x4 transformation matrix in a numpy array.
     :return: Transformed points of shape Nx4 in a numpy array.
@@ -307,6 +328,21 @@ This function returns the given point array in homogenous coordinates.
     return np.hstack((points,
                       np.ones((points.shape[0], 1),
                               dtype=np.float32)))
+    
+def cartesian_coordinates(points: np.ndarray) -> np.ndarray:
+    """
+    This function returns the given point array in cartesian coordinates.
+    
+    :param points: Input ndarray of shape Nx4
+    :return: Output ndarray of shape Nx3
+    """
+    
+    if points.shape[1] != 4:
+          raise ValueError(f"{points.shape[1]} must be Nx3!")
+    
+    # this will work unless p[3] is zero
+    # p[3] is only zero in homogenous coordinate system if we have infinity in cartesian
+    return np.apply_along_axis(lambda p: np.array(p[0]/p[3], p[1]/p[3], p[2]/p[3]), axis=1, arr=points)
 
 
 def project_3d_to_2d(points: np.ndarray, projection_matrix: np.ndarray):
@@ -360,7 +396,7 @@ This function can be used to filter points based on a maximum and minimum value.
 
 def project_pcl_to_image(point_cloud, t_camera_pcl, camera_projection_matrix, image_shape):
     """
-A helper function which projects a point clouds specific to the dataset to the camera image frame.
+    A helper function which projects a point clouds specific to the dataset to the camera image frame.
     :param point_cloud: Point cloud to be projected.
     :param t_camera_pcl: Transformation from the pcl frame to the camera frame.
     :param camera_projection_matrix: The 4x4 camera projection matrix.

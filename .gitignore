@@ -1,6 +1,8 @@
 /.idea/*
 venv/
-
+mt/extractor/output/
+output/
+.vscode/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
