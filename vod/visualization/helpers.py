@@ -104,8 +104,8 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
 
     return transformed_3d_label_corners
 
-def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camer_lidar):
-    corners_3d = get_transformed_3d_label_corners(labels, transformation, t_camer_lidar)
+def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camera_lidar):
+    corners_3d = get_transformed_3d_label_corners(labels, transformation, t_camera_lidar)
     hom_to_cart = lambda points: np.apply_along_axis(lambda p: np.array([p[0]/p[3], p[1]/p[3], p[2]/p[3]]), axis=1, arr=points)
         
     return [{'label_class': label['label_class'],

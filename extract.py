@@ -49,7 +49,7 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
     
     inside_points = []
     
-    for i in radar_points.shape[0]:
+    for i in range(radar_points.shape[0]):
         radar_point = radar_points[i, :3]
         x, y, z = radar_point
         
@@ -81,7 +81,7 @@ def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     corners3d = get_transformed_3d_label_corners_cartesian(labels, transforms.t_camera_radar, transforms.t_camera_lidar)
     
     # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-    radar_points = loader.radar_data() # in radar coordinates
+    radar_points = loader.radar_data # in radar coordinates
     
     # Step 3: For each bounding box get a list of radar points which are inside of it
     dopplers = []

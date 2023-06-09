@@ -57,8 +57,9 @@ class FrameLabels:
 
         for act_line in self.raw_labels:  # Go line by line to split the keys
             act_line = act_line.split()
-            label, trunc, occl, alpha, l, t, r, b, h, w, l, x, y, z, rot, score = act_line
-            h, w, l, x, y, z, rot, score = map(float, [alpha, l, t, r, b, h, w, l, x, y, z, rot, score])
+            label, trunc, occl, alpha, left, top, right, bottom, h, w, l, x, y, z, rot, score = act_line
+            alpha, left, top, right, bottom = map(float, [alpha, left, top, right, bottom])
+            h, w, l, x, y, z, rot, score = map(float, [h, w, l, x, y, z, rot, score])
             trunc, occl = map(int, [trunc, occl])
             
 
@@ -77,11 +78,13 @@ class FrameLabels:
                            'trunc': trunc,
                            'occl': occl,
                            'alpha': alpha,
-                           'l': l,
-                           't': t,
-                           'r': r,
-                           'b': b})
-                
+                           'l': left,
+                           't': top,
+                           'r': right,
+                           'b': bottom})
+            
+            labels.append(labels_dict)
+            
         return labels
 
 
