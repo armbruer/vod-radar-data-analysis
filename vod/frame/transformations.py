@@ -5,7 +5,7 @@ from typing import Optional
 
 import numpy as np
 
-from .data_loader import FrameDataLoader
+from vod.frame.data_loader import FrameDataLoader
 
 
 class FrameTransformMatrix:
@@ -342,7 +342,7 @@ def cartesian_coordinates(points: np.ndarray) -> np.ndarray:
     
     # this will work unless p[3] is zero
     # p[3] is only zero in homogenous coordinate system if we have infinity in cartesian
-    return np.apply_along_axis(lambda p: np.array(p[0]/p[3], p[1]/p[3], p[2]/p[3]), axis=1, arr=points)
+    return np.apply_along_axis(lambda p: np.array([p[0]/p[3], p[1]/p[3], p[2]/p[3]]), axis=1, arr=points)
 
 
 def project_3d_to_2d(points: np.ndarray, projection_matrix: np.ndarray):

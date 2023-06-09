@@ -70,5 +70,5 @@ def get_label_annotations(label_folder, image_ids=None):
     label_folder = pathlib.Path(label_folder)
     for idx in image_ids:
         label_filename = label_folder / (str(idx).zfill(5) + '.txt')
-        annos.append(get_label_annotation(label_filename, idx))
+        annos.append(get_label_annotation(label_filename, str(idx).zfill(5)))
     return annos

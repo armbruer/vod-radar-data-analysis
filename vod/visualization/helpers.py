@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import k3d
 
-from vod import FrameLabels, FrameTransformMatrix
+from vod.frame import FrameLabels
 from vod.frame import transformations
 
 
@@ -105,15 +105,15 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
     return transformed_3d_label_corners
 
 def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camer_lidar):
-    corners_3d = get_3d_label_corners(labels, transformation, t_camer_lidar)
-    hom_to_cart = lambda points: np.apply_along_axis(lambda p: np.array(p[0]/p[3], p[1]/p[3], p[2]/p[3]), axis=1, arr=points)
+    corners_3d = get_transformed_3d_label_corners(labels, transformation, t_camer_lidar)
+    hom_to_cart = lambda points: np.apply_along_axis(lambda p: np.array([p[0]/p[3], p[1]/p[3], p[2]/p[3]]), axis=1, arr=points)
         
     return [{'label_class': label['label_class'],
             'corners_3d_transformed': hom_to_cart(label['corners_3d_transformed']),
             'score': label['score']} for label in corners_3d]
 
 
-def get_2d_label_corners(labels: FrameLabels, transformations_matrix: FrameTransformMatrix):
+def get_2d_label_corners(labels: FrameLabels, transformations_matrix: transformations.FrameTransformMatrix):
     bboxes = []
     corners_3d = get_3d_label_corners(labels)
 

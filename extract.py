@@ -74,7 +74,7 @@ def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     """
     
     # TODO we read the files this way twice, which is a bit suboptimal :O
-    labels = FrameLabels(loader.get_labels)
+    labels = FrameLabels(loader.get_labels())
     
     # Step 1: Obtain corners of bounding boxes and radar data points
     # TODO: is the last argument correct?
@@ -106,7 +106,9 @@ def RAD_from_data(annotations: List[Dict], kitti_locations: KittiLocations) -> L
     Returns a list of range, azimuth, doppler arrays
     """
     
-    locations, azimuths, dopplers: List[np.ndarray] = [], [], []
+    locations: List[np.ndarray] = []
+    azimuths: List[np.ndarray] = []
+    dopplers: List[np.ndarray] = []
 
     for anno in annotations:
         # operating here on a per frame basis!#
