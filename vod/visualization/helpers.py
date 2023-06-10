@@ -33,6 +33,7 @@ This function returns a list of 3d corners of each label in a frame given a Fram
     label_corners = []
     
     # order of corners
+    # (origin is in the center of the box)
     #    7--------4
     #   /|       /|
     #  / |      / |

@@ -1,17 +1,17 @@
 from typing import Dict, List
+
 from vod.frame import FrameDataLoader
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameLabels
 from vod.frame import homogenous_transformation_cartesian_coordinates
+from vod.visualization.helpers import get_transformed_3d_label_corners_cartesian
+
 from vod.evaluation import evaluation_common as kitti
 from vod.configuration.file_locations import KittiLocations
 
-import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-
-from vod.visualization.helpers import get_transformed_3d_label_corners_cartesian
     
 
 def locs_to_distance(locations: List[np.ndarray]) -> List[np.ndarray]:
@@ -53,9 +53,9 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
         radar_point = radar_points[i, :3]
         x, y, z = radar_point
         
-        # first index see order of corners above
-        # second index is x, y, z of the corner
-        if x >= bbox[2, 0] and x <= bbox[1, 0] and y >= bbox[1, 1] and y <= bbox[0, 1] and z >= bbox[0, 2] and z <= bbox[4, 2]:
+        # first index is x, y, z of the corner
+        # second index see order of corners above
+        if x >= bbox[0, 2] and x <= bbox[0, 1] and y >= bbox[1, 1] and y <= bbox[1, 0] and z >= bbox[2, 0] and z <= bbox[2, 4]:
             inside_points.append(radar_points[i])
             
     if not inside_points:
@@ -65,7 +65,8 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
     
     
 def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> List[np.ndarray]:
-    """For each object in the frame calculate its doppler value (if recognized).
+    """
+    For each object in the frame calculate its doppler value (if recognized).
 
     :param loader: the loader of the current frame
     :param transforms: the transformation matrix of the current frame
@@ -93,6 +94,10 @@ def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             # Step 4: Get the avg doppler value of the object and collect it
             doppler_mean = np.mean(radar_points_inside[:, 4])
             dopplers.append(doppler_mean)
+    
+        
+    if not dopplers:
+        return np.empty(0)    
     
     return np.vstack(dopplers)
     
@@ -135,30 +140,35 @@ def RAD_from_data(annotations: List[Dict], kitti_locations: KittiLocations) -> L
     ranges = locs_to_distance(locations)
     
     return [ranges, azimuths, dopplers]
-        
-
-output_dir = "output"
-root_dir = "/home/eric/Documents/mt/radar_dataset/view_of_delft_PUBLIC/"
-kitti_locations = KittiLocations(root_dir=root_dir,
-                                  output_dir="output",
-                                  frame_set_path="",
-                                  pred_dir="",
-                                  )
-
-print(f"Lidar directory: {kitti_locations.lidar_dir}")
-print(f"Radar directory: {kitti_locations.radar_dir}")
 
 
-dt_annotations = kitti.get_label_annotations(kitti_locations.label_dir)
-rad = RAD_from_data(annotations=dt_annotations, kitti_locations=kitti_locations)
+def main():
+    output_dir = "output"
+    root_dir = "/home/eric/Documents/mt/radar_dataset/view_of_delft_PUBLIC/"
+    kitti_locations = KittiLocations(root_dir=root_dir,
+                                    output_dir="output",
+                                    frame_set_path="",
+                                    pred_dir="",
+                                    )
+
+    print(f"Lidar directory: {kitti_locations.lidar_dir}")
+    print(f"Radar directory: {kitti_locations.radar_dir}")
 
 
-columns = ["range (m)", "angle (degree)", "doppler (m/s)"]
-fig, axs = plt.subplots(1, 3)
+    dt_annotations = kitti.get_label_annotations(kitti_locations.label_dir)
+    rad = RAD_from_data(annotations=dt_annotations, kitti_locations=kitti_locations)
 
-for i, column in enumerate(columns):
-    sns.violinplot(x=rad[i], ax=axs[i])
-    axs[i].set_title(column)
 
-plt.tight_layout()
-plt.show()
+    columns = ["range (m)", "angle (degree)", "doppler (m/s)"]
+    fig, axs = plt.subplots(1, 3)
+
+    for i, column in enumerate(columns):
+        sns.violinplot(x=rad[i], ax=axs[i])
+        axs[i].set_title(column)
+
+    plt.tight_layout()
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
