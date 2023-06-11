@@ -1,5 +1,9 @@
 from typing import Dict, List
 
+# TODO
+import sys
+sys.path.append("/home/eric/Documents/mt/radar_dataset/view-of-delft-dataset")
+
 from vod.frame import FrameDataLoader
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameLabels
@@ -24,7 +28,6 @@ def locs_to_distance(locations: List[np.ndarray]) -> List[np.ndarray]:
     return map(lambda loc: np.apply_along_axis(lambda x: np.linalg.norm(x), 1, loc), locations)
    
 
-# TODO maybe write test code for this?
 def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
     """
     Returns the radar points inside the given bounding box.
@@ -52,10 +55,11 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
     for i in range(radar_points.shape[0]):
         radar_point = radar_points[i, :3]
         x, y, z = radar_point
-        
-        # first index is x, y, z of the corner
-        # second index see order of corners above
-        if x >= bbox[0, 2] and x <= bbox[0, 1] and y >= bbox[1, 1] and y <= bbox[1, 0] and z >= bbox[2, 0] and z <= bbox[2, 4]:
+
+        # the correct bounding box shape can be seen in transformed_3d_labels!
+        # first index see order of corners above        
+        # second index is x, y, z of the corner
+        if x >= bbox[2, 0] and x <= bbox[1, 0] and y >= bbox[1, 1] and y <= bbox[0, 1] and z >= bbox[0, 2] and z <= bbox[4, 2]:
             inside_points.append(radar_points[i])
             
     if not inside_points:
@@ -79,25 +83,33 @@ def dopplers_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     
     # Step 1: Obtain corners of bounding boxes and radar data points
     # TODO: is the last argument correct?
-    corners3d = get_transformed_3d_label_corners_cartesian(labels, transforms.t_camera_radar, transforms.t_camera_lidar)
+    
+    # convert both to lidar coordinate system
+    # we do not really care what coordinate system we use and this seems easier
+    corners3d = get_transformed_3d_label_corners_cartesian(labels, transforms.t_camera_lidar, transforms.t_camera_lidar)
     
     # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-    radar_points = loader.radar_data # in radar coordinates
+    radar_data = loader.radar_data
+    radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_radar_lidar)
+    radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
+    
     
     # Step 3: For each bounding box get a list of radar points which are inside of it
     dopplers = []
     for label in corners3d:
         bbox = label['corners_3d_transformed']
-        radar_points_inside = points_in_bbox(radar_points=radar_points, bbox=bbox)
+        radar_data_inside_bb = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
-        if radar_points_inside.size != 0:
+        clazz = label['label_class']
+        print(f'Class: {clazz}, Matches: {radar_data_inside_bb.shape[0]}')
+        if radar_data_inside_bb.size != 0:
             # Step 4: Get the avg doppler value of the object and collect it
-            doppler_mean = np.mean(radar_points_inside[:, 4])
+            doppler_mean = np.mean(radar_data_inside_bb[:, 4])
             dopplers.append(doppler_mean)
     
         
     if not dopplers:
-        return np.empty(0)    
+        return np.empty(0)
     
     return np.vstack(dopplers)
     
@@ -125,8 +137,7 @@ def RAD_from_data(annotations: List[Dict], kitti_locations: KittiLocations) -> L
         transforms = FrameTransformMatrix(frame_data_loader_object=loader)
         
         # Transform locations to cartesian coordinates
-        locations_transformed = homogenous_transformation_cartesian_coordinates(location_values, transforms.t_radar_camera)
-        # Calculate distance from location
+        locations_transformed = homogenous_transformation_cartesian_coordinates(location_values, transforms.t_camera_radar)
         locations.append(locations_transformed)
 
         azimuths.append(azimuth_values)

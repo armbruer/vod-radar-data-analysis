@@ -297,7 +297,8 @@ def homogenous_transformation_cartesian_coordinates(points: np.ndarray, transfor
     
     hom_points = homogeneous_coordinates(points)
     transformed_points = transform.dot(hom_points.T).T
-    return cartesian_coordinates(transformed_points)
+    cart = cartesian_coordinates(transformed_points)
+    return cart
 
 
 def homogeneous_transformation(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
@@ -338,7 +339,7 @@ def cartesian_coordinates(points: np.ndarray) -> np.ndarray:
     """
     
     if points.shape[1] != 4:
-          raise ValueError(f"{points.shape[1]} must be Nx3!")
+          raise ValueError(f"{points.shape[1]} must be Nx4!")
     
     # this will work unless p[3] is zero
     # p[3] is only zero in homogenous coordinate system if we have infinity in cartesian

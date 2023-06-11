@@ -23,7 +23,7 @@ class TestParameterExtraction():
         y_corners = [10, 0, 0, 10, 10, 0, 0, 10]
         z_corners = [0, 0, 0, 0, 10, 10, 10, 10]
 
-        bbox = np.vstack([x_corners, y_corners, z_corners])
+        bbox = np.vstack([x_corners, y_corners, z_corners]).T
         
         radar_points = np.array([[1, 1, 1], [9, 8, 7], [-1, 1, 1], [1, 11, 0], [0, 0, 0], [10, 10, 10], [1, 1, -1]])
         
