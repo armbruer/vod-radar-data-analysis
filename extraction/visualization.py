@@ -50,10 +50,10 @@ class ParameterRangePlotter:
 
         figure, axs = plt.subplots(len(plot_types), len(value_labels))
 
-        for i, pt in enumerate(plot_types):
-            for j, value_label in enumerate(value_labels):
-                param = parameters[j]
-                other_label = other_labels[j]
+        for i, value_label in enumerate(value_labels):
+            for j, pt in enumerate(plot_types):
+                param = parameters[i]
+                other_label = other_labels[i]
                 
                 if len(plot_types) > 1 and len(value_labels) > 1:
                     axis = axs[i, j]
