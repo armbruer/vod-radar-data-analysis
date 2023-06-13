@@ -31,7 +31,7 @@ class StatsTableGenerator:
         stds = np.std(data, axis=0)
         
         stats = np.vstack((mins, maxs, means, vars, stds))
-        columns = DataVariant.column_names_with_unit()
+        columns = ParameterRangeExtractor.names_rad_with_unit()
         columns = list(map(lambda c: c.capitalize(), columns))
         
         df = pd.DataFrame(stats, columns=columns)

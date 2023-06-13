@@ -1,6 +1,7 @@
 # TODO
 import sys
-sys.path.append("/home/eric/Documents/mt/radar_dataset/view-of-delft-dataset")
+import os
+sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
 from vod.configuration import KittiLocations
 from vod.frame import FrameDataLoader

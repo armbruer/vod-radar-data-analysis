@@ -5,11 +5,9 @@ sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
 from typing import Dict, List
 from vod.common.file_handling import get_frame_list_from_folder
-from vod.evaluation.evaluation_common import get_label_annotations
 from vod.frame import FrameDataLoader
 from vod.frame import FrameTransformMatrix
 from vod.configuration.file_locations import KittiLocations
-from vod.frame import homogenous_transformation_cartesian_coordinates
 import extraction as ex
 from tqdm import tqdm
 from datetime import datetime
@@ -22,15 +20,8 @@ class DataVariant(Enum):
     SYNTACTIC_RAD = 0,
     SEMANTIC_RAD = 1,
     STATIC_RAD = 2,
-    DYNAMIC_RAD = 3
-    
-    @staticmethod
-    def column_names():
-        return ["range", "azimuth", "doppler"]
-    
-    @staticmethod
-    def column_names_with_unit():
-        return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
+    DYNAMIC_RAD = 3,
+    SEMANTIC_OBJECT_DATA = 4
 
 class ParameterRangeExtractor:
     
@@ -51,21 +42,45 @@ class ParameterRangeExtractor:
             return self._data[data_variant]
         
         try:
-            self._data[data_variant] = self._load_rad(data_variant)
+            self._data[data_variant] = self._load_data(data_variant)
         except FileNotFoundError as e:
-            if not "rad" in str(e):
+            if not "No matching data file found'" in str(e):
                 raise e
             
             if data_variant == DataVariant.SYNTACTIC_RAD:
-                self._store_rad(data_variant, self._extract_rad_from_syntactic_data())
+                self._store_data(data_variant, self._extract_rad_from_syntactic_data())
             elif data_variant == DataVariant.SEMANTIC_RAD:
-                self._store_rad(data_variant, self._extract_rad_from_semantic_data())
+                object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+                self._store_data(data_variant, object_data[:, 4:])
+            elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
+                self._store_data(data_variant, self._extract_object_data_from_semantic_data())
             elif data_variant == DataVariant.DYNAMIC_RAD or data_variant == DataVariant.STATIC_RAD:
                 static, dynamic = self._split_rad(self.get_data(DataVariant.SYNTACTIC_RAD))
-                self._store_rad(DataVariant.STATIC_RAD, static)
-                self._store_rad(DataVariant.DYNAMIC_RAD, dynamic)
+                self._store_data(DataVariant.STATIC_RAD, static)
+                self._store_data(DataVariant.DYNAMIC_RAD, dynamic)
+            
                 
         return self._data[data_variant]
+    
+    @staticmethod
+    def names_rad():
+        return ["range", "azimuth", "doppler"]
+    
+    
+    @staticmethod
+    def names_rad_with_unit():
+        return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
+    
+    
+    @staticmethod
+    def names_object_data():
+        return ["class", "velocity", "detections", "bbox volume", "range", "azimuth", "doppler"]
+    
+    
+    @staticmethod
+    def names_object_data_with_unit():
+        return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
+    
     
     def _extract_rad_from_syntactic_data(self) -> np.ndarray:
         """
@@ -92,9 +107,8 @@ class ParameterRangeExtractor:
             azimuths.append(np.rad2deg(ex.azimuth_angle_from_location(radar_data[:, :2])))
             dopplers.append(radar_data[:, 4])
         
-        res = np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
-        return res
-
+        return np.array([ranges, azimuths, dopplers]).T
+    
 
 
     def _split_rad(self, rad: np.ndarray, static_object_doppler_threshold: float = 0.5) -> List[np.ndarray]:
@@ -110,52 +124,37 @@ class ParameterRangeExtractor:
         cond = np.abs(rad[:, 2]) < static_object_doppler_threshold
         
         return rad[cond], rad[~cond]
-        
-        
+    
 
-    def _extract_rad_from_semantic_data(self) -> np.ndarray:
+    def _extract_object_data_from_semantic_data(self) -> np.ndarray:
         """
-        Get the Range, Azimuth, Doppler values for each frame and object in this dataset.
-        This method works on the semantic (annotated) data of the dataset.
+        For each object in the frame retrieve the following data: object tracking id, object class, absolute velocity, 
+        number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
         
-        Returns a numpy array of shape (-1, 3) with columns range, azimuth, doppler.
+        Returns a numpy array of shape (-1, 7) with columns range, azimuth, doppler.
         """
         
-        annotations = get_label_annotations(self.kitti_locations.label_dir)
-        locations: List[np.ndarray] = []
-        azimuths: List[np.ndarray] = []
-        dopplers: List[np.ndarray] = []
-
-        for anno in tqdm(iterable=annotations, desc='Semantic RAD: Going through annotations'):
-            # operating here on a per frame basis!#
-            frame_number = anno['frame_number']
-            location_values: np.ndarray = anno['location'] # (-1, 3)
-            azimuth_values: np.ndarray = anno['alpha']
-            
+        # only those frame_numbers which have annotations
+        frame_numbers = get_frame_list_from_folder(self.kitti_locations.label_dir)
+        
+        object_data_list: List[np.ndarray] = []
+        
+        # TODO: Optimally one would like to split this into multiple parts to use less memory at once...
+        for frame_number in tqdm(iterable=frame_numbers, desc='Semantic data: Going through frames'):
             loader = FrameDataLoader(kitti_locations=self.kitti_locations, frame_number=frame_number)
             transforms = FrameTransformMatrix(frame_data_loader_object=loader)
             
-            # Transform locations to cartesian coordinates
-            locations_transformed = homogenous_transformation_cartesian_coordinates(location_values, transforms.t_camera_radar)
-            locations.append(locations_transformed)
-
-            azimuths.append(azimuth_values)
-            
-            doppler_values: np.ndarray = ex.dopplers_for_objects_in_frame(loader=loader, transforms=transforms)
-            dopplers.append(doppler_values)
+            object_data: np.ndarray = ex.get_data_for_objects_in_frame(loader=loader, transforms=transforms)
+            object_data_list.append(object_data)
         
         
-        locations, azimuths, dopplers = map(np.hstack, [locations, azimuths, dopplers])
-        azimuths = np.rad2deg(azimuths)
-        ranges = ex.locs_to_distance(locations)
-        
-        return np.vstack((ranges, azimuths, dopplers)).T
+        return np.vstack(object_data_list)
     
     def _now(self): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     
-    def _load_rad(self, data_variant: DataVariant) -> np.ndarray:
+    def _load_data(self, data_variant: DataVariant) -> np.ndarray:
         """
-        Loads a RAD array of shape (-1, 3) from the most recently saved numpy file given this data_variant.
+        Loads a data array of shape from the most recently saved numpy file given this data_variant.
         
         :param data_variant: the data variant of the file to be loaded  
         """
@@ -169,21 +168,21 @@ class ParameterRangeExtractor:
         matching_files = sorted(matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
         
         if not matching_files:
-            raise FileNotFoundError('No matching rad file found')
+            raise FileNotFoundError('No matching data file found')
         
         most_recent = matching_files[-1][0]
-        rad = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
+        data = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
         
-        return rad
+        return data
     
     
-    def _store_rad(self, data_variant: DataVariant, rad: np.ndarray):
+    def _store_data(self, data_variant: DataVariant, data: np.ndarray):
         """
-        Stores the rad array in a numpy file using data variant in the name of the file.
+        Stores the data array in a numpy file using data variant in the name of the file.
         
         :param data_variant: the data_variant of this rad array
-        :param rad: the rad array of shape (-1, 3) to be stored
+        :param data: the data array to be stored
         """
         
-        self._data[data_variant] = rad
-        np.save(f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{self._now()}.npy', rad)
+        self._data[data_variant] = data
+        np.save(f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{self._now()}.npy', data)

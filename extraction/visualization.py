@@ -99,9 +99,9 @@ class ParameterRangePlotter:
         elif data_variant == DataVariant.SEMANTIC_RAD:
             return 'Range, azimuth, doppler for semantic data'
         elif data_variant == DataVariant.STATIC_RAD:
-            return 'range, angle, doppler for static, syntactic data'
-        elif data_variant == DataVariant:
-            return 'range, angle, doppler for syntactic data'
+            return 'Range, angle, doppler for static, syntactic data'
+        elif data_variant == DataVariant.SYNTACTIC_RAD:
+            return 'Range, angle, doppler for syntactic data'
         
         raise ValueError('Unknown data_variant')
 
@@ -120,7 +120,7 @@ class ParameterRangePlotter:
         self.plot_parameters(parameters=rad, 
                              plot_types=plot_types, 
                              data_variant=data_variant, 
-                             value_labels=DataVariant.column_names_with_unit(), 
+                             value_labels=ParameterRangeExtractor.names_rad_with_unit(), 
                              figure_title=ParameterRangePlotter.get_title_from_data_variant(data_variant=data_variant))
         
 
