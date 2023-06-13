@@ -1,15 +1,18 @@
-from typing import Dict, List, Optional
-from extraction import locs_to_distance
-from extraction import azimuth_angle_from_location
-from extraction.helpers import dopplers_for_objects_in_frame
+# TODO
+import sys
+import os
+sys.path.append(os.path.abspath("../view-of-delft-dataset"))
+
+from typing import Dict, List
 from vod.common.file_handling import get_frame_list_from_folder
 from vod.evaluation.evaluation_common import get_label_annotations
 from vod.frame import FrameDataLoader
 from vod.frame import FrameTransformMatrix
-from vod.frame import homogenous_transformation_cartesian_coordinates
-
-from datetime import datetime
 from vod.configuration.file_locations import KittiLocations
+from vod.frame import homogenous_transformation_cartesian_coordinates
+import extraction as ex
+from tqdm import tqdm
+from datetime import datetime
 
 import numpy as np
 import os
@@ -27,7 +30,7 @@ class ParameterRangeExtractor:
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
         
-        self._data = Dict[DataVariant, np.ndarray]
+        self._data: Dict[DataVariant, np.ndarray] = {}
     
     def get_data(self, data_variant: DataVariant) -> np.ndarray:
         """
@@ -37,13 +40,13 @@ class ParameterRangeExtractor:
         
         Returns the array containing the data requested in data_variant
         """
-        if self._data[data_variant] is not None:
+        if self._data.get(data_variant) is not None:
             return self._data[data_variant]
         
         try:
             self._data[data_variant] = self._load_rad(data_variant)
         except FileNotFoundError as e:
-            if not "RAD" in str(e):
+            if not "rad" in str(e):
                 raise e
             
             if data_variant == DataVariant.SYNTACTIC_RAD:
@@ -65,23 +68,25 @@ class ParameterRangeExtractor:
         
         Returns a numpy array of shape (-1, 3) with columns range, azimuth, doppler.
         """
-        frame_numbers = get_frame_list_from_folder(self.kitti_locations.lidar_dir)
+        frame_numbers = get_frame_list_from_folder(self.kitti_locations.radar_dir, labels=False)
         
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
         
-        for frame_number in frame_numbers:
+        # TODO: Optimally one would like to split this into multiple parts to use less memory at once...
+        for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic RAD: Going through frames'):
             loader = FrameDataLoader(kitti_locations=self.kitti_locations, frame_number=frame_number)
             
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data = loader.radar_data 
             
-            ranges.append(locs_to_distance([radar_data[:, :3]])[0])
-            azimuths.append(np.rad2deg(azimuth_angle_from_location(radar_data[:, :2])))
+            ranges.append(ex.locs_to_distance(radar_data[:, :3]))
+            azimuths.append(np.rad2deg(ex.azimuth_angle_from_location(radar_data[:, :2])))
             dopplers.append(radar_data[:, 4])
         
-        return np.hstack(map(np.vstack, [ranges, azimuths, dopplers]))
+        res = np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
+        return res
 
 
 
@@ -95,7 +100,7 @@ class ParameterRangeExtractor:
         
         Returns two RAD arrays, the first resulting array contains static detections and the second contains dynamic detections
         """
-        cond = rad[:, 2] < static_object_doppler_threshold
+        cond = np.abs(rad[:, 2]) < static_object_doppler_threshold
         
         return rad[cond], rad[~cond]
         
@@ -114,7 +119,7 @@ class ParameterRangeExtractor:
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
 
-        for anno in annotations:
+        for anno in tqdm(iterable=annotations, desc='Semantic RAD: Going through annotations'):
             # operating here on a per frame basis!#
             frame_number = anno['frame_number']
             location_values: np.ndarray = anno['location'] # (-1, 3)
@@ -129,17 +134,17 @@ class ParameterRangeExtractor:
 
             azimuths.append(azimuth_values)
             
-            doppler_values: np.ndarray = dopplers_for_objects_in_frame(loader=loader, transforms=transforms)
+            doppler_values: np.ndarray = ex.dopplers_for_objects_in_frame(loader=loader, transforms=transforms)
             dopplers.append(doppler_values)
         
         
-        locations, azimuths, dopplers = map(np.vstack, [locations, azimuths, dopplers])
+        locations, azimuths, dopplers = map(np.hstack, [locations, azimuths, dopplers])
         azimuths = np.rad2deg(azimuths)
-        ranges = locs_to_distance(locations)
+        ranges = ex.locs_to_distance(locations)
         
-        return np.hstack((ranges, azimuths, dopplers))
+        return np.vstack((ranges, azimuths, dopplers)).T
     
-    def _now(_): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    def _now(self): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     
     def _load_rad(self, data_variant: DataVariant) -> np.ndarray:
         """
@@ -147,13 +152,14 @@ class ParameterRangeExtractor:
         
         :param data_variant: the data variant of the file to be loaded  
         """
+        data_variant = data_variant.name.lower()
         matching_files = []
         for file in os.listdir(self.kitti_locations.output_dir):
-            if file.endswith('.npy') and str(data_variant) in file:
+            if file.endswith('.npy') and data_variant in file:
                 datetime_str = file.split('-')[1].split('.')[0]
                 matching_files.append((file, datetime_str))
         
-        matching_files = sorted(matching_files, key=lambda x: datetime.strptime(x, '%Y_%m_%d_%H_%M_%S'))
+        matching_files = sorted(matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
         
         if not matching_files:
             raise FileNotFoundError('No matching rad file found')
@@ -173,4 +179,4 @@ class ParameterRangeExtractor:
         """
         
         self._data[data_variant] = rad
-        np.save(f'{self.kitti_locations.output_dir}/{str(data_variant)}-{self._now()}.npy', rad)
+        np.save(f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{self._now()}.npy', rad)

@@ -1,16 +1,18 @@
 # TODO
+import sys
+import os
+sys.path.append(os.path.abspath("../view-of-delft-dataset"))
+
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+
 from datetime import datetime
 from enum import Enum
 from typing import List
-from extraction.extract import DataVariant, ParameterRangeExtractor
+from extraction import DataVariant, ParameterRangeExtractor
 from vod.configuration.file_locations import KittiLocations
-from vod.evaluation.evaluation_common import get_label_annotations
-import extraction as ex
-import sys
-sys.path.append("/home/eric/Documents/mt/radar_dataset/view-of-delft-dataset")
+
 
 
 class PlotType(Enum):
@@ -22,90 +24,117 @@ class PlotType(Enum):
 
 class ParameterRangePlotter:
 
-    def now(_): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
 
-    def plot_parameters(self, parameters: List[np.ndarray], titles: List[str], plot_types: List[PlotType], figure_name: str ='parameters') -> None:
-
-        if len(parameters) != len(titles):
-            raise ValueError(
-                'Expecting equal amounts of parameters and titles')
-
+    def plot_parameters(self,
+                        parameters: List[np.ndarray],
+                        plot_types: List[PlotType],
+                        data_variant: DataVariant = None, 
+                        **kwargs) -> None:
+        
+        figure_name = kwargs.get('figure_name', 'parameters')
+        figure_title = kwargs.get('figure_title')
+        value_labels = kwargs.get('value_labels', len(parameters) * [''])
+        other_labels = kwargs.get('other_labels', len(parameters) * [''])
+        
+        if(not(len(value_labels) == len(other_labels) == len(parameters))):
+            raise ValueError('Expecting the length of value_labels, other_labels and parameters to be equal')
+        
         if plot_types[0] != PlotType.KNEEPLOT:
             for p in parameters:
                 if p.ndim != 1:
                     raise ValueError(
                         'Expecting each parameter distribution to be of dimension 1')
 
-        _, axs = plt.subplots(len(plot_types), len(parameters))
+        figure, axs = plt.subplots(len(plot_types), len(value_labels))
+        
+        if figure_title:
+            figure.suptitle(figure_title)
 
         for i, pt in enumerate(plot_types):
-            for j, title in enumerate(titles):
-                param = parameters[i*len(title)+j]
-                axis = axs[i, j]
-
-                axis.set_title(title)
-                # TODO need x, y labels
+            for j, value_label in enumerate(value_labels):
+                param = parameters[j]
+                other_label = other_labels[j]
+                
+                if len(plot_types) > 1 and len(value_labels) > 1:
+                    axis = axs[i, j]
+                elif len(plot_types) == 1 and len(value_labels) == 1:
+                    axis = axs
+                elif len(plot_types) == 1:
+                    axis = axs[j] # the other index
+                else:
+                    axis = axs[i] # the other index
 
                 if pt == PlotType.VIOLIN:
-                    sns.violinplot(x=param, ax=axis)
+                    gfg = sns.violinplot(y=param, ax=axis)
+                    gfg.set(ylabel=value_label)
                 elif pt == PlotType.BOXPLOT:
-                    sns.boxplot(x=param, ax=axis)
+                    gfg = sns.boxplot(y=param, ax=axis)
+                    gfg.set(ylabel=value_label)
                 elif pt == PlotType.HISTOGRAM:
-                    sns.histplot(x=param, ax=axis, bins=50)
+                    gfg = sns.histplot(x=param, ax=axis, bins=50)
+                    gfg.set(xlabel=value_label)
                 elif pt == PlotType.KNEEPLOT:
-                    sns.lineplot(data=param)
+                    indices = np.arange(0, param.shape[0], 1)
+                    gfg = sns.lineplot(x=indices, y=param)
+                    axis.set_xscale('log')
+                    axis.grid()
+                    gfg.set(xlabel=other_label, ylabel=value_label)
+                
 
-        plt.tight_layout()
-        plt.show()
-        path = f"{self.kitti_locations.output_dir}/{figure_name}_{ParameterRangePlotter.now()}"
-        plt.savefig(f'{path}.svg', format='svg')
-        plt.savefig(f'{path}.png', format='png')
-        plt.close()
+        figure.tight_layout()
+        #plt.show()
+        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        path = f"{self.kitti_locations.output_dir}/{data_variant.name.lower() if data_variant is not None else figure_name}_{now}"
+        figure.savefig(f'{path}.svg', format='svg')
+        figure.savefig(f'{path}.png', format='png')
 
-    def plot_kneeplot(self, param: np.ndarray, title: str) -> None:
+    def plot_kneeplot(self, param: np.ndarray, **kwargs) -> None:
         if param.ndim != 1:
             raise ValueError(
                 'Expecting each parameter distribution to be of dimension 1')
 
-        param_sorted = np.sort(param)
-        indices = np.arange(0, param.shape[0], 1)
-        combined = np.hstack((indices, param_sorted))
+        self.plot_parameters([np.sort(param)], [PlotType.KNEEPLOT], **kwargs)
 
-        self.plot_parameters([combined], [title], [PlotType.KNEEPLOT])
-
-    def plot_rad_data(self, rad, data_variant: DataVariant):
-        titles = ["range (m)", "angle (degree)", "doppler (m/s)"]
+    def plot_rad_data(self, data_variant: DataVariant):
+        value_labels = ["range (m)", "angle (degree)", "doppler (m/s)"]
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
         extractor = ParameterRangeExtractor(self.kitti_locations)
         
         rad = list(extractor.get_data(data_variant).T)
-        self.plot_parameters(params=rad, titles=titles, plot_types=plot_types)
+        self.plot_parameters(parameters=rad, value_labels=value_labels, plot_types=plot_types, data_variant=data_variant)
 
     def plot_kneeplot_from_syntactic_data(self):
         extractor = ParameterRangeExtractor(self.kitti_locations)
         rad = extractor.get_data(DataVariant.SYNTACTIC_RAD)
         
-        self.plot_kneeplot(param=rad[2], title='kneeplot doppler')
+        kwargs = {
+            'value_labels': ['doppler (m/s)'],
+            'other_labels': ['index'],
+            'figure_name':  'kneeplot',
+            'figure_title': 'kneeplot doppler (syntactic data)',
+            }
+        self.plot_kneeplot(param=rad[:, 2], **kwargs)
 
 
 def main():
     output_dir = "output"
-    root_dir = "/home/eric/Documents/mt/radar_dataset/view_of_delft_PUBLIC/"
+    root_dir = "../view_of_delft_PUBLIC/"
     kitti_locations = KittiLocations(root_dir=root_dir,
                                      output_dir=output_dir,
                                      frame_set_path="",
                                      pred_dir="",
                                      )
 
-    print(f"Lidar directory: {kitti_locations.lidar_dir}")
-    print(f"Radar directory: {kitti_locations.radar_dir}")
+    abs = lambda p: os.path.abspath(p)
+    print(f"Radar directory: {abs(kitti_locations.radar_dir)}")
+    print(f"Label directory: {abs(kitti_locations.label_dir)}")
+    print(f"Output directory: {abs(kitti_locations.output_dir)}")
 
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     plotter.plot_kneeplot_from_syntactic_data()
-    plotter.plot_rad_data(DataVariant.SYNTACTIC_RAD)
+    #plotter.plot_rad_data(DataVariant.SYNTACTIC_RAD)
 
 
 if __name__ == '__main__':

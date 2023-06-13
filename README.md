@@ -2,6 +2,54 @@
 
 # The View of Delft dataset
 
+## Parameter Range Extraction
+
+This section is the only one not by the view-of-delft dataset authors and describes how to setup this repository 
+
+### Setup
+
+**Warning:** Do not use anaconda or miniconda to setup this repository! It's horribly slow.**
+
+Instead use [micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html).
+
+Installation guide for Arch Linux:
+
+1. Clone
+
+```shell
+git clone git@gitlab.lrz.de:master-thesis8/delt-radar-data-extractor.git
+cd delt-radar-data-extractor
+```
+
+2. Install micromamba (from AUR using your favorite helper, e.g. [aura](https://github.com/fosskers/aura))
+
+```shell
+sudo aura -A micromamba-bin
+```
+
+3. Activate the environment 
+
+As with any python virtual environment you need to run this everytime before running code in this repo.
+
+```shell
+micromamba activate view-of-delft
+#source /home/eric/micromamba/bin/activate view-of-delft
+```
+
+4. Create a python environment with the packages required for this repository using micromamba
+
+```shell
+micromamba create -n view-of-delft -f environment.yml -c conda-forge
+```
+
+5. Use VS-code (PyCharm does not support micromamba at the time of writing)
+
+Install the `Python Extension Pack` and select the interpreter (micromamba virtual environment).
+
+
+### Usage
+
+
 This repository shares the documentation and development kit of the View of Delft automotive dataset.
 
 <div align="center">
