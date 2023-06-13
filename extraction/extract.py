@@ -23,7 +23,14 @@ class DataVariant(Enum):
     SEMANTIC_RAD = 1,
     STATIC_RAD = 2,
     DYNAMIC_RAD = 3
-
+    
+    @staticmethod
+    def column_names():
+        return ["range", "azimuth", "doppler"]
+    
+    @staticmethod
+    def column_names_with_unit():
+        return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
 
 class ParameterRangeExtractor:
     
