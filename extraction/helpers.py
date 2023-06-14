@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 
 from vod.frame.data_loader import FrameDataLoader
@@ -22,7 +23,7 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     # TODO be sure we have the correct angle, i.e. counterclockwise/clockwise
     return np.apply_along_axis(lambda row: np.arctan2(row[0], row[1]), 1, locations)
    
-def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
+def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
@@ -57,7 +58,7 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> np.ndarray:
             inside_points.append(radar_points[i])
             
     if not inside_points:
-        return np.empty(0)
+        return None
             
     return np.vstack(inside_points)
 
@@ -145,9 +146,11 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         bbox = label['corners_3d_transformed']
         points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
+        vis_to_debug(loader)
+        
         class_name = label['label_class']
         print(f'Class: {class_name}, Matches: {points_matching.shape[0]}')
-        if points_matching.size != 0:
+        if points_matching is not None:
             # Step 4: Get the avg doppler value of the object and collect it
             
             object_clazz.append(class_id_from_name(class_name))
@@ -169,3 +172,24 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     columns = [object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
     # create one array of shape (-1, 7)
     return np.array(columns).T
+
+def vis_to_debug(frame_data: FrameDataLoader):
+    from vod.visualization import Visualization3D
+    vis3d = Visualization3D(frame_data)
+
+    vis3d.draw_plot(radar_origin_plot = True,
+                  lidar_origin_plot = True,
+                  camera_origin_plot = True,
+                  lidar_points_plot = True,
+                  radar_points_plot = True,
+                  annotations_plot = True)
+    
+    from vod.visualization import Visualization2D
+    vis2d = Visualization2D(frame_data)
+    
+    vis2d.draw_plot(show_lidar=True,
+                             show_radar=True,
+                             show_gt=True,
+                             min_distance_threshold=5,
+                             max_distance_threshold=40,
+                             save_figure=True)

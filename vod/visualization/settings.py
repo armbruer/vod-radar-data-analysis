@@ -6,6 +6,8 @@ axis_length_3d = 1
 axis_label_size = 0.5
 
 label_color_palette_3d = {
+            "motor": 0xFFFF00,
+            "truck": 0xFFF200,
             "Car": 0xFF0000,
             "Pedestrian": 0x00FF00,
             "Cyclist": 0x0000FF,
@@ -19,6 +21,8 @@ label_color_palette_3d = {
 }
 
 label_line_width_3d = {
+            "motor": 0.05,
+            "truck": 0.05,
             "Car": 0.05,
             "Pedestrian": 0.05,
             "Cyclist": 0.02,

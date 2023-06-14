@@ -4,6 +4,7 @@ channels:
   - defaults
   - open3d-admin
 dependencies:
+  - ipykernel
   - pytest
   - pyproj
   - ipython=7.20

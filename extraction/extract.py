@@ -12,10 +12,7 @@ from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
-from typing import Dict, List
-
-class NoMatchingFileFound(Exception):
-    pass
+from typing import Dict, List, Optional
 
 class DataVariant(Enum):
     SYNTACTIC_RAD = 0,
@@ -64,34 +61,30 @@ class ParameterRangeExtractor:
 
         Returns the array containing the data requested in data_variant
         """
-        if self._data.get(data_variant) is not None:
+        if self._data.get(data_variant) is not None or self._load_data(data_variant) is not None:
             return self._data[data_variant]
 
-        try:
-            self._data[data_variant] = self._load_data(data_variant)
-        except NoMatchingFileFound:
-
-            if data_variant == DataVariant.SYNTACTIC_RAD:
-                self._store_data(
-                    data_variant, self._extract_rad_from_syntactic_data())
-            
-            elif data_variant == DataVariant.SEMANTIC_RAD:
-                object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-                self._store_data(data_variant, object_data[:, 4:])
-            
-            elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
-                self._store_data(
-                    data_variant, self._extract_object_data_from_semantic_data())
-            
-            elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-                object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-                object_data_by_class = self._split_by_class(object_data)
-                self._store_data(object_data_by_class, self._extract_object_data_from_semantic_data())
-                                
-            elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
-                stat_dyn_rad = self._split_rad_by_threshold(
-                    self.get_data(DataVariant.SYNTACTIC_RAD))
-                self._store_data(DataVariant.STATIC_DYNAMIC_RAD, stat_dyn_rad)
+        if data_variant == DataVariant.SYNTACTIC_RAD:
+            self._store_data(
+                data_variant, self._extract_rad_from_syntactic_data())
+        
+        elif data_variant == DataVariant.SEMANTIC_RAD:
+            object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            self._store_data(data_variant, object_data[:, 4:])
+        
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
+            self._store_data(
+                data_variant, self._extract_object_data_from_semantic_data())
+        
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+            object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            object_data_by_class = self._split_by_class(object_data)
+            self._store_data(object_data_by_class, self._extract_object_data_from_semantic_data())
+                            
+        elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
+            stat_dyn_rad = self._split_rad_by_threshold(
+                self.get_data(DataVariant.SYNTACTIC_RAD))
+            self._store_data(DataVariant.STATIC_DYNAMIC_RAD, stat_dyn_rad)
 
         return self._data[data_variant]
 
@@ -181,7 +174,7 @@ class ParameterRangeExtractor:
 
     def _now(self): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
-    def _load_data(self, data_variant: DataVariant) -> np.ndarray:
+    def _load_data(self, data_variant: DataVariant) -> Optional[np.ndarray]:
         """
         Loads a data array of shape from the most recently saved numpy file given this data_variant.
 
@@ -198,12 +191,12 @@ class ParameterRangeExtractor:
             matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
 
         if not matching_files:
-            raise NoMatchingFileFound(f'{str(__class__)}: No matching data file found')
+            return None
 
         most_recent = matching_files[-1][0]
-        data = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
+        self._data[data_variant] = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
 
-        return data
+        return self._data[data_variant]
 
     def _store_data(self, data_variant: DataVariant, data: np.ndarray):
         """

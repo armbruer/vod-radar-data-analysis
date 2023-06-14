@@ -1,0 +1,36 @@
+name: view-of-delft-env
+channels:
+  - conda-forge
+  - defaults
+  - open3d-admin
+dependencies:
+  - ipykernel
+  - pytest
+  - pyproj
+  - ipython
+  - jupyter
+  - matplotlib
+  - numpy
+  - numba
+  - seaborn
+  - python=3.9
+  - ffmpeg
+  - k3d # Visualization library
+  - ipympl
+  - jinja2
+  - jupyter_client
+  - tqdm # progress bars
+  - open3d # 3D point cloud algorithms
+  - transforms3d
+  - funcy # for timing
+  - nbqa # code quality (jupyter notebooks)
+  - pylint # code quality
+  - mypy # code quality
+  - pyupgrade # code quality
+  - flake8 # code quality
+  - isort # code quality
+  - pip
+  - pip:
+    - ipynb
+    - black[jupyter]
+    - vulture

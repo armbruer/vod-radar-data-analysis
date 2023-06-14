@@ -100,7 +100,6 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
         new_corners_3d_hom = transformations.homogeneous_transformation(new_corners_3d_hom,
                                                                               transformation)
         corners_3d_transformed.append(new_corners_3d_hom)
-        
     
     labels_with_corners = labels.labels_dict.copy()
     for i, label in enumerate(labels_with_corners):
