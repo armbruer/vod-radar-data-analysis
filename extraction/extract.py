@@ -1,4 +1,7 @@
 # TODO
+import sys
+import os
+sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 from enum import Enum
 import numpy as np
 from datetime import datetime
@@ -9,10 +12,7 @@ from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
-from typing import Dict, List, Union
-import sys
-import os
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
+from typing import Dict, List
 
 
 class DataVariant(Enum):
@@ -44,7 +44,7 @@ class DataVariant(Enum):
             else:
                 return "dynamic_rad"
             
-        raise ''
+        return ''
 
 
 class ParameterRangeExtractor:
@@ -68,7 +68,7 @@ class ParameterRangeExtractor:
         try:
             self._data[data_variant] = self._load_data(data_variant)
         except FileNotFoundError as e:
-            if not "No matching data file found'" in str(e):
+            if not str(__class__) in str(e):
                 raise e
 
             if data_variant == DataVariant.SYNTACTIC_RAD:
@@ -122,7 +122,7 @@ class ParameterRangeExtractor:
                 ex.azimuth_angle_from_location(radar_data[:, :2])))
             dopplers.append(radar_data[:, 4])
 
-        return np.array([ranges, azimuths, dopplers]).T
+        return np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
 
     def _split_by_class(self, object_data: np.ndarray) -> np.ndarray:
         """
@@ -198,7 +198,7 @@ class ParameterRangeExtractor:
             matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
 
         if not matching_files:
-            raise FileNotFoundError('No matching data file found')
+            raise FileNotFoundError(f'{str(__class__)}: No matching data file found')
 
         most_recent = matching_files[-1][0]
         data = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')

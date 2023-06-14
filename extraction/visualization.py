@@ -29,7 +29,7 @@ class ParameterRangePlotter:
         self.kitti_locations = kitti_locations
 
 
-    def plot_data(self, data_variant: DataVariant) -> None:
+    def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
         extractor = ParameterRangeExtractor(self.kitti_locations)
         data = extractor.get_data(data_variant)
@@ -47,12 +47,12 @@ class ParameterRangePlotter:
         value_labels = kwargs.get('value_labels', data.shape[1] * [''])
         other_labels = kwargs.get('other_labels', data.shape[1] * [''])
         
-        if(not(len(value_labels) == len(other_labels) == data.shape[1]))):
+        if(not(len(value_labels) == len(other_labels) == data.shape[1])):
             raise ValueError(f'Expecting the length of value_labels, other_labels to be equal to {data.shape[1]}')
         
         figures = data.shape[2] if data.ndim == 3 else 1
-        for k in figures:
-            data = data[:, :, k] if data.ndim == 3 else 1
+        for k in range(figures):
+            data = data[:, :, k] if data.ndim == 3 else data
             index_name = data_variant.index_to_str(k)
 
             figure, axs = plt.subplots(len(plot_types), len(value_labels))
@@ -133,10 +133,12 @@ def main():
 
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
-    stats_generator.write_stats(DataVariant.SYNTACTIC_RAD)
-
-    #plotter.plot_kneeplot_from_syntactic_data()
-    #plotter.plot_rad_data(DataVariant.SYNTACTIC_RAD)
+    
+    dvs = [DataVariant.SYNTACTIC_RAD]
+    
+    for dv in dvs:
+        stats_generator.write_stats(dv)
+        plotter.plot_data_simple(dv)
 
 
 

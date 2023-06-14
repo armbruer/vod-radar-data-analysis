@@ -3,7 +3,6 @@ import sys
 import os
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
-from extraction import name_from_class_id
 from extraction import DataVariant, ParameterRangeExtractor
 import numpy as np
 import pandas as pd
@@ -37,7 +36,6 @@ class StatsTableGenerator:
         mins = np.min(data, axis=0)
         maxs = np.max(data, axis=0)
         means = np.mean(data, axis=0)
-        vars = np.mean(data, axis=0)
         stds = np.std(data, axis=0)
         
         stats = np.vstack((mins, maxs, means, vars, stds))
