@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
@@ -78,10 +79,10 @@ This function returns a list of 3d corners of each label in a frame given a Fram
     return label_corners
 
 
-def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar):
+def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     corners_3d = get_3d_label_corners(labels)
     
-    corners_3d_transformed = []
+    corners_3d_transformed: List[np.ndarray] = []
 
     for index, label in enumerate(labels.labels_dict):
         rotation = -(label['rotation'] + np.pi / 2)  # undo changes made to rotation
@@ -103,16 +104,18 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
     
     labels_with_corners = labels.labels_dict.copy()
     for i, label in enumerate(labels_with_corners):
-        label.update('corners_3d_transformed', corners_3d_transformed[i])
+        label['corners_3d_transformed'] = corners_3d_transformed[i]
 
     return labels_with_corners
 
-def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camera_lidar):
+def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     labels_with_corners = get_transformed_3d_label_corners(labels, transformation, t_camera_lidar)
     hom_to_cart = lambda points: np.apply_along_axis(lambda p: np.array([p[0]/p[3], p[1]/p[3], p[2]/p[3]]), axis=1, arr=points)
     
     for label in labels_with_corners:
-        label.update('corners_3d_transformed', hom_to_cart(label['corners_3d_transformed']))
+        label['corners_3d_transformed'] = hom_to_cart(label['corners_3d_transformed'])
+        
+    return labels_with_corners
 
 
 def get_2d_label_corners(labels: FrameLabels, transformations_matrix: transformations.FrameTransformMatrix):

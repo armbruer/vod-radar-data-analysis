@@ -134,7 +134,7 @@ def main():
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
     
-    dvs = [DataVariant.SYNTACTIC_RAD]
+    dvs = [DataVariant.SEMANTIC_RAD]
     
     for dv in dvs:
         stats_generator.write_stats(dv)

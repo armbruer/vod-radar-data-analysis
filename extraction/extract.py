@@ -14,6 +14,8 @@ from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
 from typing import Dict, List
 
+class NoMatchingFileFound(Exception):
+    pass
 
 class DataVariant(Enum):
     SYNTACTIC_RAD = 0,
@@ -67,9 +69,7 @@ class ParameterRangeExtractor:
 
         try:
             self._data[data_variant] = self._load_data(data_variant)
-        except FileNotFoundError as e:
-            if not str(__class__) in str(e):
-                raise e
+        except NoMatchingFileFound:
 
             if data_variant == DataVariant.SYNTACTIC_RAD:
                 self._store_data(
@@ -198,7 +198,7 @@ class ParameterRangeExtractor:
             matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
 
         if not matching_files:
-            raise FileNotFoundError(f'{str(__class__)}: No matching data file found')
+            raise NoMatchingFileFound(f'{str(__class__)}: No matching data file found')
 
         most_recent = matching_files[-1][0]
         data = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
