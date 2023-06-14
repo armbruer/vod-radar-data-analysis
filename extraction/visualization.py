@@ -28,101 +28,81 @@ class ParameterRangePlotter:
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
 
-    def plot_parameters(self,
-                        parameters: List[np.ndarray],
+
+    def plot_data(self, data_variant: DataVariant) -> None:
+        plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
+        extractor = ParameterRangeExtractor(self.kitti_locations)
+        data = extractor.get_data(data_variant)
+        columns = data_variant.column_names(with_unit=True)
+        
+        self.plot_data(data=data, plot_types=plot_types, data_variant=data_variant, value_labels=columns)
+        
+    def plot_data(self,
+                        data: np.ndarray,
                         plot_types: List[PlotType],
                         data_variant: DataVariant = None, 
                         **kwargs) -> None:
         
-        figure_name = kwargs.get('figure_name', 'parameters')
-        figure_title = kwargs.get('figure_title')
-        value_labels = kwargs.get('value_labels', len(parameters) * [''])
-        other_labels = kwargs.get('other_labels', len(parameters) * [''])
+        figure_name = kwargs.get('figure_name', data_variant.name.lower())
+        value_labels = kwargs.get('value_labels', data.shape[1] * [''])
+        other_labels = kwargs.get('other_labels', data.shape[1] * [''])
         
-        if(not(len(value_labels) == len(other_labels) == len(parameters))):
-            raise ValueError('Expecting the length of value_labels, other_labels and parameters to be equal')
+        if(not(len(value_labels) == len(other_labels) == data.shape[1]))):
+            raise ValueError(f'Expecting the length of value_labels, other_labels to be equal to {data.shape[1]}')
         
-        if plot_types[0] != PlotType.KNEEPLOT:
-            for p in parameters:
-                if p.ndim != 1:
-                    raise ValueError(
-                        'Expecting each parameter distribution to be of dimension 1')
+        figures = data.shape[2] if data.ndim == 3 else 1
+        for k in figures:
+            data = data[:, :, k] if data.ndim == 3 else 1
+            index_name = data_variant.index_to_str(k)
 
-        figure, axs = plt.subplots(len(plot_types), len(value_labels))
+            figure, axs = plt.subplots(len(plot_types), len(value_labels))
 
-        for i, value_label in enumerate(value_labels):
-            for j, pt in enumerate(plot_types):
-                param = parameters[i]
-                other_label = other_labels[i]
-                
-                if len(plot_types) > 1 and len(value_labels) > 1:
-                    axis = axs[i, j]
-                elif len(plot_types) == 1 and len(value_labels) == 1:
-                    axis = axs
-                elif len(plot_types) == 1:
-                    axis = axs[j] # the other index
-                else:
-                    axis = axs[i] # the other index
+            for i, value_label in enumerate(value_labels):
+                for j, pt in enumerate(plot_types):
+                    param = data[:, i]
+                    other_label = other_labels[i]
+                    
+                    if len(plot_types) > 1 and len(value_labels) > 1:
+                        axis = axs[i, j]
+                    elif len(plot_types) == 1 and len(value_labels) == 1:
+                        axis = axs
+                    elif len(plot_types) == 1:
+                        axis = axs[j] # the other index
+                    else:
+                        axis = axs[i] # the other index
 
-                if pt == PlotType.VIOLIN:
-                    gfg = sns.violinplot(y=param, ax=axis)
-                    gfg.set(ylabel=value_label)
-                elif pt == PlotType.BOXPLOT:
-                    gfg = sns.boxplot(y=param, ax=axis)
-                    gfg.set(ylabel=value_label)
-                elif pt == PlotType.HISTOGRAM:
-                    gfg = sns.histplot(x=param, ax=axis, bins=30)
-                    axis.set_yscale('log')
-                    gfg.set(xlabel=value_label)
-                elif pt == PlotType.KNEEPLOT:
-                    indices = np.arange(0, param.shape[0], 1)
-                    gfg = sns.lineplot(x=indices, y=param)
-                    axis.set_xscale('log')
-                    axis.grid()
-                    gfg.set(xlabel=other_label, ylabel=value_label)
-                
+                    if pt == PlotType.VIOLIN:
+                        gfg = sns.violinplot(y=param, ax=axis)
+                        gfg.set(ylabel=value_label)
+                    elif pt == PlotType.BOXPLOT:
+                        gfg = sns.boxplot(y=param, ax=axis)
+                        gfg.set(ylabel=value_label)
+                    elif pt == PlotType.HISTOGRAM:
+                        gfg = sns.histplot(x=param, ax=axis, bins=30)
+                        axis.set_yscale('log')
+                        gfg.set(xlabel=value_label)
+                    elif pt == PlotType.KNEEPLOT:
+                        indices = np.arange(0, param.shape[0], 1)
+                        gfg = sns.lineplot(x=indices, y=param)
+                        axis.set_xscale('log')
+                        axis.grid()
+                        gfg.set(xlabel=other_label, ylabel=value_label)
+                    
 
-        figure.tight_layout()
-        #plt.show()
-        if figure_title:
-            figure.suptitle(figure_title)
-        
-        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        path = f"{self.kitti_locations.output_dir}/{data_variant.name.lower() if data_variant is not None else figure_name}_{now}"
-        figure.savefig(f'{path}.svg', format='svg')
-        figure.savefig(f'{path}.png', format='png')
-
-    @staticmethod
-    def get_title_from_data_variant(data_variant: DataVariant) -> str:
-        if data_variant == DataVariant.DYNAMIC_RAD:
-            return 'Range, azimuth, doppler for dynamic, syntactic data'
-        elif data_variant == DataVariant.SEMANTIC_RAD:
-            return 'Range, azimuth, doppler for semantic data'
-        elif data_variant == DataVariant.STATIC_RAD:
-            return 'Range, angle, doppler for static, syntactic data'
-        elif data_variant == DataVariant.SYNTACTIC_RAD:
-            return 'Range, angle, doppler for syntactic data'
-        
-        raise ValueError('Unknown data_variant')
+            figure.tight_layout()
+            #plt.show()
+            
+            now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            path = f"{self.kitti_locations.output_dir}/{figure_name}_{index_name}_{now}"
+            figure.savefig(f'{path}.svg', format='svg')
+            figure.savefig(f'{path}.png', format='png')
 
     def plot_kneeplot(self, param: np.ndarray, **kwargs) -> None:
         if param.ndim != 1:
             raise ValueError(
                 'Expecting each parameter distribution to be of dimension 1')
 
-        self.plot_parameters([np.sort(param)], [PlotType.KNEEPLOT], **kwargs)
-
-    def plot_rad_data(self, data_variant: DataVariant) -> None:
-        plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
-        extractor = ParameterRangeExtractor(self.kitti_locations)
-        
-        rad = list(extractor.get_data(data_variant).T)
-        self.plot_parameters(parameters=rad, 
-                             plot_types=plot_types, 
-                             data_variant=data_variant, 
-                             value_labels=ParameterRangeExtractor.names_rad_with_unit(), 
-                             figure_title=ParameterRangePlotter.get_title_from_data_variant(data_variant=data_variant))
-        
+        self.plot_data(np.sort(param), [PlotType.KNEEPLOT], **kwargs)
 
         
     def plot_kneeplot_from_syntactic_data(self) -> None:
@@ -133,7 +113,6 @@ class ParameterRangePlotter:
             'value_labels': ['doppler (m/s)'],
             'other_labels': ['index'],
             'figure_name':  'kneeplot',
-            'figure_title': 'kneeplot doppler (syntactic data)',
             }
         self.plot_kneeplot(param=rad[:, 2], **kwargs)
 
