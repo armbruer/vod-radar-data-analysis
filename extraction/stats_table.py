@@ -2,6 +2,7 @@ from extraction import DataVariant, ParameterRangeExtractor
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import logging
 
 from vod.configuration.file_locations import KittiLocations
 
@@ -13,11 +14,7 @@ class StatsTableGenerator:
     def write_stats(self, data_variant: DataVariant) -> None:
         ex = ParameterRangeExtractor(kitti_locations=self.kitti_locations)
         data: np.ndarray = ex.get_data(data_variant=data_variant)
-        if data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
-            data = data[:, 1:]
-            self._write_stats(data_variant, data, data_variant.name.lower())
-            return
-        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
+        if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             for i in range(data.shape[2]):
                 self._write_stats(data_variant, data[:, :, i], data_variant.index_to_str(i))
                 return
@@ -54,4 +51,6 @@ class StatsTableGenerator:
             column_format=len(columns) * "c", 
             index=False,
         )
+        
+        logging.info(f'Stats written to file:///{outpath}.csv')
 

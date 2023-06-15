@@ -27,9 +27,9 @@ class DataVariant(Enum):
         elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
             # we never want the class, even though it is included
             if with_unit:
-                return ["velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
+                return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
             else:
-                return ["velocity", "detections", "bbox volume", "range", "azimuth", "doppler"]
+                return ["class", "detections", "bbox volume", "range", "azimuth", "doppler"]
             
         return []
             

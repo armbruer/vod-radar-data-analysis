@@ -13,7 +13,8 @@ from typing import List
 from extraction import DataVariant, ParameterRangeExtractor
 from extraction.stats_table import StatsTableGenerator
 from vod.configuration.file_locations import KittiLocations
-
+from tqdm import tqdm
+import logging
 
 
 class PlotType(Enum):
@@ -55,10 +56,10 @@ class ParameterRangePlotter:
             data = data[:, :, k] if data.ndim == 3 else data
             index_name = data_variant.index_to_str(k)
 
-            figure, axs = plt.subplots(len(plot_types), len(value_labels))
+            figure, axs = plt.subplots(len(value_labels), len(plot_types))
 
-            for i, value_label in enumerate(value_labels):
-                for j, pt in enumerate(plot_types):
+            for i, value_label in tqdm(enumerate(value_labels), desc="Preparing subplots"):
+                for j, pt in tqdm(enumerate(plot_types), desc="Going through plot types"):
                     param = data[:, i]
                     other_label = other_labels[i]
                     
@@ -78,7 +79,7 @@ class ParameterRangePlotter:
                         gfg = sns.boxplot(y=param, ax=axis)
                         gfg.set(ylabel=value_label)
                     elif pt == PlotType.HISTOGRAM:
-                        gfg = sns.histplot(x=param, ax=axis)
+                        gfg = sns.histplot(x=param, ax=axis, bins=30)
                         axis.set_yscale('log')
                         gfg.set(xlabel=value_label)
                     elif pt == PlotType.KNEEPLOT:
@@ -94,8 +95,9 @@ class ParameterRangePlotter:
             
             now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
             path = f"{self.kitti_locations.output_dir}/{figure_name}_{index_name}_{now}"
-            figure.savefig(f'{path}.svg', format='svg')
+            #figure.savefig(f'{path}.svg', format='svg')
             figure.savefig(f'{path}.png', format='png')
+            logging.info(f'Plot generated in file:///{path}.png')
 
     def plot_kneeplot(self, param: np.ndarray, **kwargs) -> None:
         if param.ndim != 1:
@@ -134,7 +136,7 @@ def main():
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
     
-    dvs = [DataVariant.SEMANTIC_RAD]
+    dvs = [DataVariant.SYNTACTIC_RAD]
     
     for dv in dvs:
         stats_generator.write_stats(dv)
