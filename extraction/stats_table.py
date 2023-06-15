@@ -1,8 +1,3 @@
-# TODO
-import sys
-import os
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
-
 from extraction import DataVariant, ParameterRangeExtractor
 import numpy as np
 import pandas as pd

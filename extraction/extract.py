@@ -1,8 +1,5 @@
-# TODO
-import sys
-import os
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 from enum import Enum
+import os
 import numpy as np
 from datetime import datetime
 from tqdm import tqdm

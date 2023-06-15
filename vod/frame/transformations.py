@@ -296,7 +296,7 @@ def homogenous_transformation_cartesian_coordinates(points: np.ndarray, transfor
         raise ValueError(f"{points.shape[1]} must be Nx3!")
     
     hom_points = homogeneous_coordinates(points)
-    transformed_points = transform.dot(hom_points.T).T
+    transformed_points = homogeneous_transformation(hom_points, transform)
     cart = cartesian_coordinates(transformed_points)
     return cart
 

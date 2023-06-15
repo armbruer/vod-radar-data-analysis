@@ -78,6 +78,17 @@ This function returns a list of 3d corners of each label in a frame given a Fram
 
     return label_corners
 
+def get_placed_3d_label_corners(labels: FrameLabels) -> List[dict]:
+    # we need to place the corners in the camera coordinate system using the center point
+    corners_3d = get_3d_label_corners(labels)
+    
+    for index, label in enumerate(labels.labels_dict):
+        center = np.array([label['x'], label['y'], label['z']])
+        new_corners_3d = corners_3d[index]['corners_3d'].T + center
+        label['corners_3d_placed'] = new_corners_3d
+        
+    return labels.labels_dict
+
 
 def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     corners_3d = get_3d_label_corners(labels)
