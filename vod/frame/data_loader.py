@@ -65,7 +65,7 @@ class FrameDataLoader:
             return self._lidar_data
 
     @property
-    def radar_data(self) -> Optinal[np.ndarray]:
+    def radar_data(self) -> Optional[np.ndarray]:
         """
         Ego-motion compensated radar data from the front bumper in the format of [x, y, z, RCS, v_r, v_r_compensated, time].
 
