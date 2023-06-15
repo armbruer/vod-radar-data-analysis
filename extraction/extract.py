@@ -78,7 +78,7 @@ class ParameterRangeExtractor:
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
             object_data_by_class = self._split_by_class(object_data)
-            self._store_data(data_variant, self._extract_object_data_from_semantic_data())
+            self._store_data(data_variant, object_data_by_class)
                             
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self._split_rad_by_threshold(
