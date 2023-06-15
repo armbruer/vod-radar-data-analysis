@@ -154,8 +154,6 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         bbox = label['corners_3d_transformed']
         points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
-        vis_to_debug(loader)
-        
         if points_matching is not None:
             class_name = label['label_class']
             print(f'Class: {class_name}, Matches: {points_matching.shape[0]}')
