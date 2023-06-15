@@ -104,7 +104,7 @@ def class_id_from_name(name: str) -> int:
     return name_to_class_id[name]    
     
     
-def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> np.ndarray:
+def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[np.ndarray]:
     """
     For each object in the frame retrieve the following data: object tracking id, object class, absolute velocity, 
     number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
@@ -116,7 +116,11 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler)
     """
     
-    labels = FrameLabels(loader.get_labels())
+    labels = loader.get_labels()
+    if labels is None:
+        return None
+    
+    labels = FrameLabels(labels)
     
     # Step 1: Obtain corners of bounding boxes and radar data points
     # TODO: is the last argument correct?
@@ -127,6 +131,9 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     
     # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
     radar_data = loader.radar_data
+    if radar_data is None:
+        return None
+    
     radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_radar_lidar)
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
@@ -140,6 +147,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     bbox_vols = [] # bounding box volume
     ranges = [] # range in m
     azimuths = [] # azimuth in degree
+
     
     
     for label in labels_with_corners:
@@ -148,9 +156,9 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         
         vis_to_debug(loader)
         
-        class_name = label['label_class']
-        print(f'Class: {class_name}, Matches: {points_matching.shape[0]}')
         if points_matching is not None:
+            class_name = label['label_class']
+            print(f'Class: {class_name}, Matches: {points_matching.shape[0]}')
             # Step 4: Get the avg doppler value of the object and collect it
             
             object_clazz.append(class_id_from_name(class_name))
@@ -167,11 +175,11 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             dopplers.append(np.mean(points_matching[:, 4]))
     
     if not object_clazz:
-        return np.empty(0)
+        return None
     
     columns = [object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
     # create one array of shape (-1, 7)
-    return np.array(columns).T
+    return np.vstack(list(map(np.hstack, columns))).T
 
 def vis_to_debug(frame_data: FrameDataLoader):
     from vod.visualization import Visualization3D

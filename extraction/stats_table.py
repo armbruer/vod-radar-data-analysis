@@ -38,7 +38,7 @@ class StatsTableGenerator:
         means = np.mean(data, axis=0)
         stds = np.std(data, axis=0)
         
-        stats = np.vstack((mins, maxs, means, vars, stds))
+        stats = np.vstack((mins, maxs, means, stds))
         columns = data_variant.column_names(with_unit=True)
         columns = list(map(lambda c: c.capitalize(), columns))
         

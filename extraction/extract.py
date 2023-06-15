@@ -21,7 +21,7 @@ class DataVariant(Enum):
     SEMANTIC_OBJECT_DATA = 3,
     SEMANTIC_OBJECT_DATA_BY_CLASS = 4
 
-    def column_names(self, with_unit: bool = False):
+    def column_names(self, with_unit: bool = False) -> List[str]:
         if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
             if with_unit:
                 return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
@@ -33,6 +33,8 @@ class DataVariant(Enum):
                 return ["velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
             else:
                 return ["velocity", "detections", "bbox volume", "range", "azimuth", "doppler"]
+            
+        return []
             
     def index_to_str(self, index) -> str:
         if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
@@ -79,7 +81,7 @@ class ParameterRangeExtractor:
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
             object_data_by_class = self._split_by_class(object_data)
-            self._store_data(object_data_by_class, self._extract_object_data_from_semantic_data())
+            self._store_data(data_variant, self._extract_object_data_from_semantic_data())
                             
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self._split_rad_by_threshold(
@@ -109,11 +111,12 @@ class ParameterRangeExtractor:
 
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data = loader.radar_data
+            if radar_data is not None:
 
-            ranges.append(ex.locs_to_distance(radar_data[:, :3]))
-            azimuths.append(np.rad2deg(
-                ex.azimuth_angle_from_location(radar_data[:, :2])))
-            dopplers.append(radar_data[:, 4])
+                ranges.append(ex.locs_to_distance(radar_data[:, :3]))
+                azimuths.append(np.rad2deg(
+                    ex.azimuth_angle_from_location(radar_data[:, :2])))
+                dopplers.append(radar_data[:, 4])
 
         return np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
 
@@ -166,9 +169,9 @@ class ParameterRangeExtractor:
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
             transforms = FrameTransformMatrix(frame_data_loader_object=loader)
 
-            object_data: np.ndarray = ex.get_data_for_objects_in_frame(
-                loader=loader, transforms=transforms)
-            object_data_list.append(object_data)
+            object_data = ex.get_data_for_objects_in_frame(loader=loader, transforms=transforms)
+            if object_data is not None:
+                object_data_list.append(object_data)
 
         return np.vstack(object_data_list)
 
@@ -180,10 +183,10 @@ class ParameterRangeExtractor:
 
         :param data_variant: the data variant of the file to be loaded  
         """
-        data_variant = data_variant.name.lower()
+        data_variant_str = data_variant.name.lower()
         matching_files = []
         for file in os.listdir(self.kitti_locations.output_dir):
-            if file.endswith('.npy') and data_variant in file:
+            if file.endswith('.npy') and data_variant_str in file:
                 datetime_str = file.split('-')[1].split('.')[0]
                 matching_files.append((file, datetime_str))
 

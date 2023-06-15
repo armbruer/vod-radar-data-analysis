@@ -40,7 +40,7 @@ class ParameterRangePlotter:
     def plot_data(self,
                         data: np.ndarray,
                         plot_types: List[PlotType],
-                        data_variant: DataVariant = None, 
+                        data_variant: DataVariant, 
                         **kwargs) -> None:
         
         figure_name = kwargs.get('figure_name', data_variant.name.lower())
@@ -78,7 +78,7 @@ class ParameterRangePlotter:
                         gfg = sns.boxplot(y=param, ax=axis)
                         gfg.set(ylabel=value_label)
                     elif pt == PlotType.HISTOGRAM:
-                        gfg = sns.histplot(x=param, ax=axis, bins=30)
+                        gfg = sns.histplot(x=param, ax=axis)
                         axis.set_yscale('log')
                         gfg.set(xlabel=value_label)
                     elif pt == PlotType.KNEEPLOT:

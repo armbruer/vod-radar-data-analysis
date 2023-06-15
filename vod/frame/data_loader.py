@@ -37,7 +37,7 @@ class FrameDataLoader:
         self._prediction: Optional[np.ndarray] = None
 
     @property
-    def image(self):
+    def image(self) -> Optional[np.ndarray]:
         """
         Image information property in RGB format.
         :return: RGB image.
@@ -51,7 +51,7 @@ class FrameDataLoader:
             return self._image
 
     @property
-    def lidar_data(self):
+    def lidar_data(self) -> Optional[np.ndarray]:
         """
         Ego-motion compensated 360 degree lidar data of a Nx4 array including x,y,z,reflectance values.
         :return: Lidar data.
@@ -65,7 +65,7 @@ class FrameDataLoader:
             return self._lidar_data
 
     @property
-    def radar_data(self):
+    def radar_data(self) -> Optinal[np.ndarray]:
         """
         Ego-motion compensated radar data from the front bumper in the format of [x, y, z, RCS, v_r, v_r_compensated, time].
 
@@ -84,7 +84,7 @@ class FrameDataLoader:
             return self._radar_data
 
     @property
-    def raw_labels(self):
+    def raw_labels(self) -> Optional[np.ndarray]:
         """
         The labels include the ground truth data for the frame in kitti format including:
 
