@@ -110,13 +110,9 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
         new_corners_3d_hom = np.concatenate((new_corner_3d, np.ones((8, 1))), axis=1)
         new_corners_3d_hom = transformations.homogeneous_transformation(new_corners_3d_hom,
                                                                               transformation)
-        corners_3d_transformed.append(new_corners_3d_hom)
+        label['corners_3d_transformed'] = new_corners_3d_hom
     
-    labels_with_corners = labels.labels_dict.copy()
-    for i, label in enumerate(labels_with_corners):
-        label['corners_3d_transformed'] = corners_3d_transformed[i]
-
-    return labels_with_corners
+    return corners_3d_transformed
 
 def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     labels_with_corners = get_transformed_3d_label_corners(labels, transformation, t_camera_lidar)

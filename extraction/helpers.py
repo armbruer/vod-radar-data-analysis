@@ -4,7 +4,7 @@ import numpy as np
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
-from vod.visualization.helpers import get_transformed_3d_label_corners_cartesian
+from vod.visualization.helpers import get_placed_3d_label_corners, get_transformed_3d_label_corners_cartesian
 
 
 def locs_to_distance(locations: np.ndarray) -> np.ndarray:
@@ -123,18 +123,14 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     labels = FrameLabels(labels)
     
     # Step 1: Obtain corners of bounding boxes and radar data points
-    # TODO: is the last argument correct?
-    
-    # convert both to lidar coordinate system
-    # we do not really care what coordinate system we use and this seems easier
-    labels_with_corners = get_transformed_3d_label_corners_cartesian(labels, transforms.t_camera_lidar, transforms.t_camera_lidar)
+    labels_with_corners = get_placed_3d_label_corners(labels)
     
     # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
     radar_data = loader.radar_data
     if radar_data is None:
         return None
     
-    radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_radar_lidar)
+    radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
     
@@ -147,16 +143,14 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     bbox_vols = [] # bounding box volume
     ranges = [] # range in m
     azimuths = [] # azimuth in degree
-
     
     
     for label in labels_with_corners:
-        bbox = label['corners_3d_transformed']
+        bbox = label['corners_3d_placed']
         points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
         if points_matching is not None:
             class_name = label['label_class']
-            print(f'Class: {class_name}, Matches: {points_matching.shape[0]}')
             # Step 4: Get the avg doppler value of the object and collect it
             
             object_clazz.append(class_id_from_name(class_name))
@@ -164,12 +158,12 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             detections.append(points_matching.shape[0])
             bbox_vols.append(label['l'] * label['h'] * label['w'])            
             
-            loc = np.array([label['x'], label['y'], label['z']])
-            loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_camera_radar)
+            loc = np.array([[label['x'], label['y'], label['z']]])
+            loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
             range_from_loc = locs_to_distance(loc_transformed)
             ranges.append(range_from_loc)
             
-            azimuths.append(np.rad2deg(azimuth_angle_from_location(np.array([label['x'], label['y']]))))
+            azimuths.append(np.rad2deg(azimuth_angle_from_location(np.array([[label['x'], label['y']]]))))
             dopplers.append(np.mean(points_matching[:, 4]))
     
     if not object_clazz:
