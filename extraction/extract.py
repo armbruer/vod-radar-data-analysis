@@ -50,9 +50,9 @@ class ParameterRangeExtractor:
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
 
-        self._data: Dict[DataVariant, np.ndarray] = {}
+        self._data: Dict[DataVariant, List[np.ndarray]] = {}
 
-    def get_data(self, data_variant: DataVariant) -> np.ndarray:
+    def get_data(self, data_variant: DataVariant) -> List[np.ndarray]:
         """
         Gets the array data for the given data variant either directly from file or by extracting it from the respective frames.
 
@@ -68,8 +68,8 @@ class ParameterRangeExtractor:
                 data_variant, self._extract_rad_from_syntactic_data())
         
         elif data_variant == DataVariant.SEMANTIC_RAD:
-            object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-            self._store_data(data_variant, object_data[:, 4:])
+            object_data: np.ndarray = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            self._store_data(data_variant, *object_data[:, 4:])
         
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
             self._store_data(
@@ -77,12 +77,12 @@ class ParameterRangeExtractor:
         
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-            object_data_by_class = self._split_by_class(object_data)
+            object_data_by_class = self._split_by_class(*object_data)
             self._store_data(data_variant, object_data_by_class)
                             
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self._split_rad_by_threshold(
-                self.get_data(DataVariant.SYNTACTIC_RAD))
+                *self.get_data(DataVariant.SYNTACTIC_RAD))
             self._store_data(DataVariant.STATIC_DYNAMIC_RAD, stat_dyn_rad)
 
         return self._data[data_variant]
@@ -117,7 +117,7 @@ class ParameterRangeExtractor:
 
         return np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
 
-    def _split_by_class(self, object_data: np.ndarray) -> np.ndarray:
+    def _split_by_class(self, object_data: np.ndarray) -> List[np.ndarray]:
         """
         Splits the object_data by class into a new array with a third axis for the class.
         """
@@ -129,10 +129,10 @@ class ParameterRangeExtractor:
             by_class.get(class_id, []).append(object_data[i])
             
         by_class = dict(sorted(by_class.items()))
-        return np.array(by_class.values())
+        return by_class.values()
                 
 
-    def _split_rad_by_threshold(self, rad: np.ndarray, static_object_doppler_threshold: float = 0.5) -> np.ndarray:
+    def _split_rad_by_threshold(self, rad: np.ndarray, static_object_doppler_threshold: float = 0.5) -> List[np.ndarray]:
         """
         Splits the RAD by a threshold value for static object into two parts by adding a third dimension to the array. 
         The static objects are index 0, the dynamic objects are index 1
@@ -145,7 +145,7 @@ class ParameterRangeExtractor:
         """
         cond = np.abs(rad[:, 2]) < static_object_doppler_threshold
 
-        return np.array([rad[cond], rad[~cond]])
+        return [rad[cond], rad[~cond]]
 
     def _extract_object_data_from_semantic_data(self) -> np.ndarray:
         """
@@ -184,7 +184,7 @@ class ParameterRangeExtractor:
         matching_files = []
         for file in os.listdir(self.kitti_locations.output_dir):
             if file.endswith('.npy') and data_variant_str in file:
-                datetime_str = file.split('-')[1].split('.')[0]
+                datetime_str = file.split('-')[-1].split('.')[0]
                 matching_files.append((file, datetime_str))
 
         matching_files = sorted(
@@ -193,12 +193,26 @@ class ParameterRangeExtractor:
         if not matching_files:
             return None
 
-        most_recent = matching_files[-1][0]
-        self._data[data_variant] = np.load(f'{self.kitti_locations.output_dir}/{most_recent}')
+        most_recent: str = matching_files[-1][0]
+        parts = most_recent.split('-')
+        data = []
+        if len(parts) > 2 and parts[1].isdecimal():
+            # we need to load all files in the list now
+            i = 0
+            while True:
+                try:
+                    name = f'{parts[0]}{i}{parts[2]}'
+                    i+=1
+                    data.append(np.load(f'{self.kitti_locations.output_dir}/{name}'))
+                except:
+                    break
+        else:
+            data = [np.load(f'{self.kitti_locations.output_dir}/{most_recent}')]
 
-        return self._data[data_variant]
+        self._data[data_variant] = data
+        return data
 
-    def _store_data(self, data_variant: DataVariant, data: np.ndarray):
+    def _store_data(self, data_variant: DataVariant, data: List[np.ndarray]):
         """
         Stores the data array in a numpy file using data variant in the name of the file.
 
@@ -206,6 +220,7 @@ class ParameterRangeExtractor:
         :param data: the data array to be stored
         """
 
+        now = self._now()
         self._data[data_variant] = data
-        np.save(
-            f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{self._now()}.npy', data)
+        for i, d in enumerate(data):
+            np.save(f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{i}-{now}.npy', d)

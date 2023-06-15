@@ -39,7 +39,7 @@ class ParameterRangePlotter:
         self.plot_data(data=data, plot_types=plot_types, data_variant=data_variant, value_labels=columns)
         
     def plot_data(self,
-                        data: np.ndarray,
+                        data: List[np.ndarray],
                         plot_types: List[PlotType],
                         data_variant: DataVariant, 
                         **kwargs) -> None:
@@ -51,16 +51,14 @@ class ParameterRangePlotter:
         if(not(len(value_labels) == len(other_labels) == data.shape[1])):
             raise ValueError(f'Expecting the length of value_labels, other_labels to be equal to {data.shape[1]}')
         
-        figures = data.shape[2] if data.ndim == 3 else 1
-        for k in range(figures):
-            data = data[:, :, k] if data.ndim == 3 else data
+        for k, d in enumerate(data):
             index_name = data_variant.index_to_str(k)
 
             figure, axs = plt.subplots(len(value_labels), len(plot_types))
 
             for i, value_label in tqdm(enumerate(value_labels), desc="Preparing subplots"):
                 for j, pt in tqdm(enumerate(plot_types), desc="Going through plot types"):
-                    param = data[:, i]
+                    param: np.ndarray = d[:, i]
                     other_label = other_labels[i]
                     
                     if len(plot_types) > 1 and len(value_labels) > 1:
@@ -104,7 +102,7 @@ class ParameterRangePlotter:
             raise ValueError(
                 'Expecting each parameter distribution to be of dimension 1')
 
-        self.plot_data(np.sort(param), [PlotType.KNEEPLOT], **kwargs)
+        self.plot_data([np.sort(param)], [PlotType.KNEEPLOT], **kwargs)
 
         
     def plot_kneeplot_from_syntactic_data(self) -> None:
@@ -136,7 +134,7 @@ def main():
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
     
-    dvs = [DataVariant.SYNTACTIC_RAD]
+    dvs = [DataVariant.STATIC_DYNAMIC_RAD]
     
     for dv in dvs:
         stats_generator.write_stats(dv)

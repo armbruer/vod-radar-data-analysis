@@ -1,3 +1,4 @@
+from typing import List
 from extraction import DataVariant, ParameterRangeExtractor
 import numpy as np
 import pandas as pd
@@ -13,10 +14,10 @@ class StatsTableGenerator:
         
     def write_stats(self, data_variant: DataVariant) -> None:
         ex = ParameterRangeExtractor(kitti_locations=self.kitti_locations)
-        data: np.ndarray = ex.get_data(data_variant=data_variant)
+        data: List[np.ndarray] = ex.get_data(data_variant=data_variant)
         if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
-            for i in range(data.shape[2]):
-                self._write_stats(data_variant, data[:, :, i], data_variant.index_to_str(i))
+            for i, d in enumerate(data):
+                self._write_stats(data_variant, d, data_variant.index_to_str(i))
                 return
 
         self._write_stats(data_variant, data, data_variant.name.lower())
