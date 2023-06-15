@@ -10,6 +10,8 @@ from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
 from typing import Dict, List, Optional
+from collections import defaultdict
+
 
 class DataVariant(Enum):
     SYNTACTIC_RAD = 0,
@@ -69,7 +71,7 @@ class ParameterRangeExtractor:
         
         elif data_variant == DataVariant.SEMANTIC_RAD:
             object_data: np.ndarray = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-            self._store_data(data_variant, *object_data[:, 4:])
+            self._store_data(data_variant, [object_data[0][:, 4:]])
         
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
             self._store_data(
@@ -77,7 +79,7 @@ class ParameterRangeExtractor:
         
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
-            object_data_by_class = self._split_by_class(*object_data)
+            object_data_by_class = self._split_by_class(object_data[0])
             self._store_data(data_variant, object_data_by_class)
                             
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
@@ -87,7 +89,7 @@ class ParameterRangeExtractor:
 
         return self._data[data_variant]
 
-    def _extract_rad_from_syntactic_data(self) -> np.ndarray:
+    def _extract_rad_from_syntactic_data(self) -> List[np.ndarray]:
         """
         Extract the range, azimuth, doppler values for each frame and detection in this dataset.
         This method works on the syntactic (unannotated) data of the dataset.
@@ -115,21 +117,22 @@ class ParameterRangeExtractor:
                     ex.azimuth_angle_from_location(radar_data[:, :2])))
                 dopplers.append(radar_data[:, 4])
 
-        return np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
+        return [np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T]
 
     def _split_by_class(self, object_data: np.ndarray) -> List[np.ndarray]:
         """
         Splits the object_data by class into a new array with a third axis for the class.
         """
         
-        by_class = {}
+        by_class = defaultdict(list)
         
         for i in range(object_data.shape[0]):
             class_id = object_data[i, 0]
-            by_class.get(class_id, []).append(object_data[i])
+            by_class[class_id].append(object_data[i])
             
         by_class = dict(sorted(by_class.items()))
-        return by_class.values()
+        
+        return [np.vstack(v) for _, v in by_class.items()]
                 
 
     def _split_rad_by_threshold(self, rad: np.ndarray, static_object_doppler_threshold: float = 0.5) -> List[np.ndarray]:
@@ -147,7 +150,7 @@ class ParameterRangeExtractor:
 
         return [rad[cond], rad[~cond]]
 
-    def _extract_object_data_from_semantic_data(self) -> np.ndarray:
+    def _extract_object_data_from_semantic_data(self) -> List[np.ndarray]:
         """
         For each object in the frame retrieve the following data: object tracking id, object class, absolute velocity, 
         number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
@@ -170,11 +173,11 @@ class ParameterRangeExtractor:
             if object_data is not None:
                 object_data_list.append(object_data)
 
-        return np.vstack(object_data_list)
+        return [np.vstack(object_data_list)]
 
     def _now(self): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
-    def _load_data(self, data_variant: DataVariant) -> Optional[np.ndarray]:
+    def _load_data(self, data_variant: DataVariant) -> Optional[List[np.ndarray]]:
         """
         Loads a data array of shape from the most recently saved numpy file given this data_variant.
 
@@ -201,7 +204,7 @@ class ParameterRangeExtractor:
             i = 0
             while True:
                 try:
-                    name = f'{parts[0]}{i}{parts[2]}'
+                    name = f'{parts[0]}-{i}-{parts[2]}'
                     i+=1
                     data.append(np.load(f'{self.kitti_locations.output_dir}/{name}'))
                 except:
@@ -219,6 +222,8 @@ class ParameterRangeExtractor:
         :param data_variant: the data_variant of this rad array
         :param data: the data array to be stored
         """
+        if not isinstance(data, list):
+            raise ValueError('data must be of type list')
 
         now = self._now()
         self._data[data_variant] = data

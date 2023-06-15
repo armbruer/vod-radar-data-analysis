@@ -44,12 +44,13 @@ class ParameterRangePlotter:
                         data_variant: DataVariant, 
                         **kwargs) -> None:
         
+        cols = data[0].shape[1]
         figure_name = kwargs.get('figure_name', data_variant.name.lower())
-        value_labels = kwargs.get('value_labels', data.shape[1] * [''])
-        other_labels = kwargs.get('other_labels', data.shape[1] * [''])
+        value_labels = kwargs.get('value_labels', cols * [''])
+        other_labels = kwargs.get('other_labels', cols * [''])
         
-        if(not(len(value_labels) == len(other_labels) == data.shape[1])):
-            raise ValueError(f'Expecting the length of value_labels, other_labels to be equal to {data.shape[1]}')
+        if(not(len(value_labels) == len(other_labels) == cols)):
+            raise ValueError(f'Expecting the length of value_labels, other_labels to be equal to {cols}')
         
         for k, d in enumerate(data):
             index_name = data_variant.index_to_str(k)
@@ -134,7 +135,7 @@ def main():
     plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
     stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
     
-    dvs = [DataVariant.STATIC_DYNAMIC_RAD]
+    dvs = [DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
     
     for dv in dvs:
         stats_generator.write_stats(dv)

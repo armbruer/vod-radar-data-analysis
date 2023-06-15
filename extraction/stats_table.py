@@ -20,7 +20,7 @@ class StatsTableGenerator:
                 self._write_stats(data_variant, d, data_variant.index_to_str(i))
                 return
 
-        self._write_stats(data_variant, data, data_variant.name.lower())
+        self._write_stats(data_variant, *data, data_variant.name.lower())
 
     def _write_stats(self, data_variant: DataVariant, data: np.ndarray, filename: str) -> None:
         if data.ndim < 2:
