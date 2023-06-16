@@ -15,12 +15,13 @@ class StatsTableGenerator:
     def write_stats(self, data_variant: DataVariant) -> None:
         ex = ParameterRangeExtractor(kitti_locations=self.kitti_locations)
         data: List[np.ndarray] = ex.get_data(data_variant=data_variant)
+        data_variant_str = data_variant.name.lower()
         if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             for i, d in enumerate(data):
-                self._write_stats(data_variant, d, data_variant.index_to_str(i))
+                self._write_stats(data_variant, d, f'{data_variant_str}-{data_variant.index_to_str(i)}')
                 return
 
-        self._write_stats(data_variant, *data, data_variant.name.lower())
+        self._write_stats(data_variant, *data, data_variant_str)
 
     def _write_stats(self, data_variant: DataVariant, data: np.ndarray, filename: str) -> None:
         if data.ndim < 2:

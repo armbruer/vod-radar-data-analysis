@@ -121,10 +121,12 @@ class ParameterRangePlotter:
 def main():
     output_dir = "output"
     root_dir = "../view_of_delft_PUBLIC/"
+    data_dir = f'{output_dir}/data'
     kitti_locations = KittiLocations(root_dir=root_dir,
                                      output_dir=output_dir,
                                      frame_set_path="",
                                      pred_dir="",
+                                     data_dir=data_dir
                                      )
 
     abs = lambda p: os.path.abspath(p)

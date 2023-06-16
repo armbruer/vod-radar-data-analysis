@@ -54,7 +54,7 @@ class ParameterRangeExtractor:
 
         self._data: Dict[DataVariant, List[np.ndarray]] = {}
 
-    def get_data(self, data_variant: DataVariant) -> List[np.ndarray]:
+    def get_data(self, data_variant: DataVariant, refresh=False) -> List[np.ndarray]:
         """
         Gets the array data for the given data variant either directly from file or by extracting it from the respective frames.
 
@@ -62,7 +62,7 @@ class ParameterRangeExtractor:
 
         Returns the array containing the data requested in data_variant
         """
-        if self._data.get(data_variant) is not None or self._load_data(data_variant) is not None:
+        if not refresh and (self._data.get(data_variant) is not None or self._load_data(data_variant) is not None):
             return self._data[data_variant]
 
         if data_variant == DataVariant.SYNTACTIC_RAD:
@@ -183,9 +183,10 @@ class ParameterRangeExtractor:
 
         :param data_variant: the data variant of the file to be loaded  
         """
+        data_dir = self.kitti_locations.data_dir
         data_variant_str = data_variant.name.lower()
         matching_files = []
-        for file in os.listdir(self.kitti_locations.output_dir):
+        for file in os.listdir(data_dir):
             if file.endswith('.npy') and data_variant_str in file:
                 datetime_str = file.split('-')[-1].split('.')[0]
                 matching_files.append((file, datetime_str))
@@ -206,11 +207,11 @@ class ParameterRangeExtractor:
                 try:
                     name = f'{parts[0]}-{i}-{parts[2]}'
                     i+=1
-                    data.append(np.load(f'{self.kitti_locations.output_dir}/{name}'))
+                    data.append(np.load(f'{data_dir}/{name}'))
                 except:
                     break
         else:
-            data = [np.load(f'{self.kitti_locations.output_dir}/{most_recent}')]
+            data = [np.load(f'{data_dir}/{most_recent}')]
 
         self._data[data_variant] = data
         return data
