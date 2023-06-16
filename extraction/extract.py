@@ -1,18 +1,14 @@
-import os
-import sys
 import numpy as np
-import logging
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
-
 import extraction as ex
+
+from extraction.file_manager import DataManager
 from enum import Enum
 from datetime import datetime
 from tqdm import tqdm
-from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
-from typing import Dict, List, Optional
+from typing import List
 from collections import defaultdict
 
 
@@ -52,10 +48,9 @@ class DataVariant(Enum):
 
 class ParameterRangeExtractor:
 
-    def __init__(self, kitti_locations: KittiLocations) -> None:
-        self.kitti_locations = kitti_locations
-
-        self._data: Dict[DataVariant, List[np.ndarray]] = {}
+    def __init__(self, data_manager: DataManager) -> None:
+        self.data_manager = data_manager
+        self.data = data_manager.data
 
     def get_data(self, data_variant: DataVariant, refresh=False) -> List[np.ndarray]:
         """
@@ -65,33 +60,33 @@ class ParameterRangeExtractor:
 
         Returns the array containing the data requested in data_variant
         """
-        if not refresh and (self._data.get(data_variant) is not None or self._load_data(data_variant) is not None):
-            return self._data[data_variant]
+        if not refresh and (self.data.get(data_variant) is not None or self.data_manager.load_data(data_variant) is not None):
+            return self.data[data_variant]
 
         if data_variant == DataVariant.SYNTACTIC_RAD:
-            self._store_data(
+            self.data_manager.store_data(
                 data_variant, self._extract_rad_from_syntactic_data())
 
         elif data_variant == DataVariant.SEMANTIC_RAD:
             object_data: np.ndarray = self.get_data(
                 DataVariant.SEMANTIC_OBJECT_DATA)
-            self._store_data(data_variant, [object_data[0][:, 4:]])
+            self.data_manager.store_data(data_variant, [object_data[0][:, 4:]])
 
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
-            self._store_data(
+            self.data_manager.store_data(
                 data_variant, self._extract_object_data_from_semantic_data())
 
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
             object_data_by_class = self._split_by_class(object_data[0])
-            self._store_data(data_variant, object_data_by_class)
+            self.data_manager.store_data(data_variant, object_data_by_class)
 
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self._split_rad_by_threshold(
                 *self.get_data(DataVariant.SYNTACTIC_RAD))
-            self._store_data(DataVariant.STATIC_DYNAMIC_RAD, stat_dyn_rad)
+            self.data_manager.store_data(DataVariant.STATIC_DYNAMIC_RAD, stat_dyn_rad)
 
-        return self._data[data_variant]
+        return self.data[data_variant]
 
     def _extract_rad_from_syntactic_data(self) -> List[np.ndarray]:
         """
@@ -180,65 +175,3 @@ class ParameterRangeExtractor:
         return [np.vstack(object_data_list)]
 
     def _now(self): return datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
-    def _load_data(self, data_variant: DataVariant) -> Optional[List[np.ndarray]]:
-        """
-        Loads a data array of shape from the most recently saved numpy file given this data_variant.
-
-        :param data_variant: the data variant of the file to be loaded  
-        """
-        dv_str = data_variant.name.lower()
-        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
-        os.makedirs(data_dir, exist_ok=True)
-
-        matching_files = []
-        for file in os.listdir(data_dir):
-            if file.endswith('.npy') and dv_str in file:
-                datetime_str = file.split('-')[-1].split('.')[0]
-                matching_files.append((file, datetime_str))
-
-        matching_files = sorted(
-            matching_files, key=lambda x: datetime.strptime(x[1], '%Y_%m_%d_%H_%M_%S'))
-
-        if not matching_files:
-            return None
-
-        most_recent: str = matching_files[-1][0]
-        parts = most_recent.split('-')
-        data = []
-        if len(parts) > 2 and parts[1].isdecimal():
-            # we need to load all files in the list now
-            i = 0
-            while True:
-                try:
-                    name = f'{parts[0]}-{i}-{parts[2]}'
-                    i += 1
-                    data.append(np.load(f'{data_dir}/{name}'))
-                except:
-                    break
-        else:
-            data = [np.load(f'{data_dir}/{most_recent}')]
-
-        self._data[data_variant] = data
-        return data
-
-    def _store_data(self, data_variant: DataVariant, data: List[np.ndarray]):
-        """
-        Stores the data array in a numpy file using data variant in the name of the file.
-
-        :param data_variant: the data_variant of this rad array
-        :param data: the data array to be stored
-        """
-        if not isinstance(data, list):
-            raise ValueError('data must be of type list')
-
-        dv_str = data_variant.name.lower()
-        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
-        os.makedirs(data_dir, exist_ok=True)
-
-        now = self._now()
-        self._data[data_variant] = data
-        for i, d in enumerate(data):
-            path = f'{data_dir}/{dv_str}-{i}-{now}.npy'
-            np.save(path, d)
-            logging.info(f'Data saved in file:///{path}.npy')
