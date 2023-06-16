@@ -19,7 +19,7 @@ class StatsTableGenerator:
         if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             for i, d in enumerate(data):
                 self._write_stats(data_variant, d, f'{data_variant_str}-{data_variant.index_to_str(i)}')
-                return
+            return
 
         self._write_stats(data_variant, *data, data_variant_str)
 
