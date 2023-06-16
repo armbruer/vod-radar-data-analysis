@@ -1,10 +1,13 @@
-from enum import Enum
 import os
+import sys
 import numpy as np
+import logging
+sys.path.append(os.path.abspath("../view-of-delft-dataset"))
+
+import extraction as ex
+from enum import Enum
 from datetime import datetime
 from tqdm import tqdm
-import extraction as ex
-from extraction.helpers import name_from_class_id
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -32,18 +35,18 @@ class DataVariant(Enum):
                 return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
             else:
                 return ["class", "detections", "bbox volume", "range", "azimuth", "doppler"]
-            
+
         return []
-            
+
     def index_to_str(self, index) -> str:
         if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            return name_from_class_id(index)
+            return ex.name_from_class_id(index)
         elif self == DataVariant.STATIC_DYNAMIC_RAD:
             if index == 0:
                 return "static_rad"
             else:
                 return "dynamic_rad"
-            
+
         return ''
 
 
@@ -68,20 +71,21 @@ class ParameterRangeExtractor:
         if data_variant == DataVariant.SYNTACTIC_RAD:
             self._store_data(
                 data_variant, self._extract_rad_from_syntactic_data())
-        
+
         elif data_variant == DataVariant.SEMANTIC_RAD:
-            object_data: np.ndarray = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            object_data: np.ndarray = self.get_data(
+                DataVariant.SEMANTIC_OBJECT_DATA)
             self._store_data(data_variant, [object_data[0][:, 4:]])
-        
+
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
             self._store_data(
                 data_variant, self._extract_object_data_from_semantic_data())
-        
+
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             object_data = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
             object_data_by_class = self._split_by_class(object_data[0])
             self._store_data(data_variant, object_data_by_class)
-                            
+
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self._split_rad_by_threshold(
                 *self.get_data(DataVariant.SYNTACTIC_RAD))
@@ -123,17 +127,16 @@ class ParameterRangeExtractor:
         """
         Splits the object_data by class into a new array with a third axis for the class.
         """
-        
+
         by_class = defaultdict(list)
-        
+
         for i in range(object_data.shape[0]):
             class_id = object_data[i, 0]
             by_class[class_id].append(object_data[i])
-            
+
         by_class = dict(sorted(by_class.items()))
-        
+
         return [np.vstack(v) for _, v in by_class.items()]
-                
 
     def _split_rad_by_threshold(self, rad: np.ndarray, static_object_doppler_threshold: float = 0.5) -> List[np.ndarray]:
         """
@@ -163,13 +166,14 @@ class ParameterRangeExtractor:
             self.kitti_locations.label_dir)
 
         object_data_list: List[np.ndarray] = []
-        
+
         for frame_number in tqdm(iterable=frame_numbers, desc='Semantic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
             transforms = FrameTransformMatrix(frame_data_loader_object=loader)
 
-            object_data = ex.get_data_for_objects_in_frame(loader=loader, transforms=transforms)
+            object_data = ex.get_data_for_objects_in_frame(
+                loader=loader, transforms=transforms)
             if object_data is not None:
                 object_data_list.append(object_data)
 
@@ -183,11 +187,13 @@ class ParameterRangeExtractor:
 
         :param data_variant: the data variant of the file to be loaded  
         """
-        data_dir = self.kitti_locations.data_dir
-        data_variant_str = data_variant.name.lower()
+        dv_str = data_variant.name.lower()
+        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
+        os.makedirs(data_dir, exist_ok=True)
+
         matching_files = []
         for file in os.listdir(data_dir):
-            if file.endswith('.npy') and data_variant_str in file:
+            if file.endswith('.npy') and dv_str in file:
                 datetime_str = file.split('-')[-1].split('.')[0]
                 matching_files.append((file, datetime_str))
 
@@ -206,7 +212,7 @@ class ParameterRangeExtractor:
             while True:
                 try:
                     name = f'{parts[0]}-{i}-{parts[2]}'
-                    i+=1
+                    i += 1
                     data.append(np.load(f'{data_dir}/{name}'))
                 except:
                     break
@@ -226,7 +232,13 @@ class ParameterRangeExtractor:
         if not isinstance(data, list):
             raise ValueError('data must be of type list')
 
+        dv_str = data_variant.name.lower()
+        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
+        os.makedirs(data_dir, exist_ok=True)
+
         now = self._now()
         self._data[data_variant] = data
         for i, d in enumerate(data):
-            np.save(f'{self.kitti_locations.output_dir}/{data_variant.name.lower()}-{i}-{now}.npy', d)
+            path = f'{data_dir}/{dv_str}-{i}-{now}.npy'
+            np.save(path, d)
+            logging.info(f'Data saved in file:///{path}.npy')

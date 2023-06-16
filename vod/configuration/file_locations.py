@@ -5,7 +5,14 @@ class KittiLocations:
     """
     This class contains the information regarding the locations of data for the dataset.
     """
-    def __init__(self, root_dir: str, output_dir: str = None, frame_set_path: str = None, pred_dir: str = None, data_dir: str = None):
+    def __init__(self, 
+                 root_dir: str, 
+                 output_dir: str = None, 
+                 frame_set_path: str = None, 
+                 pred_dir: str = None, 
+                 data_dir: str = None,
+                 stats_dir: str = None,
+                 figures_dir: str = None):
         """
 Constructor which based on a few parameters defines the locations of possible data.
         :param root_dir: The root directory of the dataset.
@@ -20,6 +27,16 @@ Constructor which based on a few parameters defines the locations of possible da
         self.frame_set_path: str = frame_set_path
         self.pred_dir: str = pred_dir
         self.data_dir: str = data_dir
+        self.stats_dir: str = stats_dir
+        self.figures_dir: str = figures_dir
+        
+        if self.output_dir is not None:
+            if self.stats_dir is None:
+                self.stats_dir = f'{self.output_dir}/stats'
+            if self.figures_dir is None:
+                self.figures_dir = f'{self.output_dir}/figures'
+            if self.data_dir is None:
+                self.data_dir = f'{self.output_dir}/data'
 
         # Automatically defined variables. The location of sub-folders can be customized here.
         # Current definitions are based on the recommended locations.
