@@ -1,5 +1,6 @@
 from typing import List
-from extraction import DataVariant, ParameterRangeExtractor
+from extraction.extract import ParameterRangeExtractor
+from extraction.file_manager import DataVariant
 import numpy as np
 import pandas as pd
 from datetime import datetime

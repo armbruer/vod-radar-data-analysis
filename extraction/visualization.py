@@ -3,16 +3,19 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+
 matplotlib.use('Agg') # do not show figures when saving plot
 import sys
 import os
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
+
 from tqdm import tqdm
 from vod.configuration.file_locations import KittiLocations
+from extraction.file_manager import DataManager
 from extraction.stats_table import StatsTableGenerator
-from extraction import DataVariant, ParameterRangeExtractor
+from extraction.extract import DataVariant, ParameterRangeExtractor
 from typing import List
 from enum import Enum
 from datetime import datetime
@@ -26,8 +29,9 @@ class PlotType(Enum):
 
 class ParameterRangePlotter:
 
-    def __init__(self, kitti_locations: KittiLocations) -> None:
-        self.kitti_locations = kitti_locations
+    def __init__(self, data_manager: DataManager) -> None:
+        self.data_manager = data_manager
+        self.kitti_locations = data_manager.kitti_locations
 
     def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
@@ -43,8 +47,8 @@ class ParameterRangePlotter:
                   plot_types: List[PlotType],
                   data_variant: DataVariant,
                   **kwargs) -> None:
-
-        cols = data[0].shape[1]
+        
+        cols = data[0].shape[1] if data[0].ndim > 1 else 1
         figure_name = kwargs.get('figure_name', data_variant.name.lower())
         value_labels = kwargs.get('value_labels', cols * [''])
         other_labels = kwargs.get('other_labels', cols * [''])
@@ -61,7 +65,7 @@ class ParameterRangePlotter:
 
             for i, value_label in tqdm(enumerate(value_labels), desc="Preparing subplots"):
                 for j, pt in tqdm(enumerate(plot_types), desc="Going through plot types"):
-                    param: np.ndarray = d[:, i]
+                    param: np.ndarray = d[:, i] if d.ndim == 2 else d[:]
                     other_label = other_labels[i]
 
                     if len(plot_types) > 1 and len(value_labels) > 1:
@@ -86,7 +90,6 @@ class ParameterRangePlotter:
                     elif pt == PlotType.KNEEPLOT:
                         indices = np.arange(0, param.shape[0], 1)
                         gfg = sns.lineplot(x=indices, y=param)
-                        axis.set_xscale('log')
                         axis.grid()
                         gfg.set(xlabel=other_label, ylabel=value_label)
 
@@ -101,15 +104,15 @@ class ParameterRangePlotter:
             figure.savefig(f'{path}.png', format='png')
             logging.info(f'Plot generated in file:///{path}.png')
 
-    def plot_kneeplot(self, param: np.ndarray, **kwargs) -> None:
-        if param.ndim != 1:
+    def plot_kneeplot(self, data: np.ndarray, **kwargs) -> None:
+        if data.ndim != 1:
             raise ValueError(
                 'Expecting each parameter distribution to be of dimension 1')
 
-        self.plot_data([np.sort(param)], [PlotType.KNEEPLOT], **kwargs)
+        self.plot_data([np.sort(data)], [PlotType.KNEEPLOT], DataVariant.SYNTACTIC_RAD, **kwargs)
 
     def plot_kneeplot_from_syntactic_data(self) -> None:
-        extractor = ParameterRangeExtractor(self.kitti_locations)
+        extractor = ParameterRangeExtractor(self.data_manager)
         rad = extractor.get_data(DataVariant.SYNTACTIC_RAD)
 
         kwargs = {
@@ -117,7 +120,7 @@ class ParameterRangePlotter:
             'other_labels': ['index'],
             'figure_name':  'kneeplot',
         }
-        self.plot_kneeplot(param=rad[:, 2], **kwargs)
+        self.plot_kneeplot(data=rad[0][:, 2], **kwargs)
 
 
 def main():
@@ -134,15 +137,18 @@ def main():
     print(f"Label directory: {abs(kitti_locations.label_dir)}")
     print(f"Output directory: {abs(kitti_locations.output_dir)}")
 
-    plotter = ParameterRangePlotter(kitti_locations=kitti_locations)
-    stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
+    dm = DataManager(kitti_locations=kitti_locations)
+    plotter = ParameterRangePlotter(data_manager=dm)
+    # stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
 
-    dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
-           DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
+    # dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
+    #        DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
 
-    for dv in dvs:
-        stats_generator.write_stats(dv)
-        plotter.plot_data_simple(dv)
+    # for dv in dvs:
+    #     stats_generator.write_stats(dv)
+    #     plotter.plot_data_simple(dv)
+    
+    plotter.plot_kneeplot_from_syntactic_data()
 
 
 if __name__ == '__main__':

@@ -1,8 +1,7 @@
 import numpy as np
 import extraction as ex
 
-from extraction.file_manager import DataManager
-from enum import Enum
+from extraction.file_manager import DataManager, DataVariant
 from datetime import datetime
 from tqdm import tqdm
 from vod.frame import FrameTransformMatrix
@@ -10,40 +9,6 @@ from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
 from typing import List
 from collections import defaultdict
-
-
-class DataVariant(Enum):
-    SYNTACTIC_RAD = 0,
-    SEMANTIC_RAD = 1,
-    STATIC_DYNAMIC_RAD = 2,
-    SEMANTIC_OBJECT_DATA = 3,
-    SEMANTIC_OBJECT_DATA_BY_CLASS = 4
-
-    def column_names(self, with_unit: bool = False) -> List[str]:
-        if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
-            if with_unit:
-                return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
-            else:
-                return ["range", "azimuth", "doppler"]
-        elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
-            # we never want the class, even though it is included
-            if with_unit:
-                return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
-            else:
-                return ["class", "detections", "bbox volume", "range", "azimuth", "doppler"]
-
-        return []
-
-    def index_to_str(self, index) -> str:
-        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            return ex.name_from_class_id(index)
-        elif self == DataVariant.STATIC_DYNAMIC_RAD:
-            if index == 0:
-                return "static_rad"
-            else:
-                return "dynamic_rad"
-
-        return ''
 
 
 class ParameterRangeExtractor:
