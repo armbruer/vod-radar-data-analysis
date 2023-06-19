@@ -98,8 +98,13 @@ class ParameterRangePlotter:
 
             self._store_figure(figure, data_variant, figure_name, index_name, )
 
-    def _store_figure(self, figure, data_variant, figure_name, index_name =''):
-        figures_dir = f"{self.kitti_locations.figures_dir}/{data_variant.name.lower()}"
+    def _store_figure(self, figure, data_variant=None, figure_name='', index_name='', subdir=''):
+        figures_dir = f"{self.kitti_locations.figures_dir}"
+        if data_variant is not None:
+            figures_dir = f"{figures_dir}/{data_variant.name.lower()}"
+        elif subdir:
+            figures_dir = f"{figures_dir}/{subdir}"
+            
         os.makedirs(figures_dir, exist_ok=True)
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -166,6 +171,29 @@ class ParameterRangePlotter:
         
         self.plot_kde_for_each_parameter(DataVariant.SYNTACTIC_RAD, x_plots)
         
+        
+    def plot_combined(self):
+        syntactic_rad = self.extractor.get_data(DataVariant.SYNTACTIC_RAD)
+        semantic_rad = self.extractor.get_data(DataVariant.SEMANTIC_RAD)
+    
+        columns = DataVariant.SEMANTIC_RAD.column_names(with_unit=True)
+        xlims = [(0, 55), (-90, 90), (-25, 25)]
+        
+        
+        fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
+
+        
+        iter = enumerate(zip(syntactic_rad[0].T, semantic_rad[0].T, columns, xlims))
+        
+        for i, (syn_param, sem_param, column, xlim) in iter:
+            g = sns.histplot([syn_param, sem_param], bins=30, color=['r', 'b'], ax=ax[i], multiple="dodge")
+            
+            ax[i].legend(loc='upper right', labels=['unannotated', 'annotated'])
+            g.set(xlabel=column)
+            g.set(xlim=xlim)
+            g.set_yscale('log')
+        
+        self._store_figure(fig, figure_name='combined_plot')
 
 def main():
     output_dir = "output"
@@ -184,7 +212,9 @@ def main():
     dm = DataManager(kitti_locations=kitti_locations)
     plotter = ParameterRangePlotter(data_manager=dm)
     
-    plotter.plot_kde_for_rad()
+    plotter.plot_combined()
+    
+    #plotter.plot_kde_for_rad()
     
     # stats_generator = StatsTableGenerator(data_manager=dm)
 
