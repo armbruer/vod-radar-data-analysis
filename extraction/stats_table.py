@@ -35,12 +35,12 @@ class StatsTableGenerator:
         means = np.mean(data, axis=0)
         stds = np.std(data, axis=0)
 
-        stats = np.vstack((mins, maxs, means, stds))
+        stats = np.round(np.vstack((mins, maxs, means, stds)), decimals=2)
         columns = data_variant.column_names(with_unit=True)
         columns = list(map(lambda c: c.capitalize(), columns))
 
         df = pd.DataFrame(stats, columns=columns)
-        df.insert(0, "Name", pd.Series(["Min", "Max", "Mean", "Var", "Std"]))
+        df.insert(0, "Name", pd.Series(["Min", "Max", "Mean", "Std"]))
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
