@@ -35,7 +35,7 @@ class ParameterRangePlotter:
 
     def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
-        extractor = ParameterRangeExtractor(self.kitti_locations)
+        extractor = ParameterRangeExtractor(self.data_manager)
         data = extractor.get_data(data_variant)
         columns = data_variant.column_names(with_unit=True)
 
@@ -101,6 +101,7 @@ class ParameterRangePlotter:
             path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
             # figure.savefig(f'{path}.svg', format='svg')
             figure.savefig(f'{path}.png', format='png')
+            figure.savefig(f'{path}.pdf', format='pdf')
             logging.info(f'Plot generated in file:///{path}.png')
 
     def plot_kneeplot(self, data: np.ndarray, **kwargs) -> None:
