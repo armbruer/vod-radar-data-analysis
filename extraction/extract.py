@@ -62,7 +62,7 @@ class ParameterRangeExtractor:
         Returns a numpy array of shape (-1, 3) with columns range, azimuth, doppler.
         """
         frame_numbers = get_frame_list_from_folder(
-            self.kitti_locations.radar_dir, labels=False)
+            self.kitti_locations.radar_dir, fileending='*.bin')
 
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []

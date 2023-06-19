@@ -62,6 +62,22 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.nd
             
     return np.vstack(inside_points)
 
+def get_class_list():
+    return [
+        'Car',
+        'Pedestrian',
+        'Cyclist',
+        'rider',
+        'bicycle',
+        'bicycle_rack',
+        'human_depiction',
+        'moped_scooter',
+        'motor',
+        'ride_other',
+        'ride_uncertain',
+        'truck',
+        'vehicle_other']
+
 def name_from_class_id(clazz: int) -> str:
     
     class_id_to_name = {

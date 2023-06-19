@@ -41,7 +41,7 @@ This method plots the ground truth labels on the frame.
         # Distance filter
         filtered = list(filter(lambda elem: elem['range'] < max_distance_threshold, filtered))
 
-        colors = [label_color_palette_2d[v["label_class"]] for v in filtered]
+        colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
         labels = [d['corners'] for d in filtered]
 
         plot_boxes(labels, colors)
@@ -115,7 +115,7 @@ This method plots the lidar pcl on the frame. It colors the points based on dist
                   show_radar: bool = False,
                   max_distance_threshold: float = 50.0,
                   min_distance_threshold: float = 0.0,
-                  score_threshold: float = 0, ):
+                  score_threshold: float = 0, outdir=''):
         """
 This method can be called to draw the frame with the required information.
         :param plot_figure: Should the figure be displayed.
@@ -152,7 +152,7 @@ This method can be called to draw the frame with the required information.
         plt.axis('off')
 
         if save_figure:
-            plt.savefig(self.frame_data_loader.kitti_locations.output_dir + f'{self.frame_data_loader.file_id}.png',
+            plt.savefig(f'{self.frame_data_loader.kitti_locations.output_dir}/{outdir}{self.frame_data_loader.file_id}.png',
                         bbox_inches='tight', transparent=True)
         if plot_figure:
             plt.show()
