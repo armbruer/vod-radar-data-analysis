@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib
+from sklearn.neighbors import KernelDensity
 
 matplotlib.use('Agg') # do not show figures when saving plot
 import sys
@@ -32,11 +33,12 @@ class ParameterRangePlotter:
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
+        self.extractor = ParameterRangeExtractor(self.data_manager)
 
     def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
-        extractor = ParameterRangeExtractor(self.data_manager)
-        data = extractor.get_data(data_variant)
+
+        data = self.extractor.get_data(data_variant)
         columns = data_variant.column_names(with_unit=True)
 
         self.plot_data(data=data, plot_types=plot_types,
@@ -94,15 +96,17 @@ class ParameterRangePlotter:
 
             # plt.show()
 
-            figures_dir = f"{self.kitti_locations.figures_dir}/{data_variant.name.lower()}"
-            os.makedirs(figures_dir, exist_ok=True)
+            self._store_figure(figure, data_variant, figure_name, index_name, )
 
-            now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-            path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
-            # figure.savefig(f'{path}.svg', format='svg')
-            figure.savefig(f'{path}.png', format='png')
-            figure.savefig(f'{path}.pdf', format='pdf')
-            logging.info(f'Plot generated in file:///{path}.png')
+    def _store_figure(self, figure, data_variant, figure_name, index_name =''):
+        figures_dir = f"{self.kitti_locations.figures_dir}/{data_variant.name.lower()}"
+        os.makedirs(figures_dir, exist_ok=True)
+
+        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
+        figure.savefig(f'{path}.png', format='png')
+        figure.savefig(f'{path}.pdf', format='pdf')
+        logging.info(f'Plot generated in file:///{path}.png')
 
     def plot_kneeplot(self, data: np.ndarray, **kwargs) -> None:
         if data.ndim != 1:
@@ -112,8 +116,7 @@ class ParameterRangePlotter:
         self.plot_data([np.sort(data)], [PlotType.KNEEPLOT], DataVariant.SYNTACTIC_RAD, **kwargs)
 
     def plot_kneeplot_from_syntactic_data(self) -> None:
-        extractor = ParameterRangeExtractor(self.data_manager)
-        rad = extractor.get_data(DataVariant.SYNTACTIC_RAD)
+        rad = self.extractor.get_data(DataVariant.SYNTACTIC_RAD)
 
         kwargs = {
             'value_labels': ['doppler (m/s)'],
@@ -121,7 +124,48 @@ class ParameterRangePlotter:
             'figure_name':  'kneeplot',
         }
         self.plot_kneeplot(data=rad[0][:, 2], **kwargs)
-
+    
+    def plot_kde_for_each_parameter(self, data_variant: DataVariant, x_plots):
+        data = self.extractor.get_data(data_variant)
+        columns = data_variant.column_names()
+        
+        for param, column, x_plot in zip(data[0].T, columns, x_plots):
+            
+            colors = ["navy"]
+            kernels = ["gaussian"]
+            
+            fig, ax = plt.subplots()
+            
+            ax.hist(param, density=True, bins=30, alpha=0.3)
+            
+            for color, kernel in zip(colors, kernels):
+                kde = KernelDensity(kernel=kernel, bandwidth=0.5).fit(X=param.reshape(param.shape[0], 1))
+                log_dens = kde.score_samples(x_plot)
+                ax.plot(
+                    x_plot[:, 0],
+                    np.exp(log_dens), # exp as we get the log-likelihood above
+                    color=color,
+                    lw=1.5,
+                    linestyle="-",
+                    label=f"kernel = '{kernel}'",
+                )
+                
+            self._store_figure(fig, data_variant, column.lower())
+            
+    
+    def plot_kde_for_rad(self):
+        x_plots = [np.linspace(0, 55, 1000)[:, np.newaxis],
+                   np.linspace(-90, 90, 1000)[:, np.newaxis],
+                   np.linspace(-25, 25, 1000)[:, np.newaxis]]
+        
+        self.plot_kde_for_each_parameter(DataVariant.SEMANTIC_RAD, x_plots)
+        
+        x_plots = [np.linspace(0, 105, 1000)[:, np.newaxis],
+                   np.linspace(-180, 180, 1000)[:, np.newaxis],
+                   np.linspace(-25, 25, 1000)[:, np.newaxis]]
+        
+        self.plot_kde_for_each_parameter(DataVariant.SYNTACTIC_RAD, x_plots)
+        
 
 def main():
     output_dir = "output"
@@ -139,16 +183,19 @@ def main():
 
     dm = DataManager(kitti_locations=kitti_locations)
     plotter = ParameterRangePlotter(data_manager=dm)
-    stats_generator = StatsTableGenerator(data_manager=dm)
-
-    dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
-           DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
-
-    for dv in dvs:
-        stats_generator.write_stats(dv)
-        plotter.plot_data_simple(dv)
     
-    #plotter.plot_kneeplot_from_syntactic_data()
+    plotter.plot_kde_for_rad()
+    
+    # stats_generator = StatsTableGenerator(data_manager=dm)
+
+    # dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
+    #        DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
+
+    # for dv in dvs:
+    #     stats_generator.write_stats(dv)
+    #     plotter.plot_data_simple(dv)
+    
+    # #plotter.plot_kneeplot_from_syntactic_data()
 
 
 if __name__ == '__main__':
