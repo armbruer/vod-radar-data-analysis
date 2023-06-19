@@ -85,7 +85,6 @@ class ParameterRangePlotter:
                         gfg.set(ylabel=value_label)
                     elif pt == PlotType.HISTOGRAM:
                         gfg = sns.histplot(x=param, ax=axis, bins=30)
-                        axis.set_yscale('log')
                         gfg.set(xlabel=value_label)
                     elif pt == PlotType.KNEEPLOT:
                         indices = np.arange(0, param.shape[0], 1)
@@ -139,16 +138,16 @@ def main():
 
     dm = DataManager(kitti_locations=kitti_locations)
     plotter = ParameterRangePlotter(data_manager=dm)
-    # stats_generator = StatsTableGenerator(kitti_locations=kitti_locations)
+    stats_generator = StatsTableGenerator(data_manager=dm)
 
-    # dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
-    #        DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
+    dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
+           DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
 
-    # for dv in dvs:
-    #     stats_generator.write_stats(dv)
-    #     plotter.plot_data_simple(dv)
+    for dv in dvs:
+        stats_generator.write_stats(dv)
+        plotter.plot_data_simple(dv)
     
-    plotter.plot_kneeplot_from_syntactic_data()
+    #plotter.plot_kneeplot_from_syntactic_data()
 
 
 if __name__ == '__main__':

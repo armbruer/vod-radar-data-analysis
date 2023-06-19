@@ -1,22 +1,20 @@
 from typing import List
 from extraction.extract import ParameterRangeExtractor
-from extraction.file_manager import DataVariant
+from extraction.file_manager import DataManager, DataVariant
 import numpy as np
 import pandas as pd
 from datetime import datetime
 import logging
 import os
 
-from vod.configuration.file_locations import KittiLocations
-
-
 class StatsTableGenerator:
 
-    def __init__(self, kitti_locations: KittiLocations) -> None:
-        self.kitti_locations = kitti_locations
+    def __init__(self, data_manager: DataManager) -> None:
+        self.data_manager = data_manager
+        self.kitti_locations = data_manager.kitti_locations
 
     def write_stats(self, data_variant: DataVariant) -> None:
-        ex = ParameterRangeExtractor(kitti_locations=self.kitti_locations)
+        ex = ParameterRangeExtractor(data_manager=self.data_manager)
         data: List[np.ndarray] = ex.get_data(data_variant=data_variant)
         data_variant_str = data_variant.name.lower()
         if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
