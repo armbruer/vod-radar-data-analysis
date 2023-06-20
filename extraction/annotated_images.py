@@ -1,20 +1,12 @@
-import sys
 import os
 
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
-
+from tqdm import tqdm
 from typing import List
 from extraction.helpers import get_class_list
 from vod.common.file_handling import get_frame_list_from_folder
 from vod.configuration.file_locations import KittiLocations
-
-from tqdm import tqdm
 from vod.frame.data_loader import FrameDataLoader
 from vod.visualization.vis_2d import Visualization2D
-
-
-def abspath(path): return os.path.abspath(path)
-
 
 def generate_annotated_images(kitti_locations: KittiLocations, 
                               outdir: str, 
@@ -38,21 +30,7 @@ def generate_annotated_images(kitti_locations: KittiLocations,
                         show_lidar=lidar, show_radar=radar, outdir=outdir)
         
         
-
-def main():
-    output_dir = "output"
-    root_dir = "../view_of_delft_PUBLIC/"
-    kitti_locations = KittiLocations(root_dir=root_dir,
-                                     output_dir=output_dir,
-                                     frame_set_path="",
-                                     pred_dir="",
-                                     )
-
-    output_dir = abspath(kitti_locations.output_dir)
-    print(f"Output directory: {output_dir}")
-    
-    #generate_annotated_images(kitti_locations=kitti_locations, outdir=f"images_annoted_radar_only/", lidar=False)
+def generate_all_annotated_images(kitti_locations: KittiLocations):
+    generate_annotated_images(kitti_locations=kitti_locations, outdir=f"images_annoted_radar_only/", lidar=False)
     generate_annotated_images(kitti_locations=kitti_locations, outdir=f"images_annotated/")
 
-if __name__ == '__main__':
-    main()

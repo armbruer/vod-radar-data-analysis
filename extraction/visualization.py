@@ -4,15 +4,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 import matplotlib
-from sklearn.neighbors import KernelDensity
-
-matplotlib.use('Agg') # do not show figures when saving plot
-import sys
 import os
 
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
-
-
+matplotlib.use('Agg') # do not show figures when saving plot
+from sklearn.neighbors import KernelDensity
 from tqdm import tqdm
 from vod.configuration.file_locations import KittiLocations
 from extraction.file_manager import DataManager
@@ -25,8 +20,7 @@ from datetime import datetime
 class PlotType(Enum):
     VIOLIN = 1,
     BOXPLOT = 2,
-    HISTOGRAM = 3,
-
+    HISTOGRAM = 3
 
 class ParameterRangePlotter:
 
@@ -182,25 +176,6 @@ class ParameterRangePlotter:
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.png')
 
-def main():
-    output_dir = "output"
-    root_dir = "../view_of_delft_PUBLIC/"
-    kitti_locations = KittiLocations(root_dir=root_dir,
-                                     output_dir=output_dir,
-                                     frame_set_path="",
-                                     pred_dir="",
-                                     )
-
-    def abs(p): return os.path.abspath(p)
-    print(f"Radar directory: {abs(kitti_locations.radar_dir)}")
-    print(f"Label directory: {abs(kitti_locations.label_dir)}")
-    print(f"Output directory: {abs(kitti_locations.output_dir)}")
-
-    dm = DataManager(kitti_locations=kitti_locations)
-    plotter = ParameterRangePlotter(data_manager=dm)
-    
-    run_basic_visualization(dm, plotter)
-
 def run_basic_visualization(manager: DataManager, plotter : ParameterRangePlotter):
     stats_generator = StatsTableGenerator(data_manager=manager)
 
@@ -211,6 +186,3 @@ def run_basic_visualization(manager: DataManager, plotter : ParameterRangePlotte
         stats_generator.write_stats(dv)
         plotter.plot_data_simple(dv)
 
-
-if __name__ == '__main__':
-    main()
