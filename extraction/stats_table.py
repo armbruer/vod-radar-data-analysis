@@ -15,7 +15,7 @@ class StatsTableGenerator:
         self.kitti_locations = data_manager.kitti_locations
 
     def write_stats(self, data_variant: DataVariant) -> None:
-        data = self.data_manager.get_data(data_variant=data_variant)
+        data = self.data_manager.get_df_plot_ready(data_variant=data_variant)
         data_variant_str = data_variant.name.lower()
         if isinstance(data, list):
             for i, d in enumerate(data):

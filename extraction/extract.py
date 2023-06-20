@@ -29,6 +29,7 @@ class ParameterRangeExtractor:
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
+        frame_numbers: List[np.ndarray] = []
 
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic RAD: Going through frames'):
             loader = FrameDataLoader(
@@ -42,8 +43,9 @@ class ParameterRangeExtractor:
                 azimuths.append(np.rad2deg(
                     azimuth_angle_from_location(radar_data[:, :2])))
                 dopplers.append(radar_data[:, 4])
+                frame_numbers.append(np.full(radar_data.shape[0], frame_number))
 
-        rad = np.vstack(list(map(np.hstack, [ranges, azimuths, dopplers]))).T
+        rad = np.vstack(list(map(np.hstack, [frame_numbers, ranges, azimuths, dopplers]))).T
         return pd.DataFrame(rad, columns=DataVariant.SYNTACTIC_RAD.column_names())
 
     def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
@@ -70,10 +72,10 @@ class ParameterRangeExtractor:
 
     def extract_object_data_from_semantic_data(self) -> pd.DataFrame:
         """
-        For each object in the frame retrieve the following data: object tracking id, object class, absolute velocity, 
+        For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
         number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
 
-        Returns a dataframe shape (-1, 7) with the columns listed above
+        Returns a dataframe shape (-1, 8) with the columns listed above
         """
 
         # only those frame_numbers which have annotations

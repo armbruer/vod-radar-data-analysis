@@ -1,10 +1,8 @@
 import logging
 import os
 import pandas as pd
-import numpy as np
 
 from datetime import datetime
-from enum import Enum
 from typing import Dict, List, Optional, Union
 from extraction.extract import ParameterRangeExtractor
 from extraction.helpers import DataVariant
@@ -17,13 +15,36 @@ class DataManager:
         self.extractor = ParameterRangeExtractor(kitti_locations)
         self.data: Dict[DataVariant, pd.DataFrame] = {}
         
-    def get_data(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+    def get_df_plot_ready(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
-        Gets the array data for the given data variant either directly from file or by extracting it from the respective frames.
+        Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset.
+        Additionally, modifies the data, so it can be directly used for plotting.
 
-        :param data_variant: the data variant for which the data array is to be retrieved
+        :param data_variant: the data variant for which the dataframe is to be retrieved
 
-        Returns the array containing the data requested in data_variant
+        Returns the dataframe containing the data requested through the data variant
+        """
+        df = self.get_df(data_variant, refresh)
+        
+        if data_variant in [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD]:
+            return df.drop([0]) # frame number
+
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
+            return df.drop([0, 1]) # frame number, class
+        
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+            df = [d.drop([0, 1]) for d in df]
+            
+        elif data_variant == DataVariant.SYNTACTIC_RAD:
+            df = [d.drop([0]) for d in df]
+        
+    def get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+        """
+        Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset
+
+        :param data_variant: the data variant for which the dataframe is to be retrieved
+
+        Returns the dataframe containing the data requested through the data variant
         """
         if not refresh and (self.data.get(data_variant) is not None or self.load_dataframe(data_variant) is not None):
             return self.data[data_variant]
@@ -33,7 +54,7 @@ class DataManager:
                 data_variant, self.extractor.extract_rad_from_syntactic_data())
 
         elif data_variant == DataVariant.SEMANTIC_RAD:
-            object_df: pd.DataFrame = self.get_data(
+            object_df: pd.DataFrame = self.get_df(
                 data_variant=DataVariant.SEMANTIC_OBJECT_DATA)
             object_df = object_df[DataVariant.SEMANTIC_RAD.column_names()]
             self.data[data_variant] = object_df
@@ -43,13 +64,13 @@ class DataManager:
                 data_variant, self.extractor.extract_object_data_from_semantic_data())
 
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            object_df = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            object_df = self.get_df(DataVariant.SEMANTIC_OBJECT_DATA)
             object_data_by_class = self.extractor.split_by_class(object_df)
             self.data[data_variant] = object_data_by_class
 
         elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             stat_dyn_rad = self.extractor.split_rad_by_threshold(
-                self.get_data(DataVariant.SYNTACTIC_RAD))
+                self.get_df(DataVariant.SYNTACTIC_RAD))
             self.data[data_variant] = stat_dyn_rad
 
         return self.data[data_variant]

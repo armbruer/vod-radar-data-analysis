@@ -37,7 +37,7 @@ class ParameterRangePlotter:
     def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
 
-        df = self.data_manager.get_data(data_variant)
+        df = self.data_manager.get_df_plot_ready(data_variant)
         columns = data_variant.column_names()
 
         self.plot_data(dfs=df, plot_types=plot_types,
@@ -96,7 +96,7 @@ class ParameterRangePlotter:
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
         dv = DataVariant.SYNTACTIC_RAD
-        rad_df = self.data_manager.get_data()
+        rad_df = self.data_manager.get_df_plot_ready()
         doppler_df = rad_df[[2]]
         
         fig, axs = plt.subplots()
@@ -145,8 +145,8 @@ class ParameterRangePlotter:
             self._store_figure(fig, data_variant, label.split()[0]) 
         
     def plot_combined(self):
-        syntactic_rad_df = self.data_manager.get_data(DataVariant.SYNTACTIC_RAD)
-        semantic_rad_df = self.data_manager.get_data(DataVariant.SEMANTIC_RAD)
+        syntactic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SYNTACTIC_RAD)
+        semantic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
     
         columns: List[str] = syntactic_rad_df.columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25)]

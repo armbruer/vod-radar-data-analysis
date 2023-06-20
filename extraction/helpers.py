@@ -17,9 +17,9 @@ class DataVariant(Enum):
 
     def column_names(self) -> List[str]:
         if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
-            return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
+            return ["frame number", "range (m)", "azimuth (degree)", "doppler (m/s)"]
         elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
-            return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
+            return ["frame number", "class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
 
         return []
 
@@ -150,13 +150,13 @@ def class_id_from_name(name: str) -> int:
     
 def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[np.ndarray]:
     """
-    For each object in the frame retrieve the following data: object tracking id, object class, absolute velocity, 
+    For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
     number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
 
     :param loader: the loader of the current frame
     :param transforms: the transformation matrix of the current frame
 
-    Returns: a numpy array with the following columns: object tracking id, object class, absolute velocity, 
+    Returns: a numpy array with the following columns: frame number, object class, absolute velocity, 
     number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler)
     """
     
@@ -179,6 +179,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     
     
     # Step 3: For each bounding box get a list of radar points which are inside of it
+    frame_numbers = []
     object_ids = [] # TODO
     object_clazz = []
     velocity_abs = [] # one avg absolute velocity per bounding box
@@ -197,6 +198,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             class_name = label['label_class']
             # Step 4: Get the avg doppler value of the object and collect it
             
+            frame_numbers.append(loader.frame_number)
             object_clazz.append(class_id_from_name(class_name))
             velocity_abs.append(np.mean(points_matching[:, 5]))
             detections.append(points_matching.shape[0])
@@ -213,8 +215,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     if not object_clazz:
         return None
     
-    columns = [object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
-    # create one array of shape (-1, 7)
+    columns = [frame_numbers, object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
+    # create one array of shape (-1, 8)
     return np.vstack(list(map(np.hstack, columns))).T
 
 def vis_to_debug(frame_data: FrameDataLoader):
