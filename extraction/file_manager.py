@@ -1,71 +1,72 @@
-from datetime import datetime
 import logging
 import os
-from enum import Enum
-from typing import Dict, List, Optional
+import pandas as pd
 import numpy as np
 
-import sys
-import os
-
-sys.path.append(os.path.abspath("../view-of-delft-dataset"))
-
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional, Union
+from extraction.extract import ParameterRangeExtractor
+from extraction.helpers import DataVariant
 from vod.configuration.file_locations import KittiLocations
-
-class DataVariant(Enum):
-    SYNTACTIC_RAD = 0,
-    SEMANTIC_RAD = 1,
-    STATIC_DYNAMIC_RAD = 2,
-    SEMANTIC_OBJECT_DATA = 3,
-    SEMANTIC_OBJECT_DATA_BY_CLASS = 4
-
-    def column_names(self, with_unit: bool = False) -> List[str]:
-        if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
-            if with_unit:
-                return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
-            else:
-                return ["range", "azimuth", "doppler"]
-        elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
-            # we never want the class, even though it is included
-            if with_unit:
-                return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
-            else:
-                return ["class", "detections", "bbox volume", "range", "azimuth", "doppler"]
-
-        return []
-
-    def index_to_str(self, index) -> str:
-        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            return ex.name_from_class_id(index)
-        elif self == DataVariant.STATIC_DYNAMIC_RAD:
-            if index == 0:
-                return "static_rad"
-            else:
-                return "dynamic_rad"
-
-        return ''
-
 
 class DataManager:
     
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
-
-        self.data: Dict[DataVariant, List[np.ndarray]] = {}
-    
-    def load_data(self, data_variant: DataVariant) -> Optional[List[np.ndarray]]:
+        self.extractor = ParameterRangeExtractor(kitti_locations)
+        self.data: Dict[DataVariant, pd.DataFrame] = {}
+        
+    def get_data(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
-        Loads a data array of shape from the most recently saved numpy file given this data_variant.
+        Gets the array data for the given data variant either directly from file or by extracting it from the respective frames.
 
-        :param data_variant: the data variant of the file to be loaded  
+        :param data_variant: the data variant for which the data array is to be retrieved
+
+        Returns the array containing the data requested in data_variant
+        """
+        if not refresh and (self.data.get(data_variant) is not None or self.load_dataframe(data_variant) is not None):
+            return self.data[data_variant]
+
+        if data_variant == DataVariant.SYNTACTIC_RAD:
+            self.store_dataframe(
+                data_variant, self.extractor.extract_rad_from_syntactic_data())
+
+        elif data_variant == DataVariant.SEMANTIC_RAD:
+            object_df: pd.DataFrame = self.get_data(
+                data_variant=DataVariant.SEMANTIC_OBJECT_DATA)
+            object_df = object_df[DataVariant.SEMANTIC_RAD.column_names()]
+            self.data[data_variant] = object_df
+
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
+            self.store_dataframe(
+                data_variant, self.extractor.extract_object_data_from_semantic_data())
+
+        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+            object_df = self.get_data(DataVariant.SEMANTIC_OBJECT_DATA)
+            object_data_by_class = self.extractor.split_by_class(object_df)
+            self.data[data_variant] = object_data_by_class
+
+        elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
+            stat_dyn_rad = self.extractor.split_rad_by_threshold(
+                self.get_data(DataVariant.SYNTACTIC_RAD))
+            self.data[data_variant] = stat_dyn_rad
+
+        return self.data[data_variant]
+    
+    def load_dataframe(self, data_variant: DataVariant) -> Optional[pd.DataFrame]:
+        """
+        Loads a dataframe from the most recently saved HDF5-file for this data variant.
+
+        :param data_variant: the data variant of the dataframe to be loaded
         """
         dv_str = data_variant.name.lower()
-        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
+        data_dir = f'{self.kitti_locations.data_dir}'
         os.makedirs(data_dir, exist_ok=True)
 
         matching_files = []
         for file in os.listdir(data_dir):
-            if file.endswith('.npy') and dv_str in file:
+            if file.endswith('.hdf5') and dv_str in file:
                 datetime_str = file.split('-')[-1].split('.')[0]
                 matching_files.append((file, datetime_str))
 
@@ -76,41 +77,29 @@ class DataManager:
             return None
 
         most_recent: str = matching_files[-1][0]
-        parts = most_recent.split('-')
-        data = []
-        if len(parts) > 2 and parts[1].isdecimal():
-            # we need to load all files in the list now
-            i = 0
-            while True:
-                try:
-                    name = f'{parts[0]}-{i}-{parts[2]}'
-                    i += 1
-                    data.append(np.load(f'{data_dir}/{name}'))
-                except:
-                    break
-        else:
-            data = [np.load(f'{data_dir}/{most_recent}')]
+        
+        df = pd.read_hdf(f'{data_dir}/{most_recent}', key=dv_str)
 
-        self.data[data_variant] = data
-        return data
+        self.data[data_variant] = df
+        return df
 
-    def store_data(self, data_variant: DataVariant, data: List[np.ndarray]):
+    def store_dataframe(self, data_variant: DataVariant, df: pd.DataFrame):
         """
-        Stores the data array in a numpy file using data variant in the name of the file.
+        Stores the dataframe in an HDF-5 file using the data variant in the file path.
 
-        :param data_variant: the data_variant of this rad array
-        :param data: the data array to be stored
+        :param data_variant: the data_variant of the data to be stored
+        :param data: the dataframe to be stored
         """
-        if not isinstance(data, list):
-            raise ValueError('data must be of type list')
+        if isinstance(df, list):
+            raise ValueError('df must not be of type list')
 
         dv_str = data_variant.name.lower()
-        data_dir = f'{self.kitti_locations.data_dir}/{dv_str}'
+        data_dir = f'{self.kitti_locations.data_dir}'
         os.makedirs(data_dir, exist_ok=True)
 
-        now = self._now()
-        self.data[data_variant] = data
-        for i, d in enumerate(data):
-            path = f'{data_dir}/{dv_str}-{i}-{now}.npy'
-            np.save(path, d)
-            logging.info(f'Data saved in file:///{path}.npy')
+        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        self.data[data_variant] = df
+        path = f'{data_dir}/{dv_str}-{now}.hdf5'
+        df.to_hdf(path, key=dv_str, mode='w')
+        logging.info(f'Data saved in file:///{path}.hdf5')
+            

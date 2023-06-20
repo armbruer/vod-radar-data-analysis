@@ -1,11 +1,12 @@
-from typing import List
-from extraction.extract import ParameterRangeExtractor
-from extraction.file_manager import DataManager, DataVariant
-import numpy as np
-import pandas as pd
+from extraction.file_manager import DataManager
 from datetime import datetime
+
 import logging
 import os
+import numpy as np
+import pandas as pd
+
+from extraction.helpers import DataVariant
 
 class StatsTableGenerator:
 
@@ -14,30 +15,25 @@ class StatsTableGenerator:
         self.kitti_locations = data_manager.kitti_locations
 
     def write_stats(self, data_variant: DataVariant) -> None:
-        ex = ParameterRangeExtractor(data_manager=self.data_manager)
-        data: List[np.ndarray] = ex.get_data(data_variant=data_variant)
+        data = self.data_manager.get_data(data_variant=data_variant)
         data_variant_str = data_variant.name.lower()
-        if data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or data_variant == DataVariant.STATIC_DYNAMIC_RAD:
+        if isinstance(data, list):
             for i, d in enumerate(data):
                 self._write_stats(
                     data_variant, d, f'{data_variant_str}-{data_variant.index_to_str(i)}')
             return
 
-        self._write_stats(data_variant, *data, data_variant_str)
+        self._write_stats(data_variant, data, data_variant_str)
 
-    def _write_stats(self, data_variant: DataVariant, data: np.ndarray, filename: str) -> None:
-        if data.ndim < 2:
-            raise ValueError(
-                'Dimension of retrieved data must be at least two')
-
+    def _write_stats(self, data_variant: DataVariant, df: pd.DataFrame, filename: str) -> None:
+        data = df.to_numpy()
         mins = np.min(data, axis=0)
         maxs = np.max(data, axis=0)
         means = np.mean(data, axis=0)
         stds = np.std(data, axis=0)
 
         stats = np.round(np.vstack((mins, maxs, means, stds)), decimals=2)
-        columns = data_variant.column_names(with_unit=True)
-        columns = list(map(lambda c: c.capitalize(), columns))
+        columns = list(map(lambda c: c.capitalize(), df.columns))
 
         df = pd.DataFrame(stats, columns=columns)
         df.insert(0, "Name", pd.Series(["Min", "Max", "Mean", "Std"]))

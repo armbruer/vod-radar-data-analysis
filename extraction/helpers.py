@@ -1,10 +1,38 @@
-from typing import Optional
+from enum import Enum
+from typing import List, Optional
 import numpy as np
 
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
-from vod.visualization.helpers import get_placed_3d_label_corners, get_transformed_3d_label_corners_cartesian
+from vod.visualization.helpers import get_placed_3d_label_corners
+
+
+class DataVariant(Enum):
+    SYNTACTIC_RAD = 0,
+    SEMANTIC_RAD = 1,
+    STATIC_DYNAMIC_RAD = 2,
+    SEMANTIC_OBJECT_DATA = 3,
+    SEMANTIC_OBJECT_DATA_BY_CLASS = 4
+
+    def column_names(self) -> List[str]:
+        if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
+            return ["range (m)", "azimuth (degree)", "doppler (m/s)"]
+        elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
+            return ["class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
+
+        return []
+
+    def index_to_str(self, index) -> str:
+        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+            return name_from_class_id(index)
+        elif self == DataVariant.STATIC_DYNAMIC_RAD:
+            if index == 0:
+                return "static_rad"
+            else:
+                return "dynamic_rad"
+
+        return ''
 
 
 def locs_to_distance(locations: np.ndarray) -> np.ndarray:

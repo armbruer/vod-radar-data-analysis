@@ -4,6 +4,7 @@ channels:
   - defaults
   - open3d-admin
 dependencies:
+  - pytables
   - ipykernel
   - pytest
   - pyproj
