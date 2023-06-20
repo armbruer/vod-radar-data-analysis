@@ -15,6 +15,7 @@ class ParameterRangeExtractor:
 
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
+        self.kitti_locations = data_manager.kitti_locations
         self.data = data_manager.data
 
     def get_data(self, data_variant: DataVariant, refresh=False) -> List[np.ndarray]:
