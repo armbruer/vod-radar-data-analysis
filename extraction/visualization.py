@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
 import matplotlib
 from sklearn.neighbors import KernelDensity
 
@@ -186,12 +187,12 @@ class ParameterRangePlotter:
         iter = enumerate(zip(syntactic_rad[0].T, semantic_rad[0].T, columns, xlims))
         
         for i, (syn_param, sem_param, column, xlim) in iter:
-            g = sns.histplot([syn_param, sem_param], bins=30, color=['r', 'b'], ax=ax[i], multiple="dodge")
+            df_syntactic_rad = pd.DataFrame(data = syn_param, columns=[column]).assign(annotated = 'No')
+            df_semantic_rad = pd.DataFrame(data = sem_param, columns=[column]).assign(annotated = 'Yes')
+            df = pd.concat([df_syntactic_rad, df_semantic_rad])
             
-            ax[i].legend(loc='upper right', labels=['unannotated', 'annotated'])
-            g.set(xlabel=column)
+            g = sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)
             g.set(xlim=xlim)
-            g.set_yscale('log')
         
         self._store_figure(fig, figure_name='combined_plot')
 
