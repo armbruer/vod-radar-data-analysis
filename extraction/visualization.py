@@ -199,11 +199,10 @@ def main():
     dm = DataManager(kitti_locations=kitti_locations)
     plotter = ParameterRangePlotter(data_manager=dm)
     
-    #plotter.plot_combined()
-    
-    #plotter.plot_kde_for_rad()
-    
-    stats_generator = StatsTableGenerator(data_manager=dm)
+    run_basic_visualization(dm, plotter)
+
+def run_basic_visualization(manager: DataManager, plotter : ParameterRangePlotter):
+    stats_generator = StatsTableGenerator(data_manager=manager)
 
     dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
            DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]

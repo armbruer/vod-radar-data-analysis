@@ -38,11 +38,9 @@ class StatsTableGenerator:
         df = pd.DataFrame(stats, columns=columns)
         df.insert(0, "Name", pd.Series(["Min", "Max", "Mean", "Std"]))
 
-        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-
         dir = f'{self.kitti_locations.stats_dir}/{data_variant.name.lower()}'
         os.makedirs(dir, exist_ok=True)
-        fpath = f'{dir}/{filename}-{now}'
+        fpath = f'{dir}/{filename}'
 
         df.to_csv(f'{fpath}.csv', index=False)
         # Requires latex installation with booktabs
