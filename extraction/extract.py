@@ -29,7 +29,7 @@ class ParameterRangeExtractor:
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
-        frame_numbers: List[np.ndarray] = []
+        frame_nums: List[np.ndarray] = []
 
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic RAD: Going through frames'):
             loader = FrameDataLoader(
@@ -39,13 +39,13 @@ class ParameterRangeExtractor:
             radar_data = loader.radar_data
             if radar_data is not None:
 
+                frame_nums.append(np.full(radar_data.shape[0], frame_number))
                 ranges.append(locs_to_distance(radar_data[:, :3]))
                 azimuths.append(np.rad2deg(
                     azimuth_angle_from_location(radar_data[:, :2])))
                 dopplers.append(radar_data[:, 4])
-                frame_numbers.append(np.full(radar_data.shape[0], frame_number))
 
-        rad = np.vstack(list(map(np.hstack, [frame_numbers, ranges, azimuths, dopplers]))).T
+        rad = np.vstack(list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))).T
         return pd.DataFrame(rad, columns=DataVariant.SYNTACTIC_RAD.column_names())
 
     def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:

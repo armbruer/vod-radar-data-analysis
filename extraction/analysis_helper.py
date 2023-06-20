@@ -26,10 +26,10 @@ class DataAnalysisHelper:
         data = df.to_numpy()
         
         mins = np.round(np.min(data, axis=0), decimals=2)
-        min_fns = framenums_from_index(np.argmin(data, axis=0))
+        min_fns = framenums_from_index(np.argmin(data, axis=0), data)
         
         maxs = np.round(np.max(data, axis=0), decimals=2)
-        max_fns = framenums_from_index(np.argmax(data, axis=0))
+        max_fns = framenums_from_index(np.argmax(data, axis=0), data)
         
         dv_str = data_variant.name.lower()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
