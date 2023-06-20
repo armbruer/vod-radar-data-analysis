@@ -1,9 +1,9 @@
 
 import sys
 import os
-from extraction.analysis_helper import prepare_data_analysis
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
+from extraction.analysis_helper import prepare_data_analysis
 from extraction.annotated_images import generate_all_annotated_images
 from extraction.file_manager import DataManager
 from extraction.visualization import ParameterRangePlotter, run_basic_visualization
