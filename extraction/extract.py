@@ -46,8 +46,9 @@ class ParameterRangeExtractor:
                 dopplers.append(radar_data[:, 4])
 
         rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))
+        cols = DataVariant.SYNTACTIC_RAD.column_names()
         # we construct via series to keep the datatype correct
-        return pd.DataFrame({ name : pd.Series(content) for name, content in zip(DataVariant.SYNTACTIC_RAD.column_names(), rad)})
+        return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})
 
     def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
         """

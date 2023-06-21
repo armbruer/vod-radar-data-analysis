@@ -35,7 +35,7 @@ class DataManager:
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
             df = [d.drop(d.columns[[0, 1]], axis=1) for d in df] # frame number, class
             
-        elif data_variant == DataVariant.SYNTACTIC_RAD:
+        elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
             df = [d.drop(d.columns[[0]], axis=1) for d in df] # frame number 
             
         return df

@@ -32,10 +32,8 @@ class ParameterRangePlotter:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
 
         df = self.data_manager.get_df_plot_ready(data_variant)
-        columns = data_variant.column_names()
 
-        self.plot_data(dfs=df, plot_types=plot_types,
-                       data_variant=data_variant, value_labels=columns)
+        self.plot_data(dfs=df, plot_types=plot_types, data_variant=data_variant)
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],

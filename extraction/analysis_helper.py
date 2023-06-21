@@ -18,20 +18,27 @@ class DataAnalysisHelper:
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
-
+        
     def prepare_data_analysis(self, data_variant: DataVariant):
         df = self.data_manager.get_df(data_variant=data_variant)
+        if isinstance(df, list):
+            for d in df:
+                self._prepare_data_analysis( d, data_variant)
+            return
         
-        def framenums_from_index(indexes: np.ndarray, data: np.ndarray):
-            return data[indexes, 0]
+        self._prepare_data_analysis(df, data_variant)
         
+    def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray):
+        return data[indexes, 0]
+
+    def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant):
         data = df.to_numpy()
         
         mins = np.round(np.min(data[:, 1:], axis=0).astype(np.float64), decimals=2)
-        min_fns = framenums_from_index(np.argmin(data[:, 1:], axis=0), data)
+        min_fns = self._framenums_from_index(np.argmin(data[:, 1:], axis=0), data)
         
         maxs = np.round(np.max(data[:, 1:], axis=0).astype(np.float64), decimals=2)
-        max_fns = framenums_from_index(np.argmax(data[:, 1:], axis=0), data)
+        max_fns = self._framenums_from_index(np.argmax(data[:, 1:], axis=0), data)
         
         dv_str = data_variant.name.lower()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
