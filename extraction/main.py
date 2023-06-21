@@ -34,7 +34,8 @@ def main():
 
     #run_basic_visualization(dm, plotter)
     #plotter.plot_syn_sem_combined(kde=True)
-    plotter.plot_by_class_combined(kde=True)
+    #plotter.plot_by_class_combined(kde=True)
+    plotter.plot_rad()
     
     #prepare_data_analysis(dm)
 

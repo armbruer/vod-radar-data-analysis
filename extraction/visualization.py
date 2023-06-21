@@ -99,42 +99,31 @@ class ParameterRangePlotter:
         self._store_figure(fig, dv, 'kneeplot')
             
     
-    def plot_kde_for_rad(self):
-        x_plots = [np.linspace(0, 55, 1000)[:, np.newaxis],
-                   np.linspace(-90, 90, 1000)[:, np.newaxis],
-                   np.linspace(-25, 25, 1000)[:, np.newaxis]]
+    def plot_rad(self):
+        rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
+    
+        columns: List[str] = rad_df.columns.to_list()
+        xlims = [(0, 55), (-90, 90), (-25, 25)]
+
+
+        plot_functions = [
+            ('hist', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
+            ('hist_kde', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
+            ('kde', lambda i: sns.kdeplot(data=df, x=column, ax=ax[i]))
+        ]
         
-        self.plot_kde_for_each_parameter(DataVariant.SEMANTIC_RAD, x_plots)
-        
-        x_plots = [np.linspace(0, 105, 1000)[:, np.newaxis],
-                   np.linspace(-180, 180, 1000)[:, np.newaxis],
-                   np.linspace(-25, 25, 1000)[:, np.newaxis]]
-        
-        self.plot_kde_for_each_parameter(DataVariant.SYNTACTIC_RAD, x_plots)
-        
-    def plot_kde_for_each_parameter(self, df: pd.DataFrame, data_variant: DataVariant, x_plots):
-        for (label, content), x_plot in zip(df.items(), x_plots):
+        for fig_name, pf in plot_functions:
+            fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
+            iter = enumerate(zip(rad_df, columns, xlims))
             
-            colors = ["navy"]
-            kernels = ["gaussian"]
-            
-            fig, ax = plt.subplots()
-            
-            ax.hist(content, density=True, bins=30) # alpha=0.3
-            
-            for color, kernel in zip(colors, kernels):
-                kde = KernelDensity(kernel=kernel, bandwidth=0.5).fit(X=content)
-                log_dens = kde.score_samples(x_plot)
-                ax.plot(
-                    x_plot[:, 0],
-                    np.exp(log_dens), # exp as we get the log-likelihood above
-                    color=color,
-                    lw=1.5,
-                    linestyle="-",
-                    label=f"kernel = '{kernel}'",
-                )
+            for i, (param, column, xlim) in iter:
+                df = pd.DataFrame(data = rad_df[param], columns=[column])
                 
-            self._store_figure(fig, data_variant, label.split()[0]) 
+                g = pf(i)
+                    
+                g.set(xlim=xlim)
+        
+            self._store_figure(fig, figure_name=f'rad-{fig_name}')
         
         
     def plot_by_class_combined(self, kde: bool = False):
@@ -161,6 +150,7 @@ class ParameterRangePlotter:
             else:
                 g = sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)
             g.set(xlim=xlim)
+            #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
             
         self._store_figure(fig, figure_name='classes_combined_plot')
         
