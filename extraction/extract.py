@@ -45,8 +45,9 @@ class ParameterRangeExtractor:
                     azimuth_angle_from_location(radar_data[:, :2])))
                 dopplers.append(radar_data[:, 4])
 
-        rad = np.vstack(list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))).T
-        return pd.DataFrame(rad, columns=DataVariant.SYNTACTIC_RAD.column_names())
+        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))
+        # we construct via series to keep the datatype correct
+        return pd.DataFrame({ name : pd.Series(content) for name, content in zip(DataVariant.SYNTACTIC_RAD.column_names(), rad)})
 
     def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
         """
@@ -95,4 +96,6 @@ class ParameterRangeExtractor:
                 object_data_list.append(object_data)
 
         object_data = np.vstack(object_data_list)
-        return pd.DataFrame(object_data, columns=DataVariant.SEMANTIC_OBJECT_DATA.column_names())
+        cols = DataVariant.SEMANTIC_OBJECT_DATA.column_names()
+        # we construct via series to keep the datatype correct
+        return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, object_data)})
