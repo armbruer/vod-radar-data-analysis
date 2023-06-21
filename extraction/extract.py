@@ -7,7 +7,7 @@ from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
 from vod.common.file_handling import get_frame_list_from_folder
-from typing import List
+from typing import Dict, List
 
 
 class ParameterRangeExtractor:
@@ -83,7 +83,7 @@ class ParameterRangeExtractor:
         frame_numbers = get_frame_list_from_folder(
             self.kitti_locations.label_dir)
 
-        object_data_list: List[np.ndarray] = []
+        object_data_dict: Dict[int, List[np.ndarray]] = {}
 
         for frame_number in tqdm(iterable=frame_numbers, desc='Semantic data: Going through frames'):
             loader = FrameDataLoader(
@@ -93,9 +93,12 @@ class ParameterRangeExtractor:
             object_data = get_data_for_objects_in_frame(
                 loader=loader, transforms=transforms)
             if object_data is not None:
-                object_data_list.append(object_data)
-
-        object_data = np.vstack(object_data_list)
+                for i, param in enumerate(object_data):
+                    object_data_dict.setdefault(i, []).append(param)
+                
+      
+        object_data = map(np.hstack, object_data_dict.values())
+        
         cols = DataVariant.SEMANTIC_OBJECT_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, object_data)})

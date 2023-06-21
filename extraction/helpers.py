@@ -148,7 +148,7 @@ def class_id_from_name(name: str) -> int:
     return name_to_class_id[name]    
     
     
-def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[np.ndarray]:
+def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
     """
     For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
     number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
@@ -217,7 +217,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     
     columns = [frame_numbers, object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
     # create one array of shape (-1, 8)
-    return np.vstack(list(map(np.hstack, columns))).T
+
+    return list(map(np.hstack, columns))
 
 def vis_to_debug(frame_data: FrameDataLoader):
     from vod.visualization import Visualization3D
