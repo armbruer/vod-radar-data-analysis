@@ -22,6 +22,12 @@ class DataVariant(Enum):
             return ["frame number", "class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
 
         return []
+    
+    def subvariants(self) -> List[str]:
+        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+            return get_class_list()
+        elif self == DataVariant.STATIC_DYNAMIC_RAD:
+            return ["static_rad", "dynamic_rad"]
 
     def index_to_str(self, index) -> str:
         if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
@@ -105,6 +111,9 @@ def get_class_list():
         'ride_uncertain',
         'truck',
         'vehicle_other']
+    
+def get_class_id_list():
+    return range( 13)
 
 def name_from_class_id(clazz: int) -> str:
     

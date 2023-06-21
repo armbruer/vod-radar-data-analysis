@@ -22,8 +22,8 @@ class DataAnalysisHelper:
     def prepare_data_analysis(self, data_variant: DataVariant):
         df = self.data_manager.get_df(data_variant=data_variant)
         if isinstance(df, list):
-            for d in df:
-                self._prepare_data_analysis( d, data_variant)
+            for d, v in zip(df, data_variant.subvariants()):
+                self._prepare_data_analysis( d, data_variant, v)
             return
         
         self._prepare_data_analysis(df, data_variant)
@@ -31,7 +31,7 @@ class DataAnalysisHelper:
     def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray):
         return data[indexes, 0]
 
-    def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant):
+    def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant, subvariant: str = ''):
         data = df.to_numpy()
         
         mins = np.round(np.min(data[:, 1:], axis=0).astype(np.float64), decimals=2)
@@ -42,6 +42,7 @@ class DataAnalysisHelper:
         
         dv_str = data_variant.name.lower()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
+        dir = dir if not subvariant else f'{dir}/{subvariant}'
         os.makedirs(dir, exist_ok=True)
         
         for min_fn, max_fn in zip(min_fns, max_fns):
