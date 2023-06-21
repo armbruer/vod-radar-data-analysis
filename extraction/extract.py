@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import azimuth_angle_from_location, get_data_for_objects_in_frame, locs_to_distance, DataVariant
+from extraction.helpers import azimuth_angle_from_location, class_id_from_name, get_data_for_objects_in_frame, locs_to_distance, DataVariant
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -52,10 +52,11 @@ class ParameterRangeExtractor:
 
     def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
         """
-        Splits the dataframe by class list of dataframes
+        Splits the dataframe by class into a list of dataframes.
+        The list of dataframes is sorted according to class_id.
         """
-        
-        return [x for _, x in df.groupby(df['class'])]
+        group_by_class_id = {class_id: x for class_id, x in df.groupby(df['class'])}
+        return dict(sorted(group_by_class_id.items())).values()
 
     def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.5) -> List[pd.DataFrame]:
         """

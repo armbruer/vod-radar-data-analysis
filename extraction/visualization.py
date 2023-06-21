@@ -11,7 +11,7 @@ from sklearn.neighbors import KernelDensity
 from tqdm import tqdm
 from vod.configuration.file_locations import KittiLocations
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant
+from extraction.helpers import DataVariant, name_from_class_id
 from extraction.stats_table import StatsTableGenerator
 from typing import List, Union
 from enum import Enum
@@ -136,7 +136,35 @@ class ParameterRangePlotter:
                 
             self._store_figure(fig, data_variant, label.split()[0]) 
         
-    def plot_combined(self, kde: bool = False):
+        
+    def plot_by_class_combined(self, kde: bool = False):
+        object_class_dfs = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS)
+        for df in object_class_dfs:
+            df.drop(df.columns[[0, 1, 2]], axis=1, inplace=True) # keep only rad
+    
+        columns: List[str] = object_class_dfs[0].columns.to_list()
+        xlims = [(0, 55), (-90, 90), (-25, 25)]
+        
+        by_column_dfs: List[List[pd.DataFrame]] = [[], [], []]
+        for i, c in enumerate(columns):
+            for class_id, df in enumerate(object_class_dfs):
+                by_column_dfs[i].append(df[[c]].assign(clazz = name_from_class_id(class_id)))
+                                        
+        by_column_dfs = list(map(pd.concat, by_column_dfs))
+        
+        iter = enumerate(zip(by_column_dfs, columns, xlims))
+        fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
+        for i, (df, column, xlim) in iter:
+             
+            if kde:
+                g = sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i], common_norm=False)
+            else:
+                g = sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)
+            g.set(xlim=xlim)
+            
+        self._store_figure(fig, figure_name='classes_combined_plot')
+        
+    def plot_syn_sem_combined(self, kde: bool = False):
         syntactic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SYNTACTIC_RAD)
         semantic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
     
@@ -160,7 +188,7 @@ class ParameterRangePlotter:
                 g = sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)
             g.set(xlim=xlim)
         
-        self._store_figure(fig, figure_name='combined_plot')
+        self._store_figure(fig, figure_name='syn_sem_combined_plot')
         
     def _store_figure(self, figure, data_variant=None, figure_name='', index_name='', subdir=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"
