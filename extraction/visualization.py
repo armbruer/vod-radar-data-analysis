@@ -136,7 +136,7 @@ class ParameterRangePlotter:
                 
             self._store_figure(fig, data_variant, label.split()[0]) 
         
-    def plot_combined(self):
+    def plot_combined(self, kde: bool = False):
         syntactic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SYNTACTIC_RAD)
         semantic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
     
@@ -154,7 +154,10 @@ class ParameterRangePlotter:
             df_semantic_rad = pd.DataFrame(data = semantic_rad_df[sem_param], columns=[column]).assign(annotated = 'Yes')
             df = pd.concat([df_syntactic_rad, df_semantic_rad])
             
-            g = sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)
+            if kde:
+                g = sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i], common_norm=False)
+            else:
+                g = sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)
             g.set(xlim=xlim)
         
         self._store_figure(fig, figure_name='combined_plot')
