@@ -56,16 +56,17 @@ class DataAnalysisHelper:
     def _visualize_frames(self, data_variant: DataVariant, kitti_locations: KittiLocations, frame_numbers: List[str]):
         for frame_number in frame_numbers:
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
-
+            dv_str = data_variant.name.lower()
+            
             if data_variant not in [DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD]:
                 vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_list())
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                        show_lidar=True, show_radar=True, outdir='analysis/annotated-') # TODO
+                        show_lidar=True, show_radar=True, outdir=f'analysis/{dv_str}/annotated-') # TODO
                 
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                        show_lidar=False, show_radar=True, outdir='analysis/radar-annotated') # TODO
+                        show_lidar=False, show_radar=True, outdir=f'analysis/{dv_str}/radar-annotated-') # TODO
 
-            imsave(f'{kitti_locations.analysis_dir}/{frame_number}.png', loader.image)
+            imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
 
 def prepare_data_analysis(data_manager: DataManager):
