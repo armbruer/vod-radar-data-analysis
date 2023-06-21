@@ -27,16 +27,18 @@ class DataManager:
         df = self.get_df(data_variant, refresh)
         
         if data_variant in [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD]:
-            return df.drop([0]) # frame number
+            df = df.drop(df.columns[[0]], axis=1) # frame number 
 
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
-            return df.drop([0, 1]) # frame number, class
+            df= df.drop(df.columns[[0, 1]], axis=1) # frame number, class
         
         elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            df = [d.drop([0, 1]) for d in df]
+            df = [d.drop(d.columns[[0, 1]], axis=1) for d in df]
             
         elif data_variant == DataVariant.SYNTACTIC_RAD:
-            df = [d.drop([0]) for d in df]
+            df = [d.drop(d.columns[[0]], axis=1) for d in df]
+            
+        return df
         
     def get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
