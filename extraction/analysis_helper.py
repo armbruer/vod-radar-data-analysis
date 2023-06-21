@@ -1,6 +1,8 @@
 
 import logging
 import os
+from typing import List
+from matplotlib.image import imsave
 import numpy as np
 import pandas as pd
 
@@ -25,22 +27,21 @@ class DataAnalysisHelper:
         
         data = df.to_numpy()
         
-        mins = np.round(np.min(data, axis=0), decimals=2)
-        min_fns = framenums_from_index(np.argmin(data, axis=0), data)
+        mins = np.round(np.min(data[:, 1:], axis=0).astype(np.float64), decimals=2)
+        min_fns = framenums_from_index(np.argmin(data[:, 1:], axis=0), data)
         
-        maxs = np.round(np.max(data, axis=0), decimals=2)
-        max_fns = framenums_from_index(np.argmax(data, axis=0), data)
+        maxs = np.round(np.max(data[:, 1:], axis=0).astype(np.float64), decimals=2)
+        max_fns = framenums_from_index(np.argmax(data[:, 1:], axis=0), data)
         
         dv_str = data_variant.name.lower()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
         os.makedirs(dir, exist_ok=True)
         
         for min_fn, max_fn in zip(min_fns, max_fns):
-            self._visualize_frame(kitti_locations=self.kitti_locations, frame_number=min_fn)
-            self._visualize_frame(kitti_locations=self.kitti_locations, frame_number=max_fn)
+            self._visualize_frames(data_variant=data_variant, kitti_locations=self.kitti_locations, frame_numbers=[min_fn, max_fn])
             
         stats = np.vstack((mins, min_fns, maxs, max_fns))
-        columns = list(map(lambda c: c.capitalize(), df.columns))
+        columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:]))
 
         df = pd.DataFrame(stats, columns=columns)
         df.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
@@ -52,17 +53,19 @@ class DataAnalysisHelper:
         logging.info(f'Analysis data written to file:///{filename}.csv')
         
     
-    def _visualize_frame(self, kitti_locations: KittiLocations, frame_number: str):
-        loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
+    def _visualize_frames(self, data_variant: DataVariant, kitti_locations: KittiLocations, frame_numbers: List[str]):
+        for frame_number in frame_numbers:
+            loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
 
-        vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_list())
-        vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                show_lidar=True, show_radar=True, outdir='analysis/') # TODO
-        
-        vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                show_lidar=True, show_radar=True, outdir='analysis/') # TODO
-        
-        
+            if data_variant not in [DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD]:
+                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_list())
+                vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
+                        show_lidar=True, show_radar=True, outdir='analysis/annotated-') # TODO
+                
+                vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
+                        show_lidar=False, show_radar=True, outdir='analysis/radar-annotated') # TODO
+
+            imsave(f'{kitti_locations.analysis_dir}/{frame_number}.png', loader.image)
 
 
 def prepare_data_analysis(data_manager: DataManager):
