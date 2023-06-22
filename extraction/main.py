@@ -27,7 +27,7 @@ def main():
     dm = DataManager(kitti_locations=kitti_locations)
     plotter = ParameterRangePlotter(data_manager=dm)
     
-    # generate_all_annotated_images()
+    generate_all_annotated_images(kitti_locations=kitti_locations)
     # after running this use:
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
@@ -35,7 +35,7 @@ def main():
     #run_basic_visualization(dm, plotter)
     #plotter.plot_syn_sem_combined(kde=True)
     #plotter.plot_by_class_combined(kde=True)
-    plotter.plot_rad()
+    #plotter.plot_rad()
     
     #prepare_data_analysis(dm)
 

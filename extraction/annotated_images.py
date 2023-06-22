@@ -11,7 +11,7 @@ from vod.frame.data_loader import FrameDataLoader
 from vod.visualization.vis_2d import Visualization2D
 
 
-def gen_annotation(frame_number: str, kitti_locations: KittiLocations, modalities: List[bool], outdir):
+def gen_annotation(frame_number: str, dir: str, kitti_locations: KittiLocations, modalities: List[bool], outdir):
     if os.path.exists(f'{dir}/{frame_number}.png'):
         return
         
@@ -32,7 +32,7 @@ def generate_annotated_images(kitti_locations: KittiLocations,
     os.makedirs(dir, exist_ok=True)
 
     frames = get_frame_list_from_folder(kitti_locations.label_dir, '.txt')
-    iter = zip(frames, repeat(kitti_locations), repeat([lidar, radar]), repeat(outdir))
+    iter = zip(frames, repeat(dir), repeat(kitti_locations), repeat([lidar, radar]), repeat(outdir))
     pool = multiprocessing.Pool(processes=12)
     
     pool.starmap(gen_annotation, iter)
