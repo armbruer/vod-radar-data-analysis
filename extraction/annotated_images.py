@@ -35,7 +35,7 @@ def generate_annotated_images(kitti_locations: KittiLocations,
     iter = zip(frames, repeat(kitti_locations), repeat([lidar, radar]), repeat(outdir))
     pool = multiprocessing.Pool(processes=12)
     
-    r = list(pool.starmap(gen_annotation, iter), desc="Generating annotated images")
+    pool.starmap(gen_annotation, iter)
         
         
 def generate_all_annotated_images(kitti_locations: KittiLocations):
