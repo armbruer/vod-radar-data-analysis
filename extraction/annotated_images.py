@@ -1,6 +1,5 @@
 from itertools import repeat
 import os
-import logging
 import multiprocessing
 
 from typing import List
