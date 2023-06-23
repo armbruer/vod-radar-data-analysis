@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import azimuth_angle_from_location, get_class_id_from_name, get_data_for_objects_in_frame, locs_to_distance, DataVariant
+from extraction.helpers import azimuth_angle_from_location, get_data_for_objects_in_frame, locs_to_distance, DataVariant
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -15,13 +15,13 @@ class ParameterRangeExtractor:
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
 
-    def extract_rad_from_syntactic_data(self) -> pd.DataFrame:
+    def extract_data_from_syntactic_data(self) -> pd.DataFrame:
         """
-        Extract the frame number, range, azimuth, doppler values for each detection in this dataset.
+        Extract the frame number, range, azimuth, doppler values and loactions for each detection in this dataset.
         This method works on the syntactic (unannotated) data of the dataset.
 
 
-        Returns a dataframe with columns range, azimuth, doppler.
+        Returns a dataframe with columns frame_number, range, azimuth, doppler, x, y, z
         """
         frame_numbers = get_frame_list_from_folder(
             self.kitti_locations.radar_dir, fileending='.bin')
@@ -30,8 +30,10 @@ class ParameterRangeExtractor:
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
         frame_nums: List[np.ndarray] = []
-
-        for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic RAD: Going through frames'):
+        locations: List[np.ndarray] = []
+        
+        # TODO future work: rcs and v_r_compensated?
+        for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
 
@@ -43,9 +45,10 @@ class ParameterRangeExtractor:
                 ranges.append(locs_to_distance(radar_data[:, :3]))
                 azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
                 dopplers.append(radar_data[:, 4])
+                locations.append(radar_data[:, :3].T)
 
         rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))
-        cols = DataVariant.SYNTACTIC_RAD.column_names()
+        cols = DataVariant.SYNTACTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})
 
@@ -100,6 +103,6 @@ class ParameterRangeExtractor:
       
         object_data = map(np.hstack, object_data_dict.values())
         
-        cols = DataVariant.SEMANTIC_OBJECT_DATA.column_names()
+        cols = DataVariant.SEMANTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, object_data)})

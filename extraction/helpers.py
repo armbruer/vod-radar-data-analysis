@@ -6,40 +6,90 @@ from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
 from vod.visualization.helpers import get_placed_3d_label_corners
-
+        
 
 class DataVariant(Enum):
-    SYNTACTIC_RAD = 0,
-    SEMANTIC_RAD = 1,
-    STATIC_DYNAMIC_RAD = 2,
-    SEMANTIC_OBJECT_DATA = 3,
-    SEMANTIC_OBJECT_DATA_BY_CLASS = 4
+    SYNTACTIC_DATA = 0,
+    SYNTACTIC_DATA_BY_OBJECT_MOVING = 1,
+    SEMANTIC_DATA = 2,
+    SEMANTIC_DATA_BY_CLASS = 3
+    
+    @staticmethod
+    def all_variants():
+        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING, 
+                DataVariant.SEMANTIC_DATA, DataVariant.SEMANTIC_DATA_BY_CLASS]
+    
+    @staticmethod
+    def basic_variants():
+        return [DataVariant.SYNTACTIC_DATA, DataVariant.SEMANTIC_DATA]
+    
+    @staticmethod
+    def split_variants():
+        return [DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING, DataVariant.SEMANTIC_DATA_BY_CLASS]
+    
+    @staticmethod
+    def syntactic_variants():
+        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING]
+    
+    @staticmethod
+    def semantic_variants():
+        return [DataVariant.SEMANTIC_DATA, DataVariant.SEMANTIC_DATA_BY_CLASS]
 
     def column_names(self) -> List[str]:
-        if self == DataVariant.SEMANTIC_RAD or self == DataVariant.STATIC_DYNAMIC_RAD or self == DataVariant.SYNTACTIC_RAD:
-            return ["frame number", "range (m)", "azimuth (degree)", "doppler (m/s)"]
-        elif self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS or self == DataVariant.SEMANTIC_OBJECT_DATA:
-            return ["frame number", "class", "velocity (m/s)", "detections (#)", "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)"]
+        if self in DataVariant.syntactic_variants():
+            return ["frame number", "range (m)", "azimuth (degree)", "doppler (m/s)", "x", "y", "z"]
+        elif self in DataVariant.semantic_variants():
+            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
+                    "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)", "x", "y", "z"]
 
         return []
     
-    def subvariants(self) -> List[str]:
-        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+    def subvariant_names(self) -> List[str]:
+        if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_class_names()
-        elif self == DataVariant.STATIC_DYNAMIC_RAD:
-            return ["static_rad", "dynamic_rad"]
+        elif self == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+            return ["static", "dynamic"]
+        
+        return []
 
     def index_to_str(self, index) -> str:
-        if self == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
+        if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_name_from_class_id(index)
-        elif self == DataVariant.STATIC_DYNAMIC_RAD:
-            if index == 0:
-                return "static_rad"
-            else:
-                return "dynamic_rad"
+        elif self == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+            return "static_rad" if index == 0 else "dynamic_rad"
 
         return ''
 
+
+class DataView(Enum):
+    RAD = 0,
+    STATS = 1,
+    PLOT_XY = 2,
+    PLOTABLE = 3,
+    ANALYSIS = 4,
+    NONE = 5,
+    
+    def columns_to_drop(self) -> List[str]:
+        if self == self.RAD:
+            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
+                    "bbox volume (m^3)", "x", "y", "z"]
+                
+        elif self == self.STATS:
+            return ["frame number", "class", "x", "y", "z"]
+                
+        elif self == self.PLOT_XY:
+            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
+                    "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)", "z"]
+        
+        elif self == self.PLOTABLE:
+            return ["frame number", "class", "x", "y", "z"]
+        
+        elif self == self.ANALYSIS:
+            return ["frame number", "class", "x", "y", "z"]
+        
+        # NONE
+        return []
+            
 
 def locs_to_distance(locations: np.ndarray) -> np.ndarray:
     """
@@ -147,6 +197,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     bbox_vols = [] # bounding box volume
     ranges = [] # range in m
     azimuths = [] # azimuth in degree
+    locations = [] # x, y, z
     
     
     for label in labels_with_corners:
@@ -169,6 +220,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             
             azimuths.append(azimuth_angle_from_location(loc_transformed[:, :2]))
             dopplers.append(np.mean(points_matching[:, 4]))
+            locations.append(loc_transformed.T)
     
     if not object_clazz:
         return None

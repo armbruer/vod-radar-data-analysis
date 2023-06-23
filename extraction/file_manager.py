@@ -5,42 +5,35 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 from extraction.extract import ParameterRangeExtractor
-from extraction.helpers import DataVariant
+from extraction.helpers import DataVariant, DataView
 from vod.configuration.file_locations import KittiLocations
 
 class DataManager:
-    
+        
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
         self.extractor = ParameterRangeExtractor(kitti_locations)
         self.data: Dict[DataVariant, pd.DataFrame] = {}
         
-    def get_df_plot_ready(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+    def get_df(self, data_variant: DataVariant, data_view: DataView = DataView.NONE, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset.
-        Additionally, modifies the data, so it can be directly used for plotting.
 
         :param data_variant: the data variant for which the dataframe is to be retrieved
+        :param data_view: the data view to apply to the data variant, this removes columns unneeded in the current context
 
-        Returns the dataframe containing the data requested through the data variant
+        Returns the dataframe containing the data requested
         """
-        df = self.get_df(data_variant, refresh)
+        df = self._get_df(data_variant, refresh)
+        if isinstance(df, list):
+            dfs = []
+            for d in df:
+                dfs.append(d.drop(data_view.columns_to_drop(), axis=1, errors='ignore'))
+            return dfs
+    
+        return df.drop(data_view.columns_to_drop(), axis=1, errors='ignore')
         
-        if data_variant in [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD]:
-            df = df.drop(df.columns[[0]], axis=1) # frame number 
-
-        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
-            df= df.drop(df.columns[[0, 1]], axis=1) # frame number, class
-        
-        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            df = [d.drop(d.columns[[0, 1]], axis=1) for d in df] # frame number, class
-            
-        elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
-            df = [d.drop(d.columns[[0]], axis=1) for d in df] # frame number 
-            
-        return df
-        
-    def get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+    def _get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset
 
@@ -51,29 +44,23 @@ class DataManager:
         if not refresh and (self.data.get(data_variant) is not None or self.load_dataframe(data_variant) is not None):
             return self.data[data_variant]
 
-        if data_variant == DataVariant.SYNTACTIC_RAD:
+        if data_variant == DataVariant.SYNTACTIC_DATA:
             self.store_dataframe(
-                data_variant, self.extractor.extract_rad_from_syntactic_data())
+                data_variant, self.extractor.extract_data_from_syntactic_data())
 
-        elif data_variant == DataVariant.SEMANTIC_RAD:
-            object_df: pd.DataFrame = self.get_df(
-                data_variant=DataVariant.SEMANTIC_OBJECT_DATA)
-            object_df = object_df[DataVariant.SEMANTIC_RAD.column_names()]
-            self.data[data_variant] = object_df
-
-        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA:
+        elif data_variant == DataVariant.SEMANTIC_DATA:
             self.store_dataframe(
                 data_variant, self.extractor.extract_object_data_from_semantic_data())
 
-        elif data_variant == DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS:
-            object_df = self.get_df(DataVariant.SEMANTIC_OBJECT_DATA)
-            object_data_by_class = self.extractor.split_by_class(object_df)
-            self.data[data_variant] = object_data_by_class
+        elif data_variant == DataVariant.SEMANTIC_DATA_BY_CLASS:
+            semantic_df = self._get_df(DataVariant.SEMANTIC_DATA)
+            semantic_by_class = self.extractor.split_by_class(semantic_df)
+            self.data[data_variant] = semantic_by_class
 
-        elif data_variant == DataVariant.STATIC_DYNAMIC_RAD:
-            stat_dyn_rad = self.extractor.split_rad_by_threshold(
-                self.get_df(DataVariant.SYNTACTIC_RAD))
-            self.data[data_variant] = stat_dyn_rad
+        elif data_variant == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+            syntactic_df = self._get_df(DataVariant.SYNTACTIC_DATA)
+            syntactic_by_moving = self.extractor.split_rad_by_threshold(syntactic_df)
+            self.data[data_variant] = syntactic_by_moving
 
         return self.data[data_variant]
     
@@ -122,7 +109,7 @@ class DataManager:
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         self.data[data_variant] = df
-        path = f'{data_dir}/{dv_str}-{now}.hdf5'
+        path = f'{data_dir}/{dv_str}-{now}' # .hdf will be appended
         df.to_hdf(path, key=dv_str, mode='w')
         logging.info(f'Data saved in file:///{path}.hdf5')
             

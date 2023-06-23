@@ -7,12 +7,9 @@ import matplotlib
 import os
 
 matplotlib.use('Agg') # do not show figures when saving plot
-from sklearn.neighbors import KernelDensity
 from tqdm import tqdm
-from vod.configuration.file_locations import KittiLocations
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, get_name_from_class_id
-from extraction.stats_table import StatsTableGenerator
+from extraction.helpers import DataVariant, DataView, get_name_from_class_id
 from typing import List, Union
 from enum import Enum
 from datetime import datetime
@@ -31,7 +28,7 @@ class ParameterRangePlotter:
     def plot_data_simple(self, data_variant: DataVariant) -> None:
         plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
 
-        df = self.data_manager.get_df_plot_ready(data_variant)
+        df = self.data_manager.get_df(data_variant, DataView.PLOTABLE)
 
         self.plot_data(dfs=df, plot_types=plot_types, data_variant=data_variant)
 
@@ -87,8 +84,8 @@ class ParameterRangePlotter:
             self._store_figure(figure, data_variant, figure_name, index_name, )
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
-        dv = DataVariant.SYNTACTIC_RAD
-        rad_df = self.data_manager.get_df_plot_ready()
+        dv = DataVariant.SYNTACTIC_DATA
+        rad_df = self.data_manager.get_df(dv, DataView.RAD)
         doppler_df = rad_df[[2]]
         
         fig, axs = plt.subplots()
@@ -100,36 +97,35 @@ class ParameterRangePlotter:
             
     
     def plot_rad(self):
-        rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
-    
-        columns: List[str] = rad_df.columns.to_list()
-        xlims = [(0, 55), (-90, 90), (-25, 25)]
-
-
-        plot_functions = [
-            ('hist', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
-            ('hist_kde', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
-            ('kde', lambda i: sns.kdeplot(data=df, x=column, ax=ax[i]))
-        ]
+        for dv in DataVariant.basic_variants():
+            rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RAD)
         
-        for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
-            iter = enumerate(zip(rad_df, columns, xlims))
+            columns: List[str] = rad_df.columns.to_list()
+            xlims = [(0, 55), (-90, 90), (-25, 25)]
+
+
+            plot_functions = [
+                ('hist', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
+                ('hist_kde', lambda i: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
+                ('kde', lambda i: sns.kdeplot(data=df, x=column, ax=ax[i]))
+            ]
             
-            for i, (param, column, xlim) in iter:
-                df = pd.DataFrame(data = rad_df[param], columns=[column])
+            for fig_name, pf in plot_functions:
+                fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
+                iter = enumerate(zip(rad_df, columns, xlims))
                 
-                g = pf(i)
+                for i, (param, column, xlim) in iter:
+                    df = pd.DataFrame(data = rad_df[param], columns=[column])
                     
-                g.set(xlim=xlim)
-        
-            self._store_figure(fig, figure_name=f'rad-{fig_name}')
+                    g = pf(i)
+                        
+                    g.set(xlim=xlim)
+            
+                self._store_figure(fig, figure_name=f'{dv}-rad-{fig_name}')
         
         
     def plot_by_class_combined(self, kde: bool = False):
-        object_class_dfs = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS)
-        for df in object_class_dfs:
-            df.drop(df.columns[[0, 1, 2]], axis=1, inplace=True) # keep only rad
+        object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RAD)
     
         columns: List[str] = object_class_dfs[0].columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25)]
@@ -155,8 +151,8 @@ class ParameterRangePlotter:
         self._store_figure(fig, figure_name='classes_combined_plot')
         
     def plot_syn_sem_combined(self, kde: bool = False):
-        syntactic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SYNTACTIC_RAD)
-        semantic_rad_df = self.data_manager.get_df_plot_ready(DataVariant.SEMANTIC_RAD)
+        syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RAD)
+        semantic_rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RAD)
     
         columns: List[str] = syntactic_rad_df.columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25)]
@@ -180,7 +176,7 @@ class ParameterRangePlotter:
         
         self._store_figure(fig, figure_name='syn_sem_combined_plot')
         
-    def _store_figure(self, figure, data_variant=None, figure_name='', index_name='', subdir=''):
+    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             figures_dir = f"{figures_dir}/{data_variant.name.lower()}"
@@ -195,13 +191,7 @@ class ParameterRangePlotter:
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.pdf')
 
-def run_basic_visualization(manager: DataManager, plotter : ParameterRangePlotter):
-    stats_generator = StatsTableGenerator(data_manager=manager)
-
-    dvs = [DataVariant.SEMANTIC_RAD, DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD,
-           DataVariant.SEMANTIC_OBJECT_DATA, DataVariant.SEMANTIC_OBJECT_DATA_BY_CLASS]
-
-    for dv in dvs:
-        stats_generator.write_stats(dv)
+def run_basic_visualization(plotter : ParameterRangePlotter):
+    for dv in DataVariant.all_variants():
         plotter.plot_data_simple(dv)
 

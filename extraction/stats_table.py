@@ -1,12 +1,11 @@
 from extraction.file_manager import DataManager
-from datetime import datetime
 
 import logging
 import os
 import numpy as np
 import pandas as pd
 
-from extraction.helpers import DataVariant
+from extraction.helpers import DataVariant, DataView
 
 class StatsTableGenerator:
 
@@ -15,7 +14,7 @@ class StatsTableGenerator:
         self.kitti_locations = data_manager.kitti_locations
 
     def write_stats(self, data_variant: DataVariant) -> None:
-        data = self.data_manager.get_df_plot_ready(data_variant=data_variant)
+        data = self.data_manager.get_df(data_variant=data_variant, data_view=DataView.STATS)
         data_variant_str = data_variant.name.lower()
         if isinstance(data, list):
             for i, d in enumerate(data):
@@ -55,3 +54,9 @@ class StatsTableGenerator:
         )
 
         logging.info(f'Stats written to file:///{fpath}.csv')
+        
+def generate_stats(dm : DataManager):
+    stats_generator = StatsTableGenerator(dm)
+    
+    for dv in DataVariant.all_variants():
+        stats_generator.plot_data_simple(dv)
