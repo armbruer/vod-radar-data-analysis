@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, get_class_list
+from extraction.helpers import DataVariant, get_class_names
 from vod.configuration.file_locations import KittiLocations
 
 from vod.frame.data_loader import FrameDataLoader
@@ -67,7 +67,7 @@ class DataAnalysisHelper:
             dv_str = data_variant.name.lower()
             
             if data_variant not in [DataVariant.SYNTACTIC_RAD, DataVariant.STATIC_DYNAMIC_RAD]:
-                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_list())
+                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
                         show_lidar=True, show_radar=True, outdir=f'analysis/{dv_str}/annotated-') # TODO
                 

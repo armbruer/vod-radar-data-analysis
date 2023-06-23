@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import azimuth_angle_from_location, class_id_from_name, get_data_for_objects_in_frame, locs_to_distance, DataVariant
+from extraction.helpers import azimuth_angle_from_location, get_class_id_from_name, get_data_for_objects_in_frame, locs_to_distance, DataVariant
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -17,7 +17,7 @@ class ParameterRangeExtractor:
 
     def extract_rad_from_syntactic_data(self) -> pd.DataFrame:
         """
-        Extract the range, azimuth, doppler values for each frame and detection in this dataset.
+        Extract the frame number, range, azimuth, doppler values for each detection in this dataset.
         This method works on the syntactic (unannotated) data of the dataset.
 
 
@@ -41,8 +41,7 @@ class ParameterRangeExtractor:
 
                 frame_nums.append(np.full(radar_data.shape[0], frame_number))
                 ranges.append(locs_to_distance(radar_data[:, :3]))
-                azimuths.append(np.rad2deg(
-                    azimuth_angle_from_location(radar_data[:, :2])))
+                azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
                 dopplers.append(radar_data[:, 4])
 
         rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))

@@ -11,7 +11,7 @@ from sklearn.neighbors import KernelDensity
 from tqdm import tqdm
 from vod.configuration.file_locations import KittiLocations
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, name_from_class_id
+from extraction.helpers import DataVariant, get_name_from_class_id
 from extraction.stats_table import StatsTableGenerator
 from typing import List, Union
 from enum import Enum
@@ -137,7 +137,7 @@ class ParameterRangePlotter:
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], []]
         for i, c in enumerate(columns):
             for class_id, df in enumerate(object_class_dfs):
-                by_column_dfs[i].append(df[[c]].assign(clazz = name_from_class_id(class_id)))
+                by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id)))
                                         
         by_column_dfs = list(map(pd.concat, by_column_dfs))
         
