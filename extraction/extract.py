@@ -58,7 +58,7 @@ class ParameterRangeExtractor:
         The list of dataframes is sorted according to class_id.
         """
         group_by_class_id = {class_id: x for class_id, x in df.groupby(df['class'])}
-        return dict(sorted(group_by_class_id.items())).values()
+        return list(dict(sorted(group_by_class_id.items())).values())
 
     def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.5) -> List[pd.DataFrame]:
         """
