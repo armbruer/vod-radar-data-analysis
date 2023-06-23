@@ -109,7 +109,7 @@ class DataManager:
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         self.data[data_variant] = df
-        path = f'{data_dir}/{dv_str}-{now}' # .hdf will be appended
+        path = f'{data_dir}/{dv_str}-{now}.hdf5'
         df.to_hdf(path, key=dv_str, mode='w')
-        logging.info(f'Data saved in file:///{path}.hdf5')
+        logging.info(f'Data saved in file:///{path}')
             

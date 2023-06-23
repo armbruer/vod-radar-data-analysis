@@ -59,4 +59,4 @@ def generate_stats(dm : DataManager):
     stats_generator = StatsTableGenerator(dm)
     
     for dv in DataVariant.all_variants():
-        stats_generator.plot_data_simple(dv)
+        stats_generator.write_stats(dv)

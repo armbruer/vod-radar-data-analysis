@@ -121,7 +121,7 @@ class ParameterRangePlotter:
                         
                     g.set(xlim=xlim)
             
-                self._store_figure(fig, figure_name=f'{dv}-rad-{fig_name}')
+                self._store_figure(fig, figure_name=f'{dv.name.lower()}-rad-{fig_name}')
         
         
     def plot_by_class_combined(self, kde: bool = False):
