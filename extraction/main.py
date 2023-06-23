@@ -1,6 +1,7 @@
 
 import sys
 import os
+import logging
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
 from extraction.analysis_helper import prepare_data_analysis
@@ -11,6 +12,7 @@ from vod.configuration.file_locations import KittiLocations
 
 
 def main():
+    logging.basicConfig(level = logging.INFO)
     output_dir = "output"
     root_dir = "../view_of_delft_PUBLIC/"
     kitti_locations = KittiLocations(root_dir=root_dir,
@@ -32,8 +34,8 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
-    run_basic_visualization(dm, plotter)
-    #plotter.plot_syn_sem_combined(kde=True)
+    #run_basic_visualization(dm, plotter)
+    plotter.plot_syn_sem_combined(kde=True)
     #plotter.plot_by_class_combined(kde=True)
     #plotter.plot_rad()
     

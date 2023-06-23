@@ -193,7 +193,7 @@ class ParameterRangePlotter:
         path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf')
-        logging.info(f'Plot generated in file:///{path}.png')
+        logging.info(f'Plot generated in file:///{path}.pdf')
 
 def run_basic_visualization(manager: DataManager, plotter : ParameterRangePlotter):
     stats_generator = StatsTableGenerator(data_manager=manager)
