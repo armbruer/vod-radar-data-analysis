@@ -3,9 +3,9 @@ import sys
 import os
 import logging
 
-from extraction.stats_table import generate_stats
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
+from extraction.stats_table import generate_stats
 from extraction.analysis_helper import prepare_data_analysis
 from extraction.annotated_images import generate_all_annotated_images
 from extraction.file_manager import DataManager
@@ -48,12 +48,12 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
-    #run_basic_visualization(plotter)
-    #generate_stats(dm)
+    run_basic_visualization(plotter)
+    generate_stats(dm)
     
-    #plotter.plot_syn_sem_combined(kde=True)
-    #plotter.plot_by_class_combined(kde=True)
-    #plotter.plot_rad()
+    plotter.plot_syn_sem_combined(kde=True)
+    plotter.plot_by_class_combined(kde=True)
+    plotter.plot_rad()
     
     prepare_data_analysis(dm)
 
