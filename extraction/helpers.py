@@ -10,13 +10,23 @@ from vod.visualization.helpers import get_placed_3d_label_corners
 
 class DataVariant(Enum):
     SYNTACTIC_DATA = 0,
-    SYNTACTIC_DATA_BY_OBJECT_MOVING = 1,
+    SYNTACTIC_DATA_BY_MOVING = 1,
     SEMANTIC_DATA = 2,
     SEMANTIC_DATA_BY_CLASS = 3
     
+    def shortname(self):
+        if self == self.SYNTACTIC_DATA:
+            return 'syn'
+        elif self == self.SEMANTIC_DATA:
+            return 'sem'
+        elif self == self.SYNTACTIC_DATA_BY_MOVING:
+            return 'syn_by_moving'
+        elif self == self.SEMANTIC_DATA_BY_CLASS:
+            return 'sem_by_class'
+    
     @staticmethod
     def all_variants():
-        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING, 
+        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_MOVING, 
                 DataVariant.SEMANTIC_DATA, DataVariant.SEMANTIC_DATA_BY_CLASS]
     
     @staticmethod
@@ -25,11 +35,11 @@ class DataVariant(Enum):
     
     @staticmethod
     def split_variants():
-        return [DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING, DataVariant.SEMANTIC_DATA_BY_CLASS]
+        return [DataVariant.SYNTACTIC_DATA_BY_MOVING, DataVariant.SEMANTIC_DATA_BY_CLASS]
     
     @staticmethod
     def syntactic_variants():
-        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING]
+        return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_MOVING]
     
     @staticmethod
     def semantic_variants():
@@ -47,7 +57,7 @@ class DataVariant(Enum):
     def subvariant_names(self) -> List[str]:
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_class_names()
-        elif self == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+        elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
             return ["static", "dynamic"]
         
         return []
@@ -55,7 +65,7 @@ class DataVariant(Enum):
     def index_to_str(self, index) -> str:
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_name_from_class_id(index)
-        elif self == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+        elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
             return "static_rad" if index == 0 else "dynamic_rad"
 
         return ''

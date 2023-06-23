@@ -15,7 +15,7 @@ class StatsTableGenerator:
 
     def write_stats(self, data_variant: DataVariant) -> None:
         data = self.data_manager.get_df(data_variant=data_variant, data_view=DataView.STATS)
-        data_variant_str = data_variant.name.lower()
+        data_variant_str = data_variant.shortname()
         if isinstance(data, list):
             for i, d in enumerate(data):
                 self._write_stats(
@@ -37,7 +37,7 @@ class StatsTableGenerator:
         df = pd.DataFrame(stats, columns=columns)
         df.insert(0, "Name", pd.Series(["Min", "Max", "Mean", "Std"]))
 
-        dir = f'{self.kitti_locations.stats_dir}/{data_variant.name.lower()}'
+        dir = f'{self.kitti_locations.stats_dir}/{data_variant.shortname()}'
         os.makedirs(dir, exist_ok=True)
         fpath = f'{dir}/{filename}'
 

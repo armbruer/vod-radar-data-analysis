@@ -41,7 +41,7 @@ class DataAnalysisHelper:
         maxs = np.round(np.max(rdata, axis=0).astype(np.float64), decimals=2)
         max_fns = self._framenums_from_index(np.argmax(rdata, axis=0), data)
         
-        dv_str = data_variant.name.lower()
+        dv_str = data_variant.shortname()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
         dir = dir if not subvariant else f'{dir}/{subvariant}'
         os.makedirs(dir, exist_ok=True)
@@ -67,7 +67,7 @@ class DataAnalysisHelper:
     def _visualize_frames(self, data_variant: DataVariant, kitti_locations: KittiLocations, frame_numbers: List[str]):
         for frame_number in frame_numbers:
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
-            dv_str = data_variant.name.lower()
+            dv_str = data_variant.shortname()
             
             if data_variant in DataVariant.semantic_variants():
                 vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())

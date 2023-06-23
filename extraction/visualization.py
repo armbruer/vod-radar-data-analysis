@@ -41,7 +41,7 @@ class ParameterRangePlotter:
             dfs = [dfs]
         
         cols = len(dfs[0].columns)
-        figure_name = kwargs.get('figure_name', data_variant.name.lower())
+        figure_name = kwargs.get('figure_name', data_variant.shortname())
         value_labels = kwargs.get('value_labels', cols * [''])
 
         if (not (len(value_labels) == cols)):
@@ -121,7 +121,7 @@ class ParameterRangePlotter:
                         
                     g.set(xlim=xlim)
             
-                self._store_figure(fig, figure_name=f'{dv.name.lower()}-rad-{fig_name}')
+                self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}')
         
         
     def plot_by_class_combined(self, kde: bool = False):
@@ -179,7 +179,7 @@ class ParameterRangePlotter:
     def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
-            figures_dir = f"{figures_dir}/{data_variant.name.lower()}"
+            figures_dir = f"{figures_dir}/{data_variant.shortname()}"
         elif subdir:
             figures_dir = f"{figures_dir}/{subdir}"
             

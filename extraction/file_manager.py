@@ -57,7 +57,7 @@ class DataManager:
             semantic_by_class = self.extractor.split_by_class(semantic_df)
             self.data[data_variant] = semantic_by_class
 
-        elif data_variant == DataVariant.SYNTACTIC_DATA_BY_OBJECT_MOVING:
+        elif data_variant == DataVariant.SYNTACTIC_DATA_BY_MOVING:
             syntactic_df = self._get_df(DataVariant.SYNTACTIC_DATA)
             syntactic_by_moving = self.extractor.split_rad_by_threshold(syntactic_df)
             self.data[data_variant] = syntactic_by_moving
@@ -70,7 +70,7 @@ class DataManager:
 
         :param data_variant: the data variant of the dataframe to be loaded
         """
-        dv_str = data_variant.name.lower()
+        dv_str = data_variant.shortname()
         data_dir = f'{self.kitti_locations.data_dir}'
         os.makedirs(data_dir, exist_ok=True)
 
@@ -103,7 +103,7 @@ class DataManager:
         if isinstance(df, list):
             raise ValueError('df must not be of type list')
 
-        dv_str = data_variant.name.lower()
+        dv_str = data_variant.shortname()
         data_dir = f'{self.kitti_locations.data_dir}'
         os.makedirs(data_dir, exist_ok=True)
 
