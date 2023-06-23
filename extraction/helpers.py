@@ -66,7 +66,8 @@ class DataView(Enum):
     STATS = 1,
     PLOT_XY = 2,
     PLOTABLE = 3,
-    ANALYSIS = 4,
+    BASIC_ANALYSIS = 4,
+    EXTENDED_ANALYSIS = 5,
     NONE = 5,
     
     def columns_to_drop(self) -> List[str]:
@@ -84,8 +85,12 @@ class DataView(Enum):
         elif self == self.PLOTABLE:
             return ["frame number", "class", "x", "y", "z"]
         
-        elif self == self.ANALYSIS:
-            return ["frame number", "class", "x", "y", "z"]
+        elif self == self.BASIC_ANALYSIS:
+            return ["class", "velocity (m/s)", "detections (#)", 
+                    "bbox volume (m^3)", "x", "y", "z"]
+        
+        elif self == self.EXTENDED_ANALYSIS:
+            return ["class", "x", "y", "z"]
         
         # NONE
         return []

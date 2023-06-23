@@ -28,17 +28,18 @@ class DataAnalysisHelper:
         
         self._prepare_data_analysis(df, data_variant)
         
-    def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray):
-        return data[indexes, 0]
+    def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[int]:
+        return list(data[indexes, 0])
 
     def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant, subvariant: str = ''):
         data = df.to_numpy()
+        rdata = data[:, 1:]
         
-        mins = np.round(np.min(data, axis=0).astype(np.float64), decimals=2)
-        min_fns = self._framenums_from_index(np.argmin(data, axis=0), data)
+        mins = np.round(np.min(rdata, axis=0).astype(np.float64), decimals=2)
+        min_fns = self._framenums_from_index(np.argmin(rdata, axis=0), data)
         
-        maxs = np.round(np.max(data, axis=0).astype(np.float64), decimals=2)
-        max_fns = self._framenums_from_index(np.argmax(data, axis=0), data)
+        maxs = np.round(np.max(rdata, axis=0).astype(np.float64), decimals=2)
+        max_fns = self._framenums_from_index(np.argmax(rdata, axis=0), data)
         
         dv_str = data_variant.name.lower()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
@@ -49,7 +50,7 @@ class DataAnalysisHelper:
             self._visualize_frames(data_variant=data_variant, kitti_locations=self.kitti_locations, frame_numbers=[min_fn, max_fn])
             
         stats = np.vstack((mins, min_fns, maxs, max_fns))
-        columns = list(map(lambda c: c.capitalize(), list(df.columns)))
+        columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:]))
 
         df = pd.DataFrame(stats, columns=columns)
         df.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
@@ -60,7 +61,7 @@ class DataAnalysisHelper:
         
         df.to_csv(filename, index=False)
 
-        logging.info(f'Analysis data written to file:///{filename}.csv')
+        logging.info(f'Analysis data written to file:///{filename}')
         
     
     def _visualize_frames(self, data_variant: DataVariant, kitti_locations: KittiLocations, frame_numbers: List[str]):
@@ -68,7 +69,7 @@ class DataAnalysisHelper:
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
             dv_str = data_variant.name.lower()
             
-            if data_variant not in DataVariant.syntactic_variants():
+            if data_variant in DataVariant.semantic_variants():
                 vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
                         show_lidar=True, show_radar=True, outdir=f'analysis/{dv_str}/annotated-') # TODO
@@ -83,5 +84,5 @@ def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
     for dv in DataVariant.all_variants():
-        analysis.prepare_data_analysis(dv, DataView.RAD)
+        analysis.prepare_data_analysis(dv, DataView.BASIC_ANALYSIS)
         #analysis.prepare_data_analysis(dv, DataView.ANALYSIS)

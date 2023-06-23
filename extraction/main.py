@@ -49,11 +49,11 @@ def main():
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
     #run_basic_visualization(plotter)
-    generate_stats(dm)
+    #generate_stats(dm)
     
-    plotter.plot_syn_sem_combined(kde=True)
-    plotter.plot_by_class_combined(kde=True)
-    plotter.plot_rad()
+    #plotter.plot_syn_sem_combined(kde=True)
+    #plotter.plot_by_class_combined(kde=True)
+    #plotter.plot_rad()
     
     prepare_data_analysis(dm)
 
