@@ -191,7 +191,7 @@ class ParameterRangePlotter:
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
-        figure.savefig(f'{path}.png', format='png')
+        #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.png')
 

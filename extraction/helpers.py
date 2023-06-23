@@ -58,7 +58,7 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     Returns the azimuth angle in degrees for each location with respect to the origin (0, 0)
     Make sure the location coordinates are transformed to the radar coordinate system.
     
-    :param locations: the locations array of shape (-1, 2)+
+    :param locations: the locations array of shape (-1, 2)
     
     Returns the azimuth angle in degrees to origin
     """
