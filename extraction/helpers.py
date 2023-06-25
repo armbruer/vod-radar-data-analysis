@@ -47,10 +47,10 @@ class DataVariant(Enum):
 
     def column_names(self) -> List[str]:
         if self in DataVariant.syntactic_variants():
-            return ["frame number", "range (m)", "azimuth (degree)", "doppler (m/s)", "x", "y", "z"]
+            return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
-            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
-                    "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)", "x", "y", "z"]
+            return ["Frame Number", "Class", "Velocity [m/s]", "Detections [#]", 
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
 
         return []
     
@@ -83,28 +83,28 @@ class DataView(Enum):
     
     def columns_to_drop(self) -> List[str]:
         if self == self.RAD:
-            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
-                    "bbox volume (m^3)", "x", "y", "z"]
+            return ["Frame Number", "Class", "Velocity [m/s]", "Detections [#]", 
+                    "Bbox volume [m^3]", "x", "y", "z"]
                 
         elif self == self.STATS:
-            return ["frame number", "class", "x", "y", "z"]
+            return ["Frame Number", "Class", "x", "y", "z"]
                 
         elif self == self.PLOT_XY:
-            return ["frame number", "velocity (m/s)", 
-                    "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)", "z"]
+            return ["Frame Number", "Velocity [m/s]", 
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "z"]
         
         elif self == self.PLOTABLE:
-            return ["frame number", "class", "x", "y", "z"]
+            return ["Frame Number", "Class", "x", "y", "z"]
         
         elif self == self.BASIC_ANALYSIS:
-            return ["class", "velocity (m/s)", "detections (#)", 
-                    "bbox volume (m^3)", "x", "y", "z"]
+            return ["Class", "Velocity [m/s]", "Detections [#]", 
+                    "Bbox volume [m^3]", "x", "y", "z"]
         
         elif self == self.EXTENDED_ANALYSIS:
-            return ["class", "x", "y", "z"]
+            return ["Class", "x", "y", "z"]
         
         elif self == self.PLOT_DETECTIONS_MAP:
-            return ["frame number", "detections (#)", "x", "y"]
+            return ["Frame Number", "Detections [#]", "x", "y"]
         
         # NONE
         return []

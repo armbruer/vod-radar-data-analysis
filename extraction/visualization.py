@@ -91,7 +91,7 @@ class ParameterRangePlotter:
         
         fig, axs = plt.subplots()
         indices = pd.Series(np.arange(0, len(doppler_df), 1), name="Index")
-        sns.lineplot(data=doppler_df, x=indices, y='doppler (m/s)')
+        sns.lineplot(data=doppler_df, x=indices, y='Doppler [m/s]')
         axs.grid()
         
         self._store_figure(fig, dv, 'kneeplot')
@@ -184,7 +184,7 @@ class ParameterRangePlotter:
             fig, ax = plt.subplots()
             
             df = df.round(decimals=0).astype(int)
-            df = df.pivot_table(index="x", columns="y", values="detections (#)", aggfunc=np.sum)
+            df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
             ax.set_title(clazz)
             ax.set_xlabel("Lat. Distance [m]")
