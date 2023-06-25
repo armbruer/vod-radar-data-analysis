@@ -115,7 +115,9 @@ This method plots the lidar pcl on the frame. It colors the points based on dist
                   show_radar: bool = False,
                   max_distance_threshold: float = 50.0,
                   min_distance_threshold: float = 0.0,
-                  score_threshold: float = 0, outdir=''):
+                  score_threshold: float = 0, 
+                  subdir: str ='',
+                  filename: str =''):
         """
 This method can be called to draw the frame with the required information.
         :param plot_figure: Should the figure be displayed.
@@ -152,8 +154,15 @@ This method can be called to draw the frame with the required information.
         plt.axis('off')
 
         if save_figure:
-            plt.savefig(f'{self.frame_data_loader.kitti_locations.output_dir}/{outdir}{self.frame_data_loader.file_id}.png',
-                        bbox_inches='tight', transparent=True)
+            path = f'{self.frame_data_loader.kitti_locations.output_dir}/'
+            if subdir:
+                path = f'{path}{subdir}/'
+                
+            if filename:
+                path = f'{path}{filename}-'
+            
+            path = f'{path}{self.frame_data_loader.file_id}.png'    
+            plt.savefig(path, bbox_inches='tight', transparent=True)
         if plot_figure:
             plt.show()
 

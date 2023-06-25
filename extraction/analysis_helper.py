@@ -72,10 +72,10 @@ class DataAnalysisHelper:
             if data_variant in DataVariant.semantic_variants():
                 vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                        show_lidar=True, show_radar=True, outdir=f'analysis/{dv_str}/annotated-') # TODO
+                        show_lidar=True, show_radar=True, subdir=f'analysis/{dv_str}', filename='annotated')
                 
                 vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
-                        show_lidar=False, show_radar=True, outdir=f'analysis/{dv_str}/radar-annotated-') # TODO
+                        show_lidar=False, show_radar=True, subdir=f'analysis/{dv_str}', filename='radar-annotated')
 
             imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
