@@ -47,6 +47,8 @@ class ParameterRangeExtractor:
                 ranges.append(locs_to_distance(radar_data[:, :3]))
                 azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
                 dopplers.append(radar_data[:, 4])
+                
+                # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
                 x.append(radar_data[:, 0])
                 y.append(radar_data[:, 1])
                 z.append(radar_data[:, 2])

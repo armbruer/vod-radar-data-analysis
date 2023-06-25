@@ -134,7 +134,10 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     
     # see the radians formula here (we have origin (0, 0))
     # https://en.wikipedia.org/wiki/Azimuth#In_cartography
-    return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[0], row[1]), 1, locations))
+    # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of x, y = row[0], row[1]
+    # x = Longitudinal direction, y = Latitudinal direction
+    # x<->y are swapped with the forumla from Wikipedia
+    return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[1], row[0]), 1, locations))
    
 def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
     """
@@ -212,9 +215,11 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     velocity_abs: List[np.ndarray] = [] # one avg absolute velocity per bounding box
     dopplers: List[np.ndarray] = [] # one avg doppler value per bounding box
     detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
-    bbox_vols: List[np.ndarray] = [] # bounding box volume
+    bbox_vols: List[np.ndarray] = [] # bounding box volume in m^3
     ranges: List[np.ndarray] = [] # range in m
     azimuths: List[np.ndarray] = [] # azimuth in degree
+    
+    # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
     x: List[np.ndarray] = []
     y: List[np.ndarray] = []
     z: List[np.ndarray] = []

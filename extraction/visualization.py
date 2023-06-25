@@ -187,8 +187,8 @@ class ParameterRangePlotter:
             df = df.pivot_table(index="x", columns="y", values="detections (#)", aggfunc=np.sum)
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
             ax.set_title(clazz)
-            ax.set_xlabel("Latitudinal distance (m)")
-            ax.set_ylabel("Longitudinal distance (m)")
+            ax.set_xlabel("Lat. Distance [m]")
+            ax.set_ylabel("Long. Distance [m]")
             ax.invert_yaxis()
             ax.set_facecolor('#23275b')
             
