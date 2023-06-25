@@ -1,4 +1,5 @@
 import logging
+from matplotlib.colors import LogNorm
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ import os
 matplotlib.use('Agg') # do not show figures when saving plot
 from tqdm import tqdm
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_name_from_class_id
+from extraction.helpers import DataVariant, DataView, get_class_names, get_name_from_class_id
 from typing import List, Union
 from enum import Enum
 from datetime import datetime
@@ -175,6 +176,25 @@ class ParameterRangePlotter:
             g.set(xlim=xlim)
         
         self._store_figure(fig, figure_name='syn_sem_combined_plot')
+        
+    def plot_heatmap(self):
+        semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XY)
+        
+        for df, clazz in zip(semantic_dfs, get_class_names()):
+            fig, ax = plt.subplots()
+            
+            df = df.round(decimals=0).astype(int)
+            df = df.pivot_table(index="x", columns="y", values="detections (#)", aggfunc=np.sum)
+            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
+            ax.set_title(clazz)
+            ax.set_xlabel("Latitudinal distance (m)")
+            ax.set_ylabel("Longitudinal distance (m)")
+            ax.invert_yaxis()
+            ax.set_facecolor('#23275b')
+            
+            self._store_figure(fig, figure_name=clazz)
+        
+        
         
     def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"

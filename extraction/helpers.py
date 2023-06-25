@@ -76,9 +76,10 @@ class DataView(Enum):
     STATS = 1,
     PLOT_XY = 2,
     PLOTABLE = 3,
-    BASIC_ANALYSIS = 4,
-    EXTENDED_ANALYSIS = 5,
-    NONE = 5,
+    PLOT_DETECTIONS_MAP = 4,
+    BASIC_ANALYSIS = 5,
+    EXTENDED_ANALYSIS = 6,
+    NONE = 7,
     
     def columns_to_drop(self) -> List[str]:
         if self == self.RAD:
@@ -89,7 +90,7 @@ class DataView(Enum):
             return ["frame number", "class", "x", "y", "z"]
                 
         elif self == self.PLOT_XY:
-            return ["frame number", "class", "velocity (m/s)", "detections (#)", 
+            return ["frame number", "velocity (m/s)", 
                     "bbox volume (m^3)", "range (m)", "azimuth (degree)", "doppler (m/s)", "z"]
         
         elif self == self.PLOTABLE:
@@ -101,6 +102,9 @@ class DataView(Enum):
         
         elif self == self.EXTENDED_ANALYSIS:
             return ["class", "x", "y", "z"]
+        
+        elif self == self.PLOT_DETECTIONS_MAP:
+            return ["frame number", "detections (#)", "x", "y"]
         
         # NONE
         return []
@@ -202,18 +206,18 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
-    
-    frame_numbers = []
-    object_ids = [] # TODO future work
-    object_clazz = []
-    velocity_abs = [] # one avg absolute velocity per bounding box
-    dopplers = [] # one avg doppler value per bounding box
-    detections = [] # number of radar_points inside a bounding box
-    bbox_vols = [] # bounding box volume
-    ranges = [] # range in m
-    azimuths = [] # azimuth in degree
-    locations = [] # x, y, z
-    
+    frame_numbers: List[np.ndarray] = []
+    object_ids: List[np.ndarray] = [] # TODO future work
+    object_clazz: List[np.ndarray] = []
+    velocity_abs: List[np.ndarray] = [] # one avg absolute velocity per bounding box
+    dopplers: List[np.ndarray] = [] # one avg doppler value per bounding box
+    detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
+    bbox_vols: List[np.ndarray] = [] # bounding box volume
+    ranges: List[np.ndarray] = [] # range in m
+    azimuths: List[np.ndarray] = [] # azimuth in degree
+    x: List[np.ndarray] = []
+    y: List[np.ndarray] = []
+    z: List[np.ndarray] = []
     
     for label in labels_with_corners:
         # Step 3: For each bounding box get a list of radar points which are inside of it
@@ -235,12 +239,15 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             
             azimuths.append(azimuth_angle_from_location(loc_transformed[:, :2]))
             dopplers.append(np.mean(points_matching[:, 4]))
-            locations.append(loc_transformed.T)
+            x.append(loc_transformed[0, 0])
+            y.append(loc_transformed[0, 1])
+            z.append(loc_transformed[0, 2])
     
     if not object_clazz:
         return None
     
-    columns = [frame_numbers, object_clazz, velocity_abs, detections, bbox_vols, ranges, azimuths, dopplers]
+    columns = [frame_numbers, object_clazz, velocity_abs, 
+               detections, bbox_vols, ranges, azimuths, dopplers, x, y, z]
     return list(map(np.hstack, columns))
 
 

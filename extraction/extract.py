@@ -30,7 +30,9 @@ class ParameterRangeExtractor:
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
         frame_nums: List[np.ndarray] = []
-        locations: List[np.ndarray] = []
+        x: List[np.ndarray] = []
+        y: List[np.ndarray] = []
+        z: List[np.ndarray] = []
         
         # TODO future work: rcs and v_r_compensated?
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
@@ -45,9 +47,11 @@ class ParameterRangeExtractor:
                 ranges.append(locs_to_distance(radar_data[:, :3]))
                 azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
                 dopplers.append(radar_data[:, 4])
-                locations.append(radar_data[:, :3].T)
+                x.append(radar_data[:, 0])
+                y.append(radar_data[:, 1])
+                z.append(radar_data[:, 2])
 
-        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers]))
+        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers, x, y, z]))
         cols = DataVariant.SYNTACTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})
