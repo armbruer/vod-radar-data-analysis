@@ -1,3 +1,4 @@
+from itertools import product
 import logging
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
@@ -224,9 +225,34 @@ class ParameterRangePlotter:
             fig, ax = plt.subplots()
             
             df = df.round(decimals=0).astype(int)
+
+            # just add a 0 everywhere
+            all_xy = {(0, x, y) for x, y in product(range(-25, 26), range(0, 53))}
+            # found_xy = set()
+            # for _, row in df.iterrows():
+            #     value = row['x'], row['y']
+            #     found_xy.add(value)
+            
+            # missing_xy = all_xy - found_xy
+            # missing_xy = list(map(lambda x, y: (x, y, 0), missing_xy))
+            
+            
+            df_extend = pd.DataFrame(all_xy, columns=df.columns)
+            df = pd.concat([df, df_extend], ignore_index=True)
+            
+            # remove outliers (don't need'em for this plot)
+            # remember columns are weirdly named for this because of the radar coordinate system
+            df.drop(df[(df.y < -25) | (df.y > 25) | (df.x < 0) | (df.x > 52)].index, inplace=True)
             df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
+            
+              
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
             ax.set_title(clazz)
+            #print(ax.get_xticks())
+            #ax.set_xticks(np.array([-20, 0, 20]))
+            # ax.set_xticklabels(np.array([-20, 0, 20]))
+            # ax.set_yticks(np.array([0, 20, 40]))
+            # ax.set_yticklabels(np.array([0, 20, 40]))
             ax.set_xlabel("Lat. Distance [m]")
             ax.set_ylabel("Long. Distance [m]")
             ax.invert_yaxis()

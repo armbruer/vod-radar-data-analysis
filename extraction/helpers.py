@@ -97,7 +97,7 @@ class DataView(Enum):
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
                 
         elif self == self.PLOT_XY:
-            return ["Frame Number", "Data Class", "Velocity [m/s]", 
+            return ["Frame Number", "Class", "Data Class", "Velocity [m/s]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
         
         elif self == self.PLOTABLE:
