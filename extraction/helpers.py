@@ -49,7 +49,9 @@ class DataVariant(Enum):
         if self in DataVariant.syntactic_variants():
             return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
-            return ["Frame Number", "Class", "Velocity [m/s]", "Detections [#]", 
+            # the Data Class stems directly from the dataset with no modification
+            # the Class is summarized list of classes, see convert_to_summarized_class_id() below
+            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
 
         return []
@@ -79,32 +81,32 @@ class DataView(Enum):
     PLOT_DETECTIONS_MAP = 4,
     BASIC_ANALYSIS = 5,
     EXTENDED_ANALYSIS = 6,
-    NONE = 7,
+    NONE = 7
     
     def columns_to_drop(self) -> List[str]:
         if self == self.RAD:
-            return ["Frame Number", "Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "x", "y", "z"]
                 
         elif self == self.STATS:
-            return ["Frame Number", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
                 
         elif self == self.PLOT_XY:
-            return ["Frame Number", "Velocity [m/s]", 
+            return ["Frame Number", "Data Class", "Velocity [m/s]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "z"]
         
         elif self == self.PLOTABLE:
-            return ["Frame Number", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
         
         elif self == self.BASIC_ANALYSIS:
-            return ["Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "x", "y", "z"]
         
         elif self == self.EXTENDED_ANALYSIS:
-            return ["Class", "x", "y", "z"]
+            return ["Data Class", "Class", "x", "y", "z"]
         
         elif self == self.PLOT_DETECTIONS_MAP:
-            return ["Frame Number", "Detections [#]", "x", "y"]
+            return ["Data Class", "Frame Number", "Detections [#]", "x", "y"]
         
         # NONE
         return []
@@ -209,9 +211,11 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
+    # TODO future work elevation
     frame_numbers: List[np.ndarray] = []
     object_ids: List[np.ndarray] = [] # TODO future work
-    object_clazz: List[np.ndarray] = []
+    object_clazz: List[np.ndarray] = [] # this class stems from the dataset
+    plot_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
     velocity_abs: List[np.ndarray] = [] # one avg absolute velocity per bounding box
     dopplers: List[np.ndarray] = [] # one avg doppler value per bounding box
     detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
@@ -230,15 +234,23 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
         if points_matching is not None:
+            clazz_id = get_class_id_from_name(label['label_class'])
+            summarized_id = convert_to_summarized_class_id(clazz_id)
+            
             # Step 4: Get the avg doppler value of the object and collect it
             frame_numbers.append(loader.frame_number)
-            object_clazz.append(get_class_id_from_name(label['label_class']))
+            object_clazz.append(clazz_id)
+            plot_clazz.append(summarized_id)
             velocity_abs.append(np.mean(points_matching[:, 5]))
             detections.append(points_matching.shape[0])
             bbox_vols.append(label['l'] * label['h'] * label['w'])            
             
-            loc = np.array([[label['x'], label['y'], label['z']]])
+            # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
+            # see docs/figures/Prius_sensor_setup_5.png (radar) 
+            loc = np.array([[label['x'], -label['y'], label['z']]])
+            # transform from camera coordinates to radar coordinates, stay cartesian
             loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
+            
             range_from_loc = locs_to_distance(loc_transformed)
             ranges.append(range_from_loc)
             
@@ -251,17 +263,32 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     if not object_clazz:
         return None
     
-    columns = [frame_numbers, object_clazz, velocity_abs, 
+    columns = [frame_numbers, object_clazz, plot_clazz, velocity_abs, 
                detections, bbox_vols, ranges, azimuths, dopplers, x, y, z]
     return list(map(np.hstack, columns))
 
 
-def get_class_names() -> List[str]:
+def get_class_names(summarized: bool = True) -> List[str]:
     """
     Get a list of class names.
+    
+    :param summarize: whether to summarize classes for easier plotting
 
     Returns: a list of class names
     """
+    
+    if summarized:
+        return [
+        'car',
+        'pedestrian',
+        'cyclist',
+        'rider',
+        'bicycle (unused)',
+        'bicycle rack', # dt. ein Fahrradständer
+        'human depiction',
+        'moped or scooter',
+        'motor',
+        'other']
     
     return [
         'Car',
@@ -278,66 +305,43 @@ def get_class_names() -> List[str]:
         'truck',
         'vehicle_other']
     
-def get_class_ids() -> List[int]:
+def convert_to_summarized_class_id(class_id: int) -> int:
+    # we summarize the last four classes to one
+    return 9 if class_id >=9 else class_id
+    
+def get_class_ids(summarized: bool) -> List[int]:
     """
     Returns a list of class ids
 
     Returns: a list of class ids
     """
-    return list(range( 13))
+    return list(range( 10 if summarized else 13))
 
-def get_name_from_class_id(clazz: int) -> str:
+def get_name_from_class_id(clazz: int, summarized: bool) -> str:
     """
     Returns the name corresponding to the given class id.
     
     :param clazz: the class id
+    :param summarized: 
     
     Returns: the name corresponding to the given class id
     """
-    class_id_to_name = {
-        0: 'Car',
-        1: 'Pedestrian',
-        2: 'Cyclist',
-        3: 'rider',
-        4: 'bicycle',
-        5: 'bicycle_rack',
-        6: 'human_depiction',
-        7: 'moped_scooter',
-        8: 'motor',
-        9: 'ride_other',
-        10: 'ride_uncertain',
-        11: 'truck',
-        12: 'vehicle_other'
-    }
     
+    class_id_to_name = {i: n for i, n in enumerate(get_class_names(summarized))}
     return class_id_to_name[clazz]
     
     
-def get_class_id_from_name(name: str) -> int:
+def get_class_id_from_name(name: str, summarized: bool) -> int:
     """
     Returns the class id corresponding to the given class name.
     
     :param name: the name of the class
+    :param summarized: 
     
     Returns: the class id corresponding to the given class name
     """
     
-    name_to_class_id = {
-       'Car': 0,
-        'Pedestrian' : 1,
-        'Cyclist' : 2,
-        'rider' : 3,
-        'bicycle' : 4,
-        'bicycle_rack' : 5,
-        'human_depiction' : 6,
-        'moped_scooter' : 7,
-        'motor' : 8,
-        'ride_other' : 9,
-        'ride_uncertain' : 10,
-        'truck' : 11,
-        'vehicle_other' : 12
-    }
-    
+    name_to_class_id = {n: i for i, n in enumerate(get_class_names(summarized))}
     return name_to_class_id[name]    
 
 

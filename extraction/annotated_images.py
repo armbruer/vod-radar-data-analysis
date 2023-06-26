@@ -18,7 +18,7 @@ def gen_annotation(frame_number: str, dir: str, kitti_locations: KittiLocations,
     loader = FrameDataLoader(
         kitti_locations=kitti_locations, frame_number=frame_number)
 
-    vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())
+    vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(False))
     vis2d.draw_plot(plot_figure=False, save_figure=True, show_gt=True,
                     show_lidar=lidar, show_radar=radar, subdir=subdir)
 

@@ -42,6 +42,9 @@ class ParameterRangeExtractor:
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data = loader.radar_data
             if radar_data is not None:
+                # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
+                # see docs/figures/Prius_sensor_setup_5.png (radar) 
+                radar_data[:,1] = -radar_data[:, 1]
 
                 frame_nums.append(np.full(radar_data.shape[0], frame_number))
                 ranges.append(locs_to_distance(radar_data[:, :3]))
