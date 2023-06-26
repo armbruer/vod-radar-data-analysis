@@ -1,5 +1,6 @@
 import logging
 from matplotlib.colors import LogNorm
+from matplotlib.figure import Figure
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -113,7 +114,7 @@ class ParameterRangePlotter:
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(1, 4, figsize=(10, 4), layout='constrained')
+                fig, ax = plt.subplots(1, 4, figsize=(10, 2), layout='constrained')
                 iter = enumerate(zip(rad_df, columns, xlims))
                 
                 for i, (param, column, xlim) in iter:
@@ -140,7 +141,7 @@ class ParameterRangePlotter:
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(1, 3, figsize=(10, 4), layout='constrained')
+                fig, ax = plt.subplots(1, 3, figsize=(10, 2), layout='constrained')
                 iter = enumerate(zip(rad_df, columns, xlims))
                 
                 for i, (param, column, xlim) in iter:
@@ -159,17 +160,18 @@ class ParameterRangePlotter:
         columns: List[str] = object_class_dfs[0].columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
-        by_column_dfs: List[List[pd.DataFrame]] = [[], [], []]
+        by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
         for i, c in enumerate(columns):
             for class_id, df in enumerate(object_class_dfs):
                 by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id)))
                                         
         by_column_dfs = list(map(pd.concat, by_column_dfs))
         
+        # commented out variants do not look good
         plot_functions = [
-                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)),
-                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False, kde=True)),
-                ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i], common_norm=False))
+        #    ('hist', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)),
+        #    ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False, kde=True)),
+            ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
@@ -195,11 +197,13 @@ class ParameterRangePlotter:
         plot_functions = [
             ('hist', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)),
             ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False, kde=True)),
+            ('hist_layer', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)),
+            ('hist_layer_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False, kde=True)),
             ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(1, 4, figsize=(10, 4), layout='constrained')
+            fig, ax = plt.subplots(1, 4, figsize=(10, 2), layout='constrained')
             
             
             iter = enumerate(zip(syntactic_rad_df, semantic_rad_df, columns, xlims))
@@ -232,7 +236,7 @@ class ParameterRangePlotter:
         
         
         
-    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
+    def _store_figure(self, figure: Figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             figures_dir = f"{figures_dir}/{data_variant.shortname()}"
@@ -246,6 +250,8 @@ class ParameterRangePlotter:
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.pdf')
+        # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
+        figure.close()
 
 def run_basic_visualization(plotter : ParameterRangePlotter):
     for dv in DataVariant.all_variants():
