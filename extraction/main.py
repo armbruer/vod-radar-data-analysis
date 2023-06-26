@@ -53,6 +53,7 @@ def main():
     
     plotter.plot_syn_sem_combined()
     plotter.plot_by_class_combined()
+    plotter.plot_rad()
     plotter.plot_rade()
     plotter.plot_heatmap()
     

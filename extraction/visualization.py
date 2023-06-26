@@ -125,7 +125,7 @@ class ParameterRangePlotter:
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-rade-{fig_name}')
     
-    def plot_rade(self):
+    def plot_rad(self):
         for dv in DataVariant.basic_variants():
             rad_df = self.data_manager.get_df(dv, DataView.RAD)
         
