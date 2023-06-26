@@ -236,7 +236,7 @@ class ParameterRangePlotter:
         
         
         
-    def _store_figure(self, figure: Figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
+    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             figures_dir = f"{figures_dir}/{data_variant.shortname()}"
@@ -251,7 +251,7 @@ class ParameterRangePlotter:
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.pdf')
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
-        figure.close()
+        plt.close(figure)
 
 def run_basic_visualization(plotter : ParameterRangePlotter):
     for dv in DataVariant.all_variants():
