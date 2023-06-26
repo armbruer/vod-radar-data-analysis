@@ -61,29 +61,6 @@ class ParameterRangeExtractor:
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})
 
-    def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
-        """
-        Splits the dataframe by class into a list of dataframes.
-        The list of dataframes is sorted according to class_id.
-        """
-        group_by_class_id = {class_id: x for class_id, x in df.groupby(df['Class'])}
-        return list(dict(sorted(group_by_class_id.items())).values())
-
-    def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.5) -> List[pd.DataFrame]:
-        """
-        Splits the dataframe by a threshold value for static object into two parts by adding a third dimension to the array. 
-        The static objects are at index 0. The dynamic objects are at index 1.
-
-
-        :param df: the RAD dataframe to be split
-        :param static_object_doppler_threshold: the threshold value to split the dataframe into two
-
-        Returns a list of dataframes, where the first contains static objects only and the second dynamic objects
-        """
-        mask = df['Doppler [m/s]'].abs() < static_object_doppler_threshold
-
-        return [df[mask], df[~mask]]
-
     def extract_object_data_from_semantic_data(self) -> pd.DataFrame:
         """
         For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
@@ -115,3 +92,26 @@ class ParameterRangeExtractor:
         cols = DataVariant.SEMANTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, object_data)})
+
+    def split_by_class(self, df: pd.DataFrame) -> List[pd.DataFrame]:
+        """
+        Splits the dataframe by class into a list of dataframes.
+        The list of dataframes is sorted according to class_id.
+        """
+        group_by_class_id = {class_id: x for class_id, x in df.groupby(df['Class'])}
+        return list(dict(sorted(group_by_class_id.items())).values())
+
+    def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.5) -> List[pd.DataFrame]:
+        """
+        Splits the dataframe by a threshold value for static object into two parts by adding a third dimension to the array. 
+        The static objects are at index 0. The dynamic objects are at index 1.
+
+
+        :param df: the RAD dataframe to be split
+        :param static_object_doppler_threshold: the threshold value to split the dataframe into two
+
+        Returns a list of dataframes, where the first contains static objects only and the second dynamic objects
+        """
+        mask = df['Doppler [m/s]'].abs() < static_object_doppler_threshold
+
+        return [df[mask], df[~mask]]
