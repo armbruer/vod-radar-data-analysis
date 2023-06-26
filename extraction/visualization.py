@@ -80,6 +80,7 @@ class ParameterRangePlotter:
                         gfg = sns.histplot(x=content, ax=axis, bins=30)
                         if value_label:
                             gfg.set(xlabel=value_label)
+                            gfg.set_yscale('log')
 
 
             self._store_figure(figure, data_variant, figure_name, index_name, )
