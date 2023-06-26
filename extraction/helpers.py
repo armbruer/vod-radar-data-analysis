@@ -66,7 +66,7 @@ class DataVariant(Enum):
 
     def index_to_str(self, index) -> str:
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
-            return get_name_from_class_id(index)
+            return get_name_from_class_id(index, summarized=True)
         elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
             return "static_rad" if index == 0 else "dynamic_rad"
 
@@ -252,7 +252,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
         
         if points_matching is not None:
-            clazz_id = get_class_id_from_name(label['label_class'])
+            clazz_id = get_class_id_from_name(label['label_class'], summarized=False)
             summarized_id = convert_to_summarized_class_id(clazz_id)
             
             # Step 4: Get the avg doppler value of the object and collect it
@@ -328,7 +328,7 @@ def convert_to_summarized_class_id(class_id: int) -> int:
     # we summarize the last four classes to one
     return 9 if class_id >=9 else class_id
     
-def get_class_ids(summarized: bool) -> List[int]:
+def get_class_ids(summarized: bool = True) -> List[int]:
     """
     Returns a list of class ids
 
@@ -336,7 +336,7 @@ def get_class_ids(summarized: bool) -> List[int]:
     """
     return list(range( 10 if summarized else 13))
 
-def get_name_from_class_id(clazz: int, summarized: bool) -> str:
+def get_name_from_class_id(clazz: int, summarized: bool = True) -> str:
     """
     Returns the name corresponding to the given class id.
     
@@ -350,7 +350,7 @@ def get_name_from_class_id(clazz: int, summarized: bool) -> str:
     return class_id_to_name[clazz]
     
     
-def get_class_id_from_name(name: str, summarized: bool) -> int:
+def get_class_id_from_name(name: str, summarized: bool = True) -> int:
     """
     Returns the class id corresponding to the given class name.
     
