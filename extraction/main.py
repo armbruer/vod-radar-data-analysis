@@ -51,9 +51,9 @@ def main():
     run_basic_visualization(plotter)
     generate_stats(dm)
     
-    plotter.plot_syn_sem_combined(kde=True)
-    plotter.plot_by_class_combined(kde=True)
-    plotter.plot_rad()
+    plotter.plot_syn_sem_combined()
+    plotter.plot_by_class_combined()
+    plotter.plot_rade()
     plotter.plot_heatmap()
     
     prepare_data_analysis(dm)
