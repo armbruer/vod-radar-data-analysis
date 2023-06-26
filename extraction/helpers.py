@@ -47,12 +47,12 @@ class DataVariant(Enum):
 
     def column_names(self) -> List[str]:
         if self in DataVariant.syntactic_variants():
-            return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
+            return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
             # the Data Class stems directly from the dataset with no modification
             # the Class is summarized list of classes, see convert_to_summarized_class_id() below
             return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
 
         return []
     
@@ -75,16 +75,21 @@ class DataVariant(Enum):
 
 class DataView(Enum):
     RAD = 0,
-    STATS = 1,
-    PLOT_XY = 2,
-    PLOTABLE = 3,
-    PLOT_DETECTIONS_MAP = 4,
-    BASIC_ANALYSIS = 5,
-    EXTENDED_ANALYSIS = 6,
-    NONE = 7
+    RADE = 1,
+    STATS = 2,
+    PLOT_XY = 3,
+    PLOTABLE = 4,
+    PLOT_DETECTIONS_MAP = 5,
+    BASIC_ANALYSIS = 6,
+    EXTENDED_ANALYSIS = 7,
+    NONE = 8
     
     def columns_to_drop(self) -> List[str]:
         if self == self.RAD:
+            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+                    "Bbox volume [m^3]", "Elevation [degree]", "x", "y", "z"]
+            
+        if self == self.RADE:
             return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "x", "y", "z"]
                 
@@ -93,7 +98,7 @@ class DataView(Enum):
                 
         elif self == self.PLOT_XY:
             return ["Frame Number", "Data Class", "Velocity [m/s]", 
-                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "z"]
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
         
         elif self == self.PLOTABLE:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
@@ -140,7 +145,20 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     # x = Longitudinal direction, y = Latitudinal direction
     # x<->y are swapped with the forumla from Wikipedia
     return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[1], row[0]), 1, locations))
-   
+
+def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
+    """
+    Returns the elevation angle in degrees for each location with respect to the origin (0, 0)
+    Make sure the location coordinates are transformed to the radar coordinate system.
+    
+    :param locations: the locations array of shape (-1, 2)
+    
+    Returns the elevation angle in degrees to origin
+    """
+    
+    # we can use the same formula as above
+    return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[1], row[0]), 1, locations))  
+
 def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
     """
     Returns the radar points inside the given bounding box.
@@ -211,7 +229,6 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
-    # TODO future work elevation
     frame_numbers: List[np.ndarray] = []
     object_ids: List[np.ndarray] = [] # TODO future work
     object_clazz: List[np.ndarray] = [] # this class stems from the dataset
@@ -221,7 +238,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
     bbox_vols: List[np.ndarray] = [] # bounding box volume in m^3
     ranges: List[np.ndarray] = [] # range in m
-    azimuths: List[np.ndarray] = [] # azimuth in degree
+    azimuths: List[np.ndarray] = [] # azimuth in degrees
+    elevations: List[np.ndarray] = [] # elevation in degrees
     
     # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
     x: List[np.ndarray] = []
@@ -250,12 +268,13 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             loc = np.array([[label['x'], -label['y'], label['z']]])
             # transform from camera coordinates to radar coordinates, stay cartesian
             loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
-            
             range_from_loc = locs_to_distance(loc_transformed)
-            ranges.append(range_from_loc)
             
+            ranges.append(range_from_loc)
             azimuths.append(azimuth_angle_from_location(loc_transformed[:, :2]))
             dopplers.append(np.mean(points_matching[:, 4]))
+            elevations.append(elevation_angle_from_location(loc_transformed[:, [0, 2]]))
+            
             x.append(loc_transformed[0, 0])
             y.append(loc_transformed[0, 1])
             z.append(loc_transformed[0, 2])
@@ -264,7 +283,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
         return None
     
     columns = [frame_numbers, object_clazz, plot_clazz, velocity_abs, 
-               detections, bbox_vols, ranges, azimuths, dopplers, x, y, z]
+               detections, bbox_vols, ranges, azimuths, dopplers, elevations, x, y, z]
     return list(map(np.hstack, columns))
 
 
