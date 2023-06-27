@@ -13,7 +13,7 @@ import os
 matplotlib.use('Agg') # do not show figures when saving plot
 from tqdm import tqdm
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_class_names, get_name_from_class_id
+from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_names, get_name_from_class_id
 from typing import List, Union
 from enum import Enum
 from datetime import datetime
@@ -163,12 +163,7 @@ class ParameterRangePlotter:
         columns: List[str] = object_class_dfs[0].columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
-        by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
-        for i, c in enumerate(columns):
-            for class_id, df in enumerate(object_class_dfs):
-                by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id)))
-                                        
-        by_column_dfs = list(map(pd.concat, by_column_dfs))
+        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
@@ -195,11 +190,51 @@ class ParameterRangePlotter:
                     plt.setp(g.get_legend().get_title(), fontsize='8', text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
-            self._store_figure(fig, figure_name=f'combined-rad-{fig_name}')
+            self._store_figure(fig, figure_name=f'classes-rade-{fig_name}')
             
         # reset to default
         mpl.rcParams['legend.labelspacing'] = 0.5
         mpl.rcParams['legend.handlelength'] = 2.0
+        
+        
+    def plot_by_class_combined_main_only(self):
+        object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RADE)
+        # only keep the main classes
+        indexes = [get_class_id_from_name(name) for name in ['car', 'pedestrian', 'cyclist']]
+        object_class_dfs = [object_class_dfs[i] for i in indexes]
+        
+        columns: List[str] = object_class_dfs[0].columns.to_list()
+        xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
+        
+        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
+        
+        plot_functions = [
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+        ]
+        
+        for fig_name, pf in plot_functions:
+            fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout='constrained')
+            iter = zip(by_column_dfs, columns, xlims)
+            
+            for i in range(2):
+                for j in range(2):
+                    
+                    df, column, xlim = next(iter)
+                    
+                    g = pf(i, j, df, column)
+                    g.set(xlim=xlim)
+                    #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
+        
+            self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}')
+
+    def _map_to_single_class_column_dfs(self, object_class_dfs, columns):
+        by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
+        for i, c in enumerate(columns):
+            for class_id, df in enumerate(object_class_dfs):
+                by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id)))
+                                        
+        by_column_dfs = list(map(pd.concat, by_column_dfs))
+        return by_column_dfs
         
     def plot_syn_sem_combined(self):
         syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RADE)

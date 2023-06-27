@@ -52,7 +52,8 @@ def main():
     #generate_stats(dm)
     
     #plotter.plot_syn_sem_combined()
-    plotter.plot_by_class_combined()
+    #plotter.plot_by_class_combined()
+    plotter.plot_by_class_combined_main_only()
     #plotter.plot_rad()
     #plotter.plot_rade()
     #plotter.plot_heatmap()
