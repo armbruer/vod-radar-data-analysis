@@ -109,21 +109,23 @@ class ParameterRangePlotter:
 
 
             plot_functions = [
-                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
-                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
-                ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, ax=ax[i]))
+                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
+                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability", kde=True)),
+                ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(1, 4, figsize=(10, 2), layout='constrained')
-                iter = enumerate(zip(rad_df, columns, xlims))
+                fig, ax = plt.subplots(2, 2, figsize=(10, 3), layout='constrained')
+                iter = zip(rad_df, columns, xlims)
                 
-                for i, (param, column, xlim) in iter:
-                    df = pd.DataFrame(data = rad_df[param], columns=[column])
+                for i in range(2):
+                    for j in range(2):
+                        param, column, xlim = next(iter)
+                        df = pd.DataFrame(data = rad_df[param], columns=[column])
                     
-                    g = pf(i, df, column)
+                        g = pf(i, j, df, column)
                         
-                    g.set(xlim=xlim)
+                        g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-rade-{fig_name}')
     
@@ -136,21 +138,24 @@ class ParameterRangePlotter:
 
 
             plot_functions = [
-                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
-                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
-                ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, ax=ax[i]))
+                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
+                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability", kde=True)),
+                ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(1, 3, figsize=(10, 2), layout='constrained')
-                iter = enumerate(zip(rad_df, columns, xlims))
+                fig, ax = plt.subplots(2, 2, figsize=(10, 2), layout='constrained')
+                iter = zip(rad_df, columns, xlims)
                 
-                for i, (param, column, xlim) in iter:
-                    df = pd.DataFrame(data = rad_df[param], columns=[column])
+                for i in range(2):
+                    for j in range(2):
+                
+                        param, column, xlim = next(iter)
+                
+                        df = pd.DataFrame(data = rad_df[param], columns=[column])
                     
-                    g = pf(i, df, column)
-                        
-                    g.set(xlim=xlim)
+                        g = pf(i, j, df, column)
+                        g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}')
         
@@ -170,53 +175,58 @@ class ParameterRangePlotter:
         
         # commented out variants do not look good
         plot_functions = [
-        #    ('hist', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)),
-        #    ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False, kde=True)),
-            ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i], common_norm=False))
+        #    ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False)),
+        #    ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False, kde=True)),
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(1, 4, figsize=(10, 4), layout='constrained')
-            iter = enumerate(zip(by_column_dfs, columns, xlims))
+            fig, ax = plt.subplots(2, 2, figsize=(10, 4), layout='constrained')
+            iter = zip(by_column_dfs, columns, xlims)
             
-            for i, (df, column, xlim) in iter:
-                g = pf(i, df, column)
+            for i in range(2):
+                for j in range(2):
                     
-                g.set(xlim=xlim)
-                #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
+                    df, column, xlim = next(iter)
+                    
+                    g = pf(i, j, df, column)
+                    g.set(xlim=xlim)
+                    #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
             self._store_figure(fig, figure_name=f'combined-rad-{fig_name}')
         
     def plot_syn_sem_combined(self):
-        syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RAD)
-        semantic_rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RAD)
+        syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RADE)
+        semantic_rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RADE)
     
         columns: List[str] = syntactic_rad_df.columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
         
         plot_functions = [
-            ('hist', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False)),
-            ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="dodge", stat="probability", common_norm=False, kde=True)),
-            ('hist_layer', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False)),
-            ('hist_layer_kde', lambda i, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i], multiple="layer", stat="probability", common_norm=False, kde=True)),
-            ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i], common_norm=False))
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
+            ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False, kde=True)),
+            ('hist_layer', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False)),
+            ('hist_layer_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False, kde=True)),
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(1, 4, figsize=(10, 2), layout='constrained')
+            fig, ax = plt.subplots(2, 2, figsize=(10, 3), layout='constrained')
             
+            iter = zip(syntactic_rad_df, semantic_rad_df, columns, xlims)
+            for i in range(2):
+                for j in range(2):
+                    syn_param, sem_param, column, xlim = next(iter)
             
-            iter = enumerate(zip(syntactic_rad_df, semantic_rad_df, columns, xlims))
-            for i, (syn_param, sem_param, column, xlim) in iter:
-                df_syntactic_rad = pd.DataFrame(data = syntactic_rad_df[syn_param], columns=[column]).assign(annotated = 'No')
-                df_semantic_rad = pd.DataFrame(data = semantic_rad_df[sem_param], columns=[column]).assign(annotated = 'Yes')
-                df = pd.concat([df_syntactic_rad, df_semantic_rad])
-                g = pf(i, df, column)
+                    df_syntactic_rad = pd.DataFrame(data = syntactic_rad_df[syn_param], columns=[column]).assign(annotated = 'No')
+                    df_semantic_rad = pd.DataFrame(data = semantic_rad_df[sem_param], columns=[column]).assign(annotated = 'Yes')
+                    df = pd.concat([df_syntactic_rad, df_semantic_rad])
+                    g = pf(i, j, df, column)
 
-                g.set(xlim=xlim)
+                    g.set(xlim=xlim)
             
-            self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}')        
+            self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}')
         
     def plot_heatmap(self):
         semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XY)
@@ -277,7 +287,8 @@ class ParameterRangePlotter:
         figure.savefig(f'{path}.pdf', format='pdf')
         logging.info(f'Plot generated in file:///{path}.pdf')
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
-        plt.close(figure)
+        if isinstance(figure, Figure): # can also be a fa
+            plt.close(figure)
 
 def run_basic_visualization(plotter : ParameterRangePlotter):
     for dv in DataVariant.all_variants():
