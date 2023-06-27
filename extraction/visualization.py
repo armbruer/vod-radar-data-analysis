@@ -1,22 +1,22 @@
-from itertools import product
-import logging
-from matplotlib.colors import LogNorm
-from matplotlib.figure import Figure
-import matplotlib as mpl
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-import pandas as pd
-import matplotlib
-import os
-
-matplotlib.use('Agg') # do not show figures when saving plot
 from tqdm import tqdm
-from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_names, get_name_from_class_id
 from typing import List, Union
 from enum import Enum
 from datetime import datetime
+from itertools import product
+from matplotlib.colors import LogNorm
+from matplotlib.figure import Figure
+from extraction.file_manager import DataManager
+from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_names, get_name_from_class_id
+
+matplotlib.use('Agg') # do not show figures when saving plot
+import logging
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import pandas as pd
+import matplotlib
+import os
 
 class PlotType(Enum):
     VIOLIN = 1,
