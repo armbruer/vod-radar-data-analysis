@@ -2,6 +2,7 @@ from itertools import product
 import logging
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
+import matplotlib as mpl
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -169,15 +170,17 @@ class ParameterRangePlotter:
                                         
         by_column_dfs = list(map(pd.concat, by_column_dfs))
         
-        # commented out variants do not look good
         plot_functions = [
-        #    ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False)),
-        #    ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False, kde=True)),
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
         ]
         
+        # hack: haven't found the proper way to access these properties :(
+        # so set them globally and then reset them afterwards
+        mpl.rcParams['legend.labelspacing'] = 0.2
+        mpl.rcParams['legend.handlelength'] = 1.0
+        
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
+            fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout='constrained')
             iter = zip(by_column_dfs, columns, xlims)
             
             for i in range(2):
@@ -187,9 +190,16 @@ class ParameterRangePlotter:
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
+                    
+                    plt.setp(g.get_legend().get_texts(), fontsize='6') 
+                    plt.setp(g.get_legend().get_title(), fontsize='8', text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
             self._store_figure(fig, figure_name=f'combined-rad-{fig_name}')
+            
+        # reset to default
+        mpl.rcParams['legend.labelspacing'] = 0.5
+        mpl.rcParams['legend.handlelength'] = 2.0
         
     def plot_syn_sem_combined(self):
         syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RADE)
@@ -203,7 +213,6 @@ class ParameterRangePlotter:
             ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
             ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False, kde=True)),
             ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
-            ('hist_step_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False, kde=True)),
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
         ]
         

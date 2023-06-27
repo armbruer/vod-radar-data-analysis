@@ -52,10 +52,10 @@ def main():
     #generate_stats(dm)
     
     #plotter.plot_syn_sem_combined()
-    #plotter.plot_by_class_combined()
+    plotter.plot_by_class_combined()
     #plotter.plot_rad()
     #plotter.plot_rade()
-    plotter.plot_heatmap()
+    #plotter.plot_heatmap()
     
     #prepare_data_analysis(dm)
 
