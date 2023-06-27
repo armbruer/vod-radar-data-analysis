@@ -82,7 +82,8 @@ class DataView(Enum):
     PLOT_DETECTIONS_MAP = 5,
     BASIC_ANALYSIS = 6,
     EXTENDED_ANALYSIS = 7,
-    NONE = 8
+    PLOT_XYZ_ONLY = 8,
+    NONE = 9
     
     def columns_to_drop(self) -> List[str]:
         if self == self.RAD:
@@ -112,6 +113,10 @@ class DataView(Enum):
         
         elif self == self.PLOT_DETECTIONS_MAP:
             return ["Data Class", "Frame Number", "Detections [#]", "x", "y"]
+        
+        elif self == self.PLOT_XYZ_ONLY:
+            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]"]
         
         # NONE
         return []
@@ -268,6 +273,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             loc = np.array([[label['x'], label['y'], label['z']]])
             # transform from camera coordinates to radar coordinates, stay cartesian
             loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
+            loc_transformed[0, 1] = -loc_transformed[0, 1]
             range_from_loc = locs_to_distance(loc_transformed)
             
             ranges.append(range_from_loc)

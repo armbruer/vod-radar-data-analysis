@@ -28,6 +28,11 @@ class ParameterRangePlotter:
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
+    
+    # for debugging
+    def plot_xyz(self):
+        df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XYZ_ONLY)
+        self.plot_data(dfs=df, plot_types=[PlotType.HISTOGRAM], data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS)
 
     def plot_data_simple(self, plot_types: List[PlotType]) -> None:
         for dv in DataVariant.all_variants():
