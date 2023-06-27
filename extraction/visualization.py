@@ -115,7 +115,7 @@ class ParameterRangePlotter:
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(2, 2, figsize=(10, 3), layout='constrained')
+                fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
                 iter = zip(rad_df, columns, xlims)
                 
                 for i in range(2):
@@ -138,24 +138,20 @@ class ParameterRangePlotter:
 
 
             plot_functions = [
-                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
-                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability", kde=True)),
-                ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
+                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
+                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
+                ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, ax=ax[i]))
             ]
             
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(2, 2, figsize=(10, 2), layout='constrained')
-                iter = zip(rad_df, columns, xlims)
+                fig, ax = plt.subplots(1, 3, figsize=(10, 3), layout='constrained')
+                iter = enumerate(zip(rad_df, columns, xlims))
                 
-                for i in range(2):
-                    for j in range(2):
+                for i, (param, column, xlim) in iter:                        
+                    df = pd.DataFrame(data = rad_df[param], columns=[column])
                 
-                        param, column, xlim = next(iter)
-                
-                        df = pd.DataFrame(data = rad_df[param], columns=[column])
-                    
-                        g = pf(i, j, df, column)
-                        g.set(xlim=xlim)
+                    g = pf(i, df, column)
+                    g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}')
         
@@ -181,7 +177,7 @@ class ParameterRangePlotter:
         ]
         
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(2, 2, figsize=(10, 4), layout='constrained')
+            fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
             iter = zip(by_column_dfs, columns, xlims)
             
             for i in range(2):
@@ -206,13 +202,13 @@ class ParameterRangePlotter:
         plot_functions = [
             ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
             ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False, kde=True)),
-            ('hist_layer', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False)),
-            ('hist_layer_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="layer", stat="probability", common_norm=False, kde=True)),
+            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
+            ('hist_step_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False, kde=True)),
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(2, 2, figsize=(10, 3), layout='constrained')
+            fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
             
             iter = zip(syntactic_rad_df, semantic_rad_df, columns, xlims)
             for i in range(2):
