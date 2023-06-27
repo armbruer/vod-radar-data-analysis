@@ -5,11 +5,8 @@ import logging
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
-from extraction.stats_table import generate_stats
-from extraction.analysis_helper import prepare_data_analysis
-from extraction.annotated_images import generate_all_annotated_images
 from extraction.file_manager import DataManager
-from extraction.visualization import ParameterRangePlotter, run_basic_visualization
+from extraction.visualization import ParameterRangePlotter, PlotType
 from vod.configuration.file_locations import KittiLocations
 
 
@@ -48,7 +45,7 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
-    #run_basic_visualization(plotter)
+    plotter.plot_data_simple([PlotType.HISTOGRAM])
     #generate_stats(dm)
     
     #plotter.plot_syn_sem_combined()

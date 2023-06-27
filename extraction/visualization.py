@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 from extraction.file_manager import DataManager
 from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_names, get_name_from_class_id
 
+import matplotlib
 matplotlib.use('Agg') # do not show figures when saving plot
 import logging
 import matplotlib as mpl
@@ -15,7 +16,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 import pandas as pd
-import matplotlib
 import os
 
 class PlotType(Enum):
@@ -29,12 +29,10 @@ class ParameterRangePlotter:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
 
-    def plot_data_simple(self, data_variant: DataVariant) -> None:
-        plot_types = [PlotType.BOXPLOT, PlotType.VIOLIN, PlotType.HISTOGRAM]
-
-        df = self.data_manager.get_df(data_variant, DataView.PLOTABLE)
-
-        self.plot_data(dfs=df, plot_types=plot_types, data_variant=data_variant)
+    def plot_data_simple(self, plot_types: List[PlotType]) -> None:
+        for dv in DataVariant.all_variants():
+            df = self.data_manager.get_df(dv, DataView.PLOTABLE)
+            self.plot_data(dfs=df, plot_types=plot_types, data_variant=dv)
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],
@@ -56,7 +54,7 @@ class ParameterRangePlotter:
             index_name = data_variant.index_to_str(k)
             pts = len(plot_types)
 
-            figure, axs = plt.subplots(cols, pts, figsize=(6.4, 10), layout='constrained')
+            figure, axs = plt.subplots(cols, pts, figsize=(3*pts, 2*cols), layout='constrained')
 
             iter = enumerate(zip(df.items(), value_labels))
             for i, ((_, content), value_label) in tqdm(iter, desc="Preparing subplots"):
@@ -67,9 +65,9 @@ class ParameterRangePlotter:
                     elif pts == 1 and cols == 1:
                         axis = axs
                     elif pts == 1:
-                        axis = axs[j]  # the other index
+                        axis = axs[j+i*pts]  # the other index
                     else:
-                        axis = axs[i]  # the other index
+                        axis = axs[i+j*pts]  # the other index
 
                     if pt == PlotType.VIOLIN:
                         gfg = sns.violinplot(y=content, ax=axis)
@@ -223,6 +221,7 @@ class ParameterRangePlotter:
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
+                    plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
             self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}')
@@ -329,8 +328,4 @@ class ParameterRangePlotter:
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
         if isinstance(figure, Figure): # can also be a fa
             plt.close(figure)
-
-def run_basic_visualization(plotter : ParameterRangePlotter):
-    for dv in DataVariant.all_variants():
-        plotter.plot_data_simple(dv)
 
