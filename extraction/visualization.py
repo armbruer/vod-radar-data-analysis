@@ -169,7 +169,7 @@ class ParameterRangePlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
             ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
         ]
         
@@ -213,7 +213,7 @@ class ParameterRangePlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
             ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
         ]
         
