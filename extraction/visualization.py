@@ -6,7 +6,7 @@ from itertools import product
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
 from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_names, get_name_from_class_id
+from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
 matplotlib.use('Agg') # do not show figures when saving plot
@@ -166,7 +166,7 @@ class ParameterRangePlotter:
         columns: List[str] = object_class_dfs[0].columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
-        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
+        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, get_class_ids())
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
@@ -209,7 +209,7 @@ class ParameterRangePlotter:
         columns: List[str] = object_class_dfs[0].columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
-        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
+        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
@@ -231,10 +231,10 @@ class ParameterRangePlotter:
         
             self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}', subdir='main_classes_rade')
 
-    def _map_to_single_class_column_dfs(self, object_class_dfs, columns):
+    def _map_to_single_class_column_dfs(self, object_class_dfs, columns, class_ids):
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
         for i, c in enumerate(columns):
-            for class_id, df in enumerate(object_class_dfs):
+            for class_id, df in zip(class_ids, object_class_dfs):
                 by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id, summarized=True)))
                                         
         by_column_dfs = list(map(pd.concat, by_column_dfs))
