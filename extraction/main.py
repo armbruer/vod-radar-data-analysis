@@ -2,6 +2,7 @@
 import sys
 import os
 import logging
+from extraction.analysis_helper import prepare_data_analysis
 
 from extraction.stats_table import generate_stats
 
