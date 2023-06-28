@@ -236,7 +236,7 @@ class ParameterRangePlotter:
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
         for i, c in enumerate(columns):
             for class_id, df in enumerate(object_class_dfs):
-                by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id)))
+                by_column_dfs[i].append(df[[c]].assign(clazz = get_name_from_class_id(class_id, summarized=True)))
                                         
         by_column_dfs = list(map(pd.concat, by_column_dfs))
         return by_column_dfs
