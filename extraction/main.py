@@ -48,7 +48,7 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
-    #plotter.plot_data_simple([PlotType.HISTOGRAM])
+    plotter.plot_data_simple([PlotType.HISTOGRAM])
     #generate_stats(dm)
     
     plotter.plot_syn_sem_combined()
@@ -58,7 +58,7 @@ def main():
     plotter.plot_rade()
     plotter.plot_heatmap()
     
-    prepare_data_analysis(dm)
+    #prepare_data_analysis(dm)
 
 if __name__ == '__main__':
     main()

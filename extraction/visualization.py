@@ -115,6 +115,7 @@ class ParameterRangePlotter:
             plot_functions = [
                 ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
                 ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability", kde=True)),
+                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="density", kde=True)),
                 ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
             ]
             
@@ -301,7 +302,7 @@ class ParameterRangePlotter:
             
               
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
-            ax.set_title(clazz)
+            ax.set_title(f'{clazz.capitalize()}s')
             #print(ax.get_xticks())
             #ax.set_xticks(np.array([-20, 0, 20]))
             # ax.set_xticklabels(np.array([-20, 0, 20]))
@@ -328,7 +329,7 @@ class ParameterRangePlotter:
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
         #figure.savefig(f'{path}.png', format='png')
-        figure.savefig(f'{path}.pdf', format='pdf')
+        figure.savefig(f'{path}.pdf', format='pdf', bbox_inches='tight')
         logging.info(f'Plot generated in file:///{path}.pdf')
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
         if isinstance(figure, Figure): # can also be a fa
