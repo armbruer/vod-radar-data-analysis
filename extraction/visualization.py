@@ -170,6 +170,7 @@ class ParameterRangePlotter:
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
         ]
         
         # hack: haven't found the proper way to access these properties :(
@@ -203,7 +204,7 @@ class ParameterRangePlotter:
     def plot_by_class_combined_main_only(self):
         object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RADE)
         # only keep the main classes
-        indexes = [get_class_id_from_name(name) for name in ['car', 'pedestrian', 'cyclist']]
+        indexes = [get_class_id_from_name(name) for name in ['car', 'pedestrian', 'cyclist', 'human depiction']]
         object_class_dfs = [object_class_dfs[i] for i in indexes]
         
         columns: List[str] = object_class_dfs[0].columns.to_list()
@@ -213,6 +214,7 @@ class ParameterRangePlotter:
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
         ]
         
         for fig_name, pf in plot_functions:
