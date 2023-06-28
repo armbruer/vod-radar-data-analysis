@@ -131,7 +131,7 @@ class ParameterRangePlotter:
                         
                         g.set(xlim=xlim)
             
-                self._store_figure(fig, figure_name=f'{dv.shortname()}-rade-{fig_name}')
+                self._store_figure(fig, figure_name=f'{dv.shortname()}-rade-{fig_name}', subdir='rade')
     
     def plot_rad(self):
         for dv in DataVariant.basic_variants():
@@ -157,7 +157,7 @@ class ParameterRangePlotter:
                     g = pf(i, df, column)
                     g.set(xlim=xlim)
             
-                self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}')
+                self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}', subdir='rad')
         
         
     def plot_by_class_combined(self):
@@ -169,8 +169,7 @@ class ParameterRangePlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
-            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
         ]
         
         # hack: haven't found the proper way to access these properties :(
@@ -194,7 +193,7 @@ class ParameterRangePlotter:
                     plt.setp(g.get_legend().get_title(), fontsize='8', text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
-            self._store_figure(fig, figure_name=f'classes-rade-{fig_name}')
+            self._store_figure(fig, figure_name=f'classes-rade-{fig_name}', subdir='classes-rade')
             
         # reset to default
         mpl.rcParams['legend.labelspacing'] = 0.5
@@ -204,7 +203,7 @@ class ParameterRangePlotter:
     def plot_by_class_combined_main_only(self):
         object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RADE)
         # only keep the main classes
-        indexes = [get_class_id_from_name(name) for name in ['car', 'pedestrian', 'cyclist', 'human depiction']]
+        indexes = [get_class_id_from_name(name, summarized=True) for name in ['car', 'pedestrian', 'cyclist', 'human depiction']]
         object_class_dfs = [object_class_dfs[i] for i in indexes]
         
         columns: List[str] = object_class_dfs[0].columns.to_list()
@@ -213,8 +212,7 @@ class ParameterRangePlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
-            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, stat="probability", bins=30))
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
@@ -231,7 +229,7 @@ class ParameterRangePlotter:
                     plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
-            self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}')
+            self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}', subdir='main_classes_rade')
 
     def _map_to_single_class_column_dfs(self, object_class_dfs, columns):
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
@@ -272,7 +270,7 @@ class ParameterRangePlotter:
 
                     g.set(xlim=xlim)
             
-            self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}')
+            self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
     def plot_heatmap(self):
         semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XY)
@@ -314,7 +312,7 @@ class ParameterRangePlotter:
             ax.invert_yaxis()
             ax.set_facecolor('#23275b')
             
-            self._store_figure(fig, figure_name=clazz)
+            self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
         
         
         

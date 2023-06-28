@@ -367,7 +367,7 @@ def get_class_id_from_name(name: str, summarized: bool = True) -> int:
     """
     
     name_to_class_id = {n: i for i, n in enumerate(get_class_names(summarized))}
-    return name_to_class_id[name]    
+    return name_to_class_id[name]
 
 
 def vis_to_debug(loader: FrameDataLoader) -> None:
