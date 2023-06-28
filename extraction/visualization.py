@@ -113,8 +113,7 @@ class ParameterRangePlotter:
 
 
             plot_functions = [
-                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
-                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability", kde=True)),
+                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="density")),
                 ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="density", kde=True)),
                 ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
             ]
@@ -143,8 +142,8 @@ class ParameterRangePlotter:
 
 
             plot_functions = [
-                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
-                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability", kde=True)),
+                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="density")),
+                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="density", kde=True)),
                 ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, ax=ax[i]))
             ]
             
@@ -250,9 +249,9 @@ class ParameterRangePlotter:
         
         
         plot_functions = [
-            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
-            ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False, kde=True)),
-            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False)),
+            ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True)),
+            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="density", common_norm=False)),
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
         ]
         
