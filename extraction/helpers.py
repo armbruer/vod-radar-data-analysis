@@ -267,12 +267,13 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             velocity_abs.append(np.mean(points_matching[:, 5]))
             detections.append(points_matching.shape[0])
             bbox_vols.append(label['l'] * label['h'] * label['w'])            
-            
-            # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
-            # see docs/figures/Prius_sensor_setup_5.png (radar) 
+             
             loc = np.array([[label['x'], label['y'], label['z']]])
             # transform from camera coordinates to radar coordinates, stay cartesian
             loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
+            
+            # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
+            # see docs/figures/Prius_sensor_setup_5.png (radar)
             loc_transformed[0, 1] = -loc_transformed[0, 1]
             range_from_loc = locs_to_distance(loc_transformed)
             
