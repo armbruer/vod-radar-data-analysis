@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import azimuth_angle_from_location, get_data_for_objects_in_frame, locs_to_distance, DataVariant
+from extraction.helpers import azimuth_angle_from_location, elevation_angle_from_location, get_data_for_objects_in_frame, locs_to_distance, DataVariant
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -29,6 +29,7 @@ class ParameterRangeExtractor:
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []
         dopplers: List[np.ndarray] = []
+        elevations: List[np.ndarray] = []
         frame_nums: List[np.ndarray] = []
         x: List[np.ndarray] = []
         y: List[np.ndarray] = []
@@ -49,6 +50,7 @@ class ParameterRangeExtractor:
                 frame_nums.append(np.full(radar_data.shape[0], frame_number))
                 ranges.append(locs_to_distance(radar_data[:, :3]))
                 azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
+                elevations.append(elevation_angle_from_location(radar_data[:, [1, 3]]))
                 dopplers.append(radar_data[:, 4])
                 
                 # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
@@ -56,7 +58,7 @@ class ParameterRangeExtractor:
                 y.append(radar_data[:, 1])
                 z.append(radar_data[:, 2])
 
-        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers, x, y, z]))
+        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers, elevations, x, y, z]))
         cols = DataVariant.SYNTACTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})

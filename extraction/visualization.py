@@ -106,7 +106,7 @@ class ParameterRangePlotter:
         
     def plot_rade(self):
         for dv in DataVariant.basic_variants():
-            rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RADE)
+            rad_df = self.data_manager.get_df(dv, DataView.RADE)
         
             columns: List[str] = rad_df.columns.to_list()
             xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
@@ -189,8 +189,8 @@ class ParameterRangePlotter:
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
                     
-                    plt.setp(g.get_legend().get_texts(), fontsize='6') 
-                    plt.setp(g.get_legend().get_title(), fontsize='8', text="Class")
+                    plt.setp(g.get_legend().get_texts(), fontsize='8') 
+                    plt.setp(g.get_legend().get_title(), fontsize='9', text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
             self._store_figure(fig, figure_name=f'classes-rade-{fig_name}', subdir='classes-rade')
