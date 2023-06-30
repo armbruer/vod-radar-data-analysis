@@ -316,7 +316,7 @@ class ParameterRangePlotter:
         
         
         
-    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str=''):
+    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str='', timestring: bool = False):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             figures_dir = f"{figures_dir}/{data_variant.shortname()}"
@@ -324,9 +324,12 @@ class ParameterRangePlotter:
             figures_dir = f"{figures_dir}/{subdir}"
             
         os.makedirs(figures_dir, exist_ok=True)
-
-        now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-        path = f"{figures_dir}/{figure_name}_{index_name}_{now}"
+        path = f"{figures_dir}/{figure_name}_{index_name}"
+        
+        if timestring:
+            now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+            path = f"{path}/_{now}"
+        
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf', bbox_inches='tight')
         logging.info(f'Plot generated in file:///{path}.pdf')
