@@ -1,4 +1,6 @@
+from typing import Optional
 from matplotlib import pyplot as plt
+import numpy as np
 
 from vod.frame import FrameDataLoader, FrameTransformMatrix, FrameLabels, project_pcl_to_image, min_max_filter
 
@@ -27,12 +29,13 @@ Constructor of the class, which loads the required frame properties, and creates
 
         self.image_copy = self.frame_data_loader.image
 
-    def plot_gt_labels(self, max_distance_threshold):
+    def plot_gt_labels(self, max_distance_threshold, selected_labels: Optional[FrameLabels]=None):
         """
-This method plots the ground truth labels on the frame.
+        This method plots the ground truth labels on the frame.
         :param max_distance_threshold: The maximum distance where labels are rendered.
         """
-        frame_labels_class = FrameLabels(self.frame_data_loader.raw_labels)
+        frame_labels_class = FrameLabels(self.frame_data_loader.raw_labels) if selected_labels is None else selected_labels
+        
         box_points = get_2d_label_corners(frame_labels_class, self.frame_transformations)
 
         # Class filter
@@ -41,14 +44,18 @@ This method plots the ground truth labels on the frame.
         # Distance filter
         filtered = list(filter(lambda elem: elem['range'] < max_distance_threshold, filtered))
 
-        colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
+        if selected_labels is None:
+            colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
+        else:
+            colors = [label_color_palette_2d['DontCare'] for _ in filtered]
+        
         labels = [d['corners'] for d in filtered]
 
         plot_boxes(labels, colors)
 
     def plot_predictions(self, score_threshold, max_distance_threshold):
         """
-This method plots the prediction labels on the frame.
+        This method plots the prediction labels on the frame.
         :param score_threshold: The minimum score to be rendered.
         :param max_distance_threshold: The maximum distance where labels are rendered.
         """
@@ -69,13 +76,16 @@ This method plots the prediction labels on the frame.
 
         plot_boxes(labels, colors)
 
-    def plot_radar_pcl(self, max_distance_threshold, min_distance_threshold):
+    def plot_radar_pcl(self, max_distance_threshold, min_distance_threshold, selected_points: Optional[np.ndarray]):
         """
-This method plots the radar pcl on the frame. It colors the points based on distance.
+        This method plots the radar pcl on the frame. It colors the points based on distance.
         :param max_distance_threshold: The maximum distance where points are rendered.
         :param min_distance_threshold: The minimum distance where points are rendered.
         """
-        uvs, points_depth = project_pcl_to_image(point_cloud=self.frame_data_loader.radar_data,
+        
+        radar_data = self.frame_data_loader.radar_data if selected_points is None else selected_points
+        
+        uvs, points_depth = project_pcl_to_image(point_cloud=radar_data,
                                                  t_camera_pcl=self.frame_transformations.t_camera_radar,
                                                  camera_projection_matrix=self.frame_transformations.camera_projection_matrix,
                                                  image_shape=self.frame_data_loader.image.shape)
@@ -115,11 +125,13 @@ This method plots the lidar pcl on the frame. It colors the points based on dist
                   show_radar: bool = False,
                   max_distance_threshold: float = 50.0,
                   min_distance_threshold: float = 0.0,
-                  score_threshold: float = 0, 
+                  score_threshold: float = 0,
                   subdir: str ='',
-                  filename: str =''):
+                  filename: str ='',
+                  selected_points: Optional[np.ndarray] = None,
+                  selected_labels: Optional[FrameLabels] = None):
         """
-This method can be called to draw the frame with the required information.
+        This method can be called to draw the frame with the required information.
         :param plot_figure: Should the figure be displayed.
         :param save_figure: Should the figure be saved.
         :param show_gt: Should the ground truth be plotted.
@@ -136,7 +148,7 @@ This method can be called to draw the frame with the required information.
         plt.clf()
 
         if show_gt:
-            self.plot_gt_labels(max_distance_threshold=max_distance_threshold)
+            self.plot_gt_labels(max_distance_threshold=max_distance_threshold, selected_labels=selected_labels)
 
         if show_pred:
             self.plot_predictions(max_distance_threshold=max_distance_threshold,
@@ -148,7 +160,7 @@ This method can be called to draw the frame with the required information.
 
         if show_radar:
             self.plot_radar_pcl(max_distance_threshold=max_distance_threshold,
-                                min_distance_threshold=min_distance_threshold)
+                                min_distance_threshold=min_distance_threshold, selected_points=selected_points)
 
         plt.imshow(self.image_copy, alpha=1)
         plt.axis('off')

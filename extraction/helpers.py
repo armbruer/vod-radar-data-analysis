@@ -106,10 +106,10 @@ class DataView(Enum):
         
         elif self == self.BASIC_ANALYSIS:
             return ["Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "x", "y", "z"]
+                    "Bbox volume [m^3]"]
         
         elif self == self.EXTENDED_ANALYSIS:
-            return ["Data Class", "Class", "x", "y", "z"]
+            return ["Data Class", "Class"]
         
         elif self == self.PLOT_DETECTIONS_MAP:
             return ["Data Class", "Frame Number", "Detections [#]", "x", "y"]

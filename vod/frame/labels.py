@@ -15,8 +15,6 @@ class FrameLabels:
         self.raw_labels: List[str] = raw_labels
 
         self._labels_dict: Optional[List[dict]] = None
-        
-        self._complete_labels_dict: Optional[List[dict]] = None
 
     @property
     def labels_dict(self):

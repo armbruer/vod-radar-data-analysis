@@ -207,6 +207,7 @@ class ParameterRangePlotter:
         object_class_dfs = [object_class_dfs[i] for i in indexes]
         
         columns: List[str] = object_class_dfs[0].columns.to_list()
+        # TODO different xlims for syntactic data
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
@@ -316,7 +317,7 @@ class ParameterRangePlotter:
         
         
         
-    def _store_figure(self, figure, data_variant: DataVariant =None, figure_name: str ='', index_name: str ='', subdir: str='', timestring: bool = False):
+    def _store_figure(self, figure, data_variant: DataVariant=None, figure_name: str='', index_name: str='', subdir: str='', timestring: bool=False):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             figures_dir = f"{figures_dir}/{data_variant.shortname()}"
