@@ -120,7 +120,7 @@ class ParameterRangePlotter:
             df = pd.melt(df, value_vars=df.columns, var_name='param')
             for plot_name, pf in plot_functions:
                 
-                g = sns.FacetGrid(df, col_wrap=4, height=2.5, aspect=1, col='param', legend_out=True)
+                g = sns.FacetGrid(df, col_wrap=4, height=2.5, aspect=1, col='param', legend_out=True, sharex=False, sharey=False)
                 
                 pf(g)
                 
@@ -378,6 +378,8 @@ class ParameterRangePlotter:
             
         if filename.startswith("-"):
             filename = filename[1:]
+            
+        path = f"{path}{filename}"
         
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf', bbox_inches='tight')
