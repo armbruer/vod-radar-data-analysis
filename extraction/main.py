@@ -2,14 +2,13 @@
 import sys
 import os
 import logging
-from extraction.analysis_helper import prepare_data_analysis
-
-from extraction.stats_table import generate_stats
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
+from extraction.analysis_helper import prepare_data_analysis
+from extraction.stats_table import generate_stats
 from extraction.file_manager import DataManager
-from extraction.visualization import ParameterRangePlotter, PlotType
+from extraction.visualization import ParameterRangePlotter
 from vod.configuration.file_locations import KittiLocations
 
 
@@ -48,6 +47,8 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
+    plotter.plot_kneeplot_for_syntactic_data()
+
     #plotter.plot_data_simple([PlotType.HISTOGRAM])
     #generate_stats(dm)
     
@@ -58,7 +59,7 @@ def main():
     # plotter.plot_rade()
     # plotter.plot_heatmap()
     
-    prepare_data_analysis(dm)
+    # prepare_data_analysis(dm)
 
 if __name__ == '__main__':
     main()

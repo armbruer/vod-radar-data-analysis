@@ -21,7 +21,7 @@ class ParameterRangeExtractor:
         This method works on the syntactic (unannotated) data of the dataset.
 
 
-        Returns a dataframe with columns frame_number, range, azimuth, doppler, x, y, z
+        Returns a dataframe with columns frame_number, range, azimuth, doppler, relative velocity (doppler) compensated, x, y, z
         """
         frame_numbers = get_frame_list_from_folder(
             self.kitti_locations.radar_dir, fileending='.bin')
@@ -31,11 +31,12 @@ class ParameterRangeExtractor:
         dopplers: List[np.ndarray] = []
         elevations: List[np.ndarray] = []
         frame_nums: List[np.ndarray] = []
+        dopplers_compensated: List[np.ndarray] = []
         x: List[np.ndarray] = []
         y: List[np.ndarray] = []
         z: List[np.ndarray] = []
         
-        # TODO future work: rcs and v_r_compensated?
+        # TODO future work: rcs
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
@@ -52,21 +53,22 @@ class ParameterRangeExtractor:
                 azimuths.append(azimuth_angle_from_location(radar_data[:, :2]))
                 elevations.append(elevation_angle_from_location(radar_data[:, [1, 3]]))
                 dopplers.append(radar_data[:, 4])
+                dopplers_compensated.append(radar_data[:, 5])
                 
                 # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
                 x.append(radar_data[:, 0])
                 y.append(radar_data[:, 1])
                 z.append(radar_data[:, 2])
 
-        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers, elevations, x, y, z]))
+        rad = list(map(np.hstack, [frame_nums, ranges, azimuths, dopplers, elevations, dopplers_compensated, x, y, z]))
         cols = DataVariant.SYNTACTIC_DATA.column_names()
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(cols, rad)})
 
     def extract_object_data_from_semantic_data(self) -> pd.DataFrame:
         """
-        For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
-        number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
+        For each object in the frame retrieve the following data: frame number, ranges, azimuths, object class, relative velocity (doppler) compensated, 
+        number of detections, bounding box volume, relative velocity (doppler), x, y, z.
 
         Returns a dataframe shape (-1, 8) with the columns listed above
         """
@@ -114,6 +116,6 @@ class ParameterRangeExtractor:
 
         Returns a list of dataframes, where the first contains static objects only and the second dynamic objects
         """
-        mask = df['Doppler [m/s]'].abs() < static_object_doppler_threshold
+        mask = df['Doppler Compensated [m/s]'].abs() < static_object_doppler_threshold
 
         return [df[mask], df[~mask]]

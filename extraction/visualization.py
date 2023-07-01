@@ -9,7 +9,7 @@ from extraction.file_manager import DataManager
 from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
-matplotlib.use('Agg') # do not show figures when saving plot
+matplotlib.use('Agg') # disable interactive matplotlib backend
 import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -93,13 +93,17 @@ class ParameterRangePlotter:
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
         dv = DataVariant.SYNTACTIC_DATA
-        rad_df = self.data_manager.get_df(dv, DataView.RAD)
-        doppler_df = rad_df[[2]]
+        df = self.data_manager.get_df(dv, DataView.NONE)
+        df = df.sort_values(by='Doppler Compensated [m/s]')
+        df['Index'] = range(0, len(df))
+        kneeplot_df = df[['Index', 'Doppler Compensated [m/s]']]
         
         fig, axs = plt.subplots()
-        indices = pd.Series(np.arange(0, len(doppler_df), 1), name="Index")
-        sns.lineplot(data=doppler_df, x=indices, y='Doppler [m/s]')
+
+        sns.lineplot(data=kneeplot_df, x='Index', y='Doppler Compensated [m/s]')
         axs.grid()
+        
+        fig.show() # you need this to zoom in
         
         self._store_figure(fig, dv, 'kneeplot')
         

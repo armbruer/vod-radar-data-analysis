@@ -89,12 +89,15 @@ class DataVariant(Enum):
         Returns the column names of the current data variant
         """
         if self in DataVariant.syntactic_variants():
-            return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
+            return ["Frame Number", "Range [m]", 
+                    "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", 
+                    "Doppler Compensated [m/s]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
             # the Data Class stems directly from the dataset with no modification
             # the Class is summarized list of classes (that we are more interested in), see convert_to_summarized_class_id() below
-            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
+            return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", 
+                    "Elevation [degree]", "Data Class", "Class", "Detections [#]", 
+                    "Bbox volume [m^3]", "Doppler Compensated [m/s]", "x", "y", "z"]
 
         return []
     
@@ -164,35 +167,32 @@ class DataView(Enum):
         Returns a list of columns to drop for the current data view.
         """
         if self == self.RAD:
-            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Elevation [degree]", "x", "y", "z"]
             
         if self == self.RADE:
-            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "x", "y", "z"]
                 
         elif self == self.STATS:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
                 
         elif self == self.PLOT_LONG_LAT:
-            return ["Frame Number", "Class", "Data Class", "Velocity [m/s]", 
+            return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
         
         elif self == self.EASY_PLOTABLE:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
         
         elif self == self.BASIC_ANALYSIS:
-            return ["Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]"]
         
         elif self == self.EXTENDED_ANALYSIS:
             return ["Data Class", "Class"]
         
-        elif self == self.PLOT_DETECTIONS_MAP:
-            return ["Data Class", "Frame Number", "Detections [#]", "x", "y"]
-        
         elif self == self.PLOT_XYZ_ONLY:
-            return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
+            return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]"]
         
         # NONE
@@ -283,14 +283,14 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.nd
     
 def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
     """
-    For each object in the frame retrieve the following data: frame number, object class, absolute velocity, 
-    number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler).
+    For each object in the frame retrieve the following data: frame number, ranges, azimuths, object class, summarized class, relative velocity compensated, 
+    number of detections, bounding box volume, relative velocity (doppler), x, y, z.
 
     :param loader: the loader of the current frame
     :param transforms: the transformation matrix of the current frame
 
-    Returns: a numpy array with the following columns: frame number, object class, absolute velocity, 
-    number of detections, bounding box volume, ranges, azimuths, relative velocity (doppler)
+    Returns: a numpy array with the following columns: frame number, ranges, azimuths, object class, summarized class, relative velocity compensated, 
+    number of detections, bounding box volume, relative velocity (doppler), x, y, z
     """
     
     labels = loader.get_labels()
@@ -314,8 +314,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     frame_numbers: List[np.ndarray] = []
     #object_ids: List[np.ndarray] = [] # TODO future work
     object_clazz: List[np.ndarray] = [] # this class stems from the dataset
-    plot_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
-    velocity_abs: List[np.ndarray] = [] # one avg absolute velocity per bounding box
+    summarized_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
+    dopplers_compensated: List[np.ndarray] = [] # avg doppler, but compensated for ego-vehicle movement, per object
     dopplers: List[np.ndarray] = [] # one avg doppler value per bounding box
     detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
     bbox_vols: List[np.ndarray] = [] # bounding box volume in m^3
@@ -340,8 +340,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             # Step 4: Get the avg doppler value of the object and collect it
             frame_numbers.append(loader.frame_number)
             object_clazz.append(clazz_id)
-            plot_clazz.append(summarized_id)
-            velocity_abs.append(np.mean(points_matching[:, 5]))
+            summarized_clazz.append(summarized_id)
+            dopplers_compensated.append(np.mean(points_matching[:, 5]))
             detections.append(points_matching.shape[0])
             bbox_vols.append(label['l'] * label['h'] * label['w'])            
              
@@ -366,8 +366,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     if not object_clazz:
         return None
     
-    columns = [frame_numbers, object_clazz, plot_clazz, velocity_abs, 
-               detections, bbox_vols, ranges, azimuths, dopplers, elevations, x, y, z]
+    columns = [frame_numbers, ranges, azimuths, dopplers, elevations, object_clazz, summarized_clazz, 
+               detections, bbox_vols, dopplers_compensated, x, y, z]
     return list(map(np.hstack, columns))
 
 
