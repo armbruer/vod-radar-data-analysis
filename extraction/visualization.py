@@ -21,7 +21,9 @@ import os
 class PlotType(Enum):
     VIOLIN = 1,
     BOXPLOT = 2,
-    HISTOGRAM = 3
+    HISTOGRAM = 3,
+    KDE = 4,
+    HIST_KDE = 5
 
 class ParameterRangePlotter:
 
@@ -38,36 +40,39 @@ class ParameterRangePlotter:
         for dv in DataVariant.all_variants():
             df = self.data_manager.get_df(dv, DataView.EASY_PLOTABLE)
             self.plot_data(dfs=df, plot_types=plot_types, data_variant=dv)
+            
+    def plot_data_test(self) -> None:
+        for dv in [DataVariant.SEMANTIC_DATA]:
+            df = self.data_manager.get_df(dv, DataView.EASY_PLOTABLE)
+            self.plot_data_improved(dfs=df, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],
                   plot_types: List[PlotType],
                   data_variant: DataVariant,
-                  **kwargs) -> None:
+                  figure_name=None) -> None:
         if not isinstance(dfs, list):
             dfs = [dfs]
         
-        cols = len(dfs[0].columns)
-        figure_name = kwargs.get('figure_name', data_variant.shortname())
-        value_labels = kwargs.get('value_labels', cols * [''])
-
-        if (not (len(value_labels) == cols)):
-            raise ValueError(
-                f'Expecting the length of value_labels to be equal to {cols}')
+        params = len(dfs[0].columns)
+        
+        if figure_name is None: 
+            figure_name = data_variant.shortname()
+            
 
         for k, df in enumerate(dfs):
             index_name = data_variant.index_to_str(k)
             pts = len(plot_types)
 
-            figure, axs = plt.subplots(cols, pts, figsize=(3*pts, 2*cols), layout='constrained')
 
-            iter = enumerate(zip(df.items(), value_labels))
-            for i, ((_, content), value_label) in tqdm(iter, desc="Preparing subplots"):
+            figure, axs = plt.subplots(params, pts, figsize=(3*pts, 2*params), layout='constrained')
+
+            for i, (_, content) in tqdm(enumerate(df.items()), desc="Preparing subplots"):
                 for j, pt in tqdm(enumerate(plot_types), desc="Going through plot types"):
 
-                    if pts > 1 and cols > 1:
+                    if pts > 1 and params > 1:
                         axis = axs[i, j]
-                    elif pts == 1 and cols == 1:
+                    elif pts == 1 and params == 1:
                         axis = axs
                     elif pts == 1:
                         axis = axs[j+i*pts]  # the other index
@@ -76,20 +81,51 @@ class ParameterRangePlotter:
 
                     if pt == PlotType.VIOLIN:
                         gfg = sns.violinplot(y=content, ax=axis)
-                        if value_label:
-                            gfg.set(ylabel=value_label)
                     elif pt == PlotType.BOXPLOT:
                         gfg = sns.boxplot(y=content, ax=axis)
-                        if value_label:
-                            gfg.set(ylabel=value_label)
                     elif pt == PlotType.HISTOGRAM:
                         gfg = sns.histplot(x=content, ax=axis, bins=30)
-                        if value_label:
-                            gfg.set(xlabel=value_label)
-                            gfg.set_yscale('log')
+                        gfg.set_yscale('log')
 
 
-            self._store_figure(figure, data_variant, figure_name, index_name, )
+            self._store_figure(figure, data_variant, figure_name, index_name)
+        
+    # TODO everywhere: log    
+        
+    def plot_data_improved(self,
+                  dfs: Union[List[pd.DataFrame], pd.DataFrame],
+                  plot_types: List[PlotType],
+                  data_variant: DataVariant,
+                  figure_name='') -> None:
+        if not isinstance(dfs, list):
+            dfs = [dfs]
+        
+        plot_functions = []
+        
+        if PlotType.HISTOGRAM in plot_types:
+            plot_functions.append(('hist', lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
+        if PlotType.HIST_KDE in plot_types:   
+            plot_functions.append(('hist_kde', lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="density", kde=True)))
+        if PlotType.KDE in plot_types:
+            plot_functions.append(('kde', lambda g: g.map_dataframe(sns.kdeplot, x="value")))
+        if PlotType.VIOLIN in plot_types:
+            plot_functions.append(('violin', lambda g: g.map_dataframe(sns.violinplot, y="value")))
+        if PlotType.BOXPLOT in plot_types:
+            plot_functions.append(('boxplot', lambda g: g.map_dataframe(sns.boxplot, y="value")))
+            
+            
+        for k, df in enumerate(dfs):
+            index_name = data_variant.index_to_str(k)
+            
+            df = pd.melt(df, value_vars=df.columns, var_name='param')
+            for plot_name, pf in plot_functions:
+                
+                g = sns.FacetGrid(df, col_wrap=4, height=2.5, aspect=1, col='param', legend_out=True)
+                
+                pf(g)
+                
+                fig_name = f'{data_variant.shortname()}-{figure_name}-{plot_name}'
+                self._store_figure(g, data_variant, fig_name, index_name)
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
         dv = DataVariant.SYNTACTIC_DATA
@@ -321,24 +357,32 @@ class ParameterRangePlotter:
         
         
         
-    def _store_figure(self, figure, data_variant: DataVariant=None, figure_name: str='', index_name: str='', subdir: str='', timestring: bool=False):
+    def _store_figure(self, figure: Union[Figure, sns.FacetGrid], data_variant: DataVariant=None, figure_name: str='', index_name: str='', subdir: str='', timestring: bool=False):
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
-            figures_dir = f"{figures_dir}/{data_variant.shortname()}"
+            path = f"{figures_dir}/{data_variant.shortname()}/"
         elif subdir:
-            figures_dir = f"{figures_dir}/{subdir}"
+            path = f"{figures_dir}/{subdir}/"
             
-        os.makedirs(figures_dir, exist_ok=True)
-        path = f"{figures_dir}/{figure_name}_{index_name}"
+        os.makedirs(path, exist_ok=True)
+        filename = ''
+        if figure_name:
+            filename = f"{filename}-{figure_name}"
+        
+        if index_name:
+            filename = f"{filename}-{index_name}"
         
         if timestring:
             now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-            path = f"{path}/_{now}"
+            filename = f"{filename}/-{now}"
+            
+        if filename.startswith("-"):
+            filename = filename[1:]
         
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf', bbox_inches='tight')
         logging.info(f'Plot generated in file:///{path}.pdf')
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
-        if isinstance(figure, Figure): # can also be a fa
+        if isinstance(figure, Figure): # can also be a FacetGrid
             plt.close(figure)
 
