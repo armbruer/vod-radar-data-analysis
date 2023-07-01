@@ -36,7 +36,7 @@ class ParameterRangePlotter:
 
     def plot_data_simple(self, plot_types: List[PlotType]) -> None:
         for dv in DataVariant.all_variants():
-            df = self.data_manager.get_df(dv, DataView.PLOTABLE)
+            df = self.data_manager.get_df(dv, DataView.EASY_PLOTABLE)
             self.plot_data(dfs=df, plot_types=plot_types, data_variant=dv)
 
     def plot_data(self,
@@ -274,7 +274,7 @@ class ParameterRangePlotter:
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
     def plot_heatmap(self):
-        semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XY)
+        semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_LONG_LAT)
         
         for df, clazz in zip(semantic_dfs, get_class_names()):
             fig, ax = plt.subplots()

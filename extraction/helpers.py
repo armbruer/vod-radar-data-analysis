@@ -8,12 +8,36 @@ from vod.frame.transformations import FrameTransformMatrix, homogenous_transform
 from vod.visualization.helpers import get_placed_3d_label_corners
         
 
+"""
+The DataVariant enum provides names for the fundamentally different approaches 
+to work with the data in this dataset. 
+In contrast to DataViews, DataVariants are cached for efficiency.
+"""
 class DataVariant(Enum):
+    """
+    The syntactic data contains the unannotated data only.
+    """
     SYNTACTIC_DATA = 0,
+    """
+    This is also syntactic data but into two clases, 
+    moving (dynamic) and not moving (static) detections.
+    """
     SYNTACTIC_DATA_BY_MOVING = 1,
+    """
+    The semantic data is a summary of the annotated data.
+    Each entry in this variant refers to a single detected object.
+    """
     SEMANTIC_DATA = 2,
+    """
+    The semantic data  is a summary of the annotated data.
+    Each entry in this variant refers to a single detected object.
+    The data is split into several collections according to the classes.
+    """
     SEMANTIC_DATA_BY_CLASS = 3
     
+    """
+    Returns a shortname for each datavariant that is useful e.g. for identifying files
+    """
     def shortname(self):
         if self == self.SYNTACTIC_DATA:
             return 'syn'
@@ -26,31 +50,49 @@ class DataVariant(Enum):
     
     @staticmethod
     def all_variants():
+        """
+        Returns a list of all data variants
+        """
         return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_MOVING, 
                 DataVariant.SEMANTIC_DATA, DataVariant.SEMANTIC_DATA_BY_CLASS]
     
     @staticmethod
     def basic_variants():
+        """
+        Returns a list of data variants that are basic in that they do not split their data.
+        """
         return [DataVariant.SYNTACTIC_DATA, DataVariant.SEMANTIC_DATA]
     
     @staticmethod
     def split_variants():
+        """
+        Returns a list of data variants that split their data according to a criterion
+        """
         return [DataVariant.SYNTACTIC_DATA_BY_MOVING, DataVariant.SEMANTIC_DATA_BY_CLASS]
     
     @staticmethod
     def syntactic_variants():
+        """
+        Returns a list of syntactic data variants
+        """
         return [DataVariant.SYNTACTIC_DATA, DataVariant.SYNTACTIC_DATA_BY_MOVING]
     
     @staticmethod
     def semantic_variants():
+        """
+        Returns a list of semantic data variants
+        """
         return [DataVariant.SEMANTIC_DATA, DataVariant.SEMANTIC_DATA_BY_CLASS]
 
     def column_names(self) -> List[str]:
+        """
+        Returns the column names of the current data variant
+        """
         if self in DataVariant.syntactic_variants():
             return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
             # the Data Class stems directly from the dataset with no modification
-            # the Class is summarized list of classes, see convert_to_summarized_class_id() below
+            # the Class is summarized list of classes (that we are more interested in), see convert_to_summarized_class_id() below
             return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "x", "y", "z"]
 
@@ -73,19 +115,54 @@ class DataVariant(Enum):
         return ''
 
 
+"""
+The DataView class is intended to be used on top of a DataVariant.
+It provides a view on top of the columns of the current variant by reducing 
+the columns of a data variant to a subset.
+"""
 class DataView(Enum):
+    """
+    Keeps only range, azimuth, doppler columns.
+    """
     RAD = 0,
+    """
+    Keeps only range, azimuth, doppler, elevation columns.
+    """
     RADE = 1,
+    """
+    Keeps only columns that are required or useful for calculating stats about.
+    """
     STATS = 2,
-    PLOT_XY = 3,
-    PLOTABLE = 4,
-    PLOT_DETECTIONS_MAP = 5,
-    BASIC_ANALYSIS = 6,
-    EXTENDED_ANALYSIS = 7,
-    PLOT_XYZ_ONLY = 8,
-    NONE = 9
+    """
+    Keeps only the columns that are required 
+    for creating longitute latitude plots showing the number of detections.
+    """
+    PLOT_LONG_LAT = 3,
+    """
+    Keeps only columns that make sense to be plotted by the plot_data() method.
+    """
+    EASY_PLOTABLE = 4,
+    """
+    Keeps only columns that are required or useful for a basic data analysis (RADE).
+    """
+    BASIC_ANALYSIS = 5,
+    """
+    Like BASIC_ANALYSIS, but including additional columns for semantic data.
+    """
+    EXTENDED_ANALYSIS = 6,
+    """
+    Keeps only x,y,z for plotting. This can be useful for debugging the other code.
+    """
+    PLOT_XYZ_ONLY = 7,
+    """
+    Keeps all columns, (no change to datavariant only)
+    """
+    NONE = 8
     
     def columns_to_drop(self) -> List[str]:
+        """
+        Returns a list of columns to drop for the current data view.
+        """
         if self == self.RAD:
             return ["Frame Number", "Data Class", "Class", "Velocity [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Elevation [degree]", "x", "y", "z"]
@@ -97,11 +174,11 @@ class DataView(Enum):
         elif self == self.STATS:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
                 
-        elif self == self.PLOT_XY:
+        elif self == self.PLOT_LONG_LAT:
             return ["Frame Number", "Class", "Data Class", "Velocity [m/s]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
         
-        elif self == self.PLOTABLE:
+        elif self == self.EASY_PLOTABLE:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
         
         elif self == self.BASIC_ANALYSIS:
@@ -235,7 +312,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
     
     frame_numbers: List[np.ndarray] = []
-    object_ids: List[np.ndarray] = [] # TODO future work
+    #object_ids: List[np.ndarray] = [] # TODO future work
     object_clazz: List[np.ndarray] = [] # this class stems from the dataset
     plot_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
     velocity_abs: List[np.ndarray] = [] # one avg absolute velocity per bounding box
@@ -307,11 +384,11 @@ def get_class_names(summarized: bool = True) -> List[str]:
         return [
         'car',
         'pedestrian',
-        'cyclist',
-        'rider',
-        'bicycle (unused)',
+        'cyclist', # includes both the bycicle and the rider
+        'rider', # the human on top of the bycicle, motor, etc. separately
+        'bicycle (unused)', # a bycicle that is currently not used, i.e. standing around
         'bicycle rack', # dt. ein Fahrradständer
-        'human depiction',
+        'human depiction', # this can be anything that looks remotely human, e.g. statue
         'moped or scooter',
         'motor',
         'other']
