@@ -105,7 +105,7 @@ class ParameterRangeExtractor:
         group_by_class_id = {class_id: x for class_id, x in df.groupby(df['Class'])}
         return list(dict(sorted(group_by_class_id.items())).values())
 
-    def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.5) -> List[pd.DataFrame]:
+    def split_rad_by_threshold(self, df: pd.DataFrame, static_object_doppler_threshold: float = 0.2) -> List[pd.DataFrame]:
         """
         Splits the dataframe by a threshold value for static object into two parts by adding a third dimension to the array. 
         The static objects are at index 0. The dynamic objects are at index 1.
