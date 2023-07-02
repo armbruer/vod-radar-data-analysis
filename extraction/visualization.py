@@ -25,7 +25,7 @@ class PlotType(Enum):
     KDE = 4,
     HIST_KDE = 5
 
-class ParameterRangePlotter:
+class DistributionPlotter:
 
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager

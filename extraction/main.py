@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 from extraction.analysis_helper import prepare_data_analysis
 from extraction.stats_table import generate_stats
 from extraction.file_manager import DataManager
-from extraction.visualization import ParameterRangePlotter, PlotType
+from extraction.visualization import DistributionPlotter, PlotType
 from vod.configuration.file_locations import KittiLocations
 
 
@@ -40,7 +40,7 @@ def main():
     logging.info(f"Output directory: {abs(kitti_locations.output_dir)}")
 
     dm = DataManager(kitti_locations=kitti_locations)
-    plotter = ParameterRangePlotter(data_manager=dm)
+    plotter = DistributionPlotter(data_manager=dm)
     
     #generate_all_annotated_images(kitti_locations=kitti_locations)
     # after running this use:
