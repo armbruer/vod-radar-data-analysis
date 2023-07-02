@@ -5,8 +5,8 @@ import pandas as pd
 
 from typing import List, Optional
 from matplotlib.image import imsave
-from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_class_names, points_in_bbox
+from extraction.file_manager import DataManager, DataView
+from extraction.helpers import DataVariant, DataViewType, get_class_names, points_in_bbox
 
 from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
@@ -21,8 +21,9 @@ class DataAnalysisHelper:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
         
-    def prepare_data_analysis(self, data_variant: DataVariant, data_view: DataView):
-        df = self.data_manager.get_df(data_variant=data_variant, data_view=data_view)
+    def prepare_data_analysis(self, data_variant: DataVariant, data_view: DataViewType):
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view)
+        df = data_view.df
         if isinstance(df, list):
             for d, v in zip(df, data_variant.subvariant_names()):
                 self._prepare_data_analysis( d, data_variant, v)
@@ -143,5 +144,5 @@ def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
     for dv in DataVariant.all_variants():
-        analysis.prepare_data_analysis(dv, DataView.BASIC_ANALYSIS)
-        #analysis.prepare_data_analysis(dv, DataView.ANALYSIS)
+        analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
+        #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)

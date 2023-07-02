@@ -5,8 +5,8 @@ from datetime import datetime
 from itertools import product
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
-from extraction.file_manager import DataManager
-from extraction.helpers import DataVariant, DataView, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
+from extraction.file_manager import DataManager, DataView
+from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
 matplotlib.use('Agg') # disable interactive matplotlib backend
@@ -33,18 +33,18 @@ class ParameterRangePlotter:
     
     # for debugging
     def plot_xyz(self):
-        df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_XYZ_ONLY)
-        self.plot_data(dfs=df, plot_types=[PlotType.HISTOGRAM], data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS)
+        data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_XYZ_ONLY)
+        self.plot_data(dfs=data_view.df, plot_types=[PlotType.HISTOGRAM], data_variant=data_view.variant)
 
     def plot_data_simple(self, plot_types: List[PlotType]) -> None:
         for dv in DataVariant.all_variants():
-            df = self.data_manager.get_df(dv, DataView.EASY_PLOTABLE)
-            self.plot_data(dfs=df, plot_types=plot_types, data_variant=dv)
+            data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
+            self.plot_data(dfs=data_view.df, plot_types=plot_types, data_variant=dv)
             
     def plot_data_test(self) -> None:
         for dv in [DataVariant.SEMANTIC_DATA]:
-            df = self.data_manager.get_df(dv, DataView.EASY_PLOTABLE)
-            self.plot_data_improved(dfs=df, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
+            data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
+            self.plot_data_improved(dfs=data_view.df, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],
@@ -129,7 +129,8 @@ class ParameterRangePlotter:
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
         dv = DataVariant.SYNTACTIC_DATA
-        df = self.data_manager.get_df(dv, DataView.NONE)
+        data_view: DataView = self.data_manager.get_view(dv, DataViewType.NONE)
+        df = data_view.df
         df = df.sort_values(by='Doppler Compensated [m/s]')
         df['Index'] = range(0, len(df))
         kneeplot_df = df[['Index', 'Doppler Compensated [m/s]']]
@@ -143,14 +144,14 @@ class ParameterRangePlotter:
         
         self._store_figure(fig, dv, 'kneeplot')
         
-        
-    def plot_rade(self):
-        for dv in DataVariant.basic_variants():
-            rad_df = self.data_manager.get_df(dv, DataView.RADE)
-        
+    def plot_rade(self, 
+                  data_variants: List[DataVariant] = DataVariant.basic_variants(), 
+                  data_view_type: DataViewType =DataViewType.RADE):
+        for dv in data_variants:
+            data_view: DataView = self.data_manager.get_view(dv, data_view_type)
+            dvt_str = data_view.view.name.lower()
+            rad_df = data_view.df
             columns: List[str] = rad_df.columns.to_list()
-            xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
-
 
             plot_functions = [
                 ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
@@ -160,7 +161,7 @@ class ParameterRangePlotter:
             
             for fig_name, pf in plot_functions:
                 fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
-                iter = zip(rad_df, columns, xlims)
+                iter = zip(rad_df, columns, data_view.lims)
                 
                 for i in range(2):
                     for j in range(2):
@@ -171,94 +172,35 @@ class ParameterRangePlotter:
                         
                         g.set(xlim=xlim)
             
-                self._store_figure(fig, figure_name=f'{dv.shortname()}-rade-{fig_name}', subdir='rade')
-    
-    def plot_rad(self):
-        for dv in DataVariant.basic_variants():
-            rad_df = self.data_manager.get_df(dv, DataView.RAD)
+                self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
         
-            columns: List[str] = rad_df.columns.to_list()
-            xlims = [(0, 55), (-90, 90), (-25, 25)]
-
-
-            plot_functions = [
-                ('hist', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="probability")),
-                ('hist_kde', lambda i, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i], stat="density", kde=True)),
-                ('kde', lambda i, df, column: sns.kdeplot(data=df, x=column, ax=ax[i]))
-            ]
-            
-            for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(1, 3, figsize=(10, 3), layout='constrained')
-                iter = enumerate(zip(rad_df, columns, xlims))
-                
-                for i, (param, column, xlim) in iter:                        
-                    df = pd.DataFrame(data = rad_df[param], columns=[column])
-                
-                    g = pf(i, df, column)
-                    g.set(xlim=xlim)
-            
-                self._store_figure(fig, figure_name=f'{dv.shortname()}-rad-{fig_name}', subdir='rad')
+    def plot_by_class_combined(self, most_important_only: bool):
+        data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.RADE)
+        object_class_dfs = data_view.df
         
-        
-    def plot_by_class_combined(self):
-        object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RADE)
-    
-        columns: List[str] = object_class_dfs[0].columns.to_list()
-        xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
-        
-        by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, get_class_ids())
-        
-        plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
-        ]
-        
-        # hack: haven't found the proper way to access these properties :(
-        # so set them globally and then reset them afterwards
-        mpl.rcParams['legend.labelspacing'] = 0.2
-        mpl.rcParams['legend.handlelength'] = 1.0
-        
-        for fig_name, pf in plot_functions:
-            fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout='constrained')
-            iter = zip(by_column_dfs, columns, xlims)
-            
-            for i in range(2):
-                for j in range(2):
-                    
-                    df, column, xlim = next(iter)
-                    
-                    g = pf(i, j, df, column)
-                    g.set(xlim=xlim)
-                    
-                    plt.setp(g.get_legend().get_texts(), fontsize='8') 
-                    plt.setp(g.get_legend().get_title(), fontsize='9', text="Class")
-                    #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
-        
-            self._store_figure(fig, figure_name=f'classes-rade-{fig_name}', subdir='classes-rade')
-            
-        # reset to default
-        mpl.rcParams['legend.labelspacing'] = 0.5
-        mpl.rcParams['legend.handlelength'] = 2.0
-        
-        
-    def plot_by_class_combined_main_only(self):
-        object_class_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.RADE)
-        # only keep the main classes
-        indexes = [get_class_id_from_name(name, summarized=True) for name in ['car', 'pedestrian', 'cyclist']]
-        object_class_dfs = [object_class_dfs[i] for i in indexes]
+        if most_important_only:
+            # only keep the most important classes
+            indexes = [get_class_id_from_name(name, summarized=True) for name in ['car', 'pedestrian', 'cyclist']]
+            object_class_dfs = [object_class_dfs[i] for i in indexes]
         
         columns: List[str] = object_class_dfs[0].columns.to_list()
-        # TODO different xlims for syntactic data
-        xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
-        
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
         ]
         
+        if not most_important_only:
+            # hack: haven't found the proper way to access these properties :(
+            # so set them globally and then reset them afterwards
+            mpl.rcParams['legend.labelspacing'] = 0.2
+            mpl.rcParams['legend.handlelength'] = 1.0
+        
+        name = 'classes-rade' if not most_important_only else 'main-classes-rade'
+        
         for fig_name, pf in plot_functions:
             fig, ax = plt.subplots(2, 2, figsize=(8, 8), layout='constrained')
-            iter = zip(by_column_dfs, columns, xlims)
+            iter = zip(by_column_dfs, columns, data_view.lims)
             
             for i in range(2):
                 for j in range(2):
@@ -267,10 +209,20 @@ class ParameterRangePlotter:
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
-                    plt.setp(g.get_legend().get_title(), text="Class")
+                    
+                    if not most_important_only:
+                        plt.setp(g.get_legend().get_texts(), fontsize='8') 
+                        plt.setp(g.get_legend().get_title(), fontsize='9', text="Class")
+                    else: 
+                        plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
-            self._store_figure(fig, figure_name=f'main-classes-rade-{fig_name}', subdir='main_classes_rade')
+            self._store_figure(fig, figure_name=f'{name}-{fig_name}', subdir='{name}')
+            
+        if not most_important_only:
+            # reset global stuff to default
+            mpl.rcParams['legend.labelspacing'] = 0.5
+            mpl.rcParams['legend.handlelength'] = 2.0
 
     def _map_to_single_class_column_dfs(self, object_class_dfs, columns, class_ids):
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
@@ -281,10 +233,13 @@ class ParameterRangePlotter:
         by_column_dfs = list(map(pd.concat, by_column_dfs))
         return by_column_dfs
         
-    def plot_syn_sem_combined(self):
-        syntactic_rad_df = self.data_manager.get_df(DataVariant.SYNTACTIC_DATA, DataView.RADE)
-        semantic_rad_df = self.data_manager.get_df(DataVariant.SEMANTIC_DATA, DataView.RADE)
+    def plot_syn_sem_combined(self, data_view_type: DataViewType = DataViewType.RADE):
+        syntactic_dv = self.data_manager.get_view(DataVariant.SYNTACTIC_DATA, data_view_type)
+        semantic_dv= self.data_manager.get_view(DataVariant.SEMANTIC_DATA, data_view_type)
     
+        syntactic_rad_df = syntactic_dv.df
+        semantic_rad_df = semantic_dv.df
+
         columns: List[str] = syntactic_rad_df.columns.to_list()
         xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
@@ -314,7 +269,7 @@ class ParameterRangePlotter:
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
     def plot_heatmap(self):
-        semantic_dfs = self.data_manager.get_df(DataVariant.SEMANTIC_DATA_BY_CLASS, DataView.PLOT_LONG_LAT)
+        semantic_dfs = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_LONG_LAT)
         
         for df, clazz in zip(semantic_dfs, get_class_names()):
             fig, ax = plt.subplots()

@@ -1,11 +1,11 @@
-from extraction.file_manager import DataManager
+from extraction.file_manager import DataManager, DataView
 
 import logging
 import os
 import numpy as np
 import pandas as pd
 
-from extraction.helpers import DataVariant, DataView
+from extraction.helpers import DataVariant, DataViewType
 
 class StatsTableGenerator:
 
@@ -14,7 +14,8 @@ class StatsTableGenerator:
         self.kitti_locations = data_manager.kitti_locations
 
     def write_stats(self, data_variant: DataVariant) -> None:
-        data = self.data_manager.get_df(data_variant=data_variant, data_view=DataView.STATS)
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=DataViewType.STATS)
+        data = data_view.df
         data_variant_str = data_variant.shortname()
         if isinstance(data, list):
             for i, d in enumerate(data):

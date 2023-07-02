@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import numpy as np
 
 from vod.frame.data_loader import FrameDataLoader
@@ -102,6 +102,13 @@ class DataVariant(Enum):
         return []
     
     def subvariant_names(self) -> List[str]:
+        """
+        For those data variants that split their data according to a criterion, 
+        this function returns a list of names for the subvariants.
+        
+        Returns a list of subvariant names
+        """
+        
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_class_names()
         elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
@@ -110,20 +117,38 @@ class DataVariant(Enum):
         return []
 
     def index_to_str(self, index) -> str:
+        """
+        For those data that split their data according to a criterion, 
+        this function returns the subvariant name corresponding to the index
+        
+        :param index: the index of the subvariant name
+        
+        Returns the subvariant name corresponding to the given index
+        """
+        
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_name_from_class_id(index, summarized=True)
         elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
             return "static_rad" if index == 0 else "dynamic_rad"
 
         return ''
+    
+    
+    def lims(self) -> List[Tuple[int, int]]:
+        # must be in the order of columns, see above
+        if self in DataVariant.syntactic_variants():
+            return [None, (0, 55), (-90, 90), (-25, 25), (-90, 90), None, None, None, None]
+        elif self in DataVariant.semantic_variants():
+            return [None, (0, 55), (-90, 90), (-25, 25), (-90, 90), None, None, None, None, None, None, None, None]
 
+        return []
 
 """
-The DataView class is intended to be used on top of a DataVariant.
+The DataViewType class is intended to be used on top of a DataVariant.
 It provides a view on top of the columns of the current variant by reducing 
 the columns of a data variant to a subset.
 """
-class DataView(Enum):
+class DataViewType(Enum):
     """
     Keeps only range, azimuth, doppler columns.
     """
@@ -164,7 +189,7 @@ class DataView(Enum):
     
     def columns_to_drop(self) -> List[str]:
         """
-        Returns a list of columns to drop for the current data view.
+        Returns a list of columns to drop for the current data view type.
         """
         if self == self.RAD:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 

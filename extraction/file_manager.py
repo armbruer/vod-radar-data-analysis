@@ -5,8 +5,35 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Optional, Union
 from extraction.extract import ParameterRangeExtractor
-from extraction.helpers import DataVariant, DataView
+from extraction.helpers import DataVariant, DataViewType
 from vod.configuration.file_locations import KittiLocations
+
+class DataView:
+    
+    def __init__(self, 
+                 df: Union[pd.DataFrame, List[pd.DataFrame]], 
+                 data_variant: DataVariant, 
+                 data_view_type: DataViewType) -> None:
+        self.df = df
+        self.variant = data_variant
+        self.view = data_view_type
+        
+        self._init_view()
+        
+    def _init_view(self):
+        self._tmp_df: List[pd.DataFrame] = self.df
+        if not isinstance(self._tmp_df, list):
+            self._tmp_df = [self.df]
+            
+        self._tmp_df = [df.drop(self.view.columns_to_drop(), axis=1, errors='ignore') for df in self._tmp_df]
+            
+        drop_indexes = self._tmp_df[0].columns.get_loc(self.view.columns_to_drop())
+        
+        self.lims = [lim for i, lim in enumerate(self.variant.lims()) if i not in drop_indexes]
+        
+        self.df = self._tmp_df[0] if len(self._tmp_df) == 1 else self._tmp_df
+        
+        
 
 class DataManager:
         
@@ -15,7 +42,7 @@ class DataManager:
         self.extractor = ParameterRangeExtractor(kitti_locations)
         self.data: Dict[DataVariant, pd.DataFrame] = {}
         
-    def get_df(self, data_variant: DataVariant, data_view: DataView = DataView.NONE, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+    def get_view(self, data_variant: DataVariant, data_view_type: DataViewType = DataViewType.NONE, refresh=False) -> DataView:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset.
 
@@ -25,13 +52,8 @@ class DataManager:
         Returns the dataframe containing the data requested
         """
         df = self._get_df(data_variant, refresh)
-        if isinstance(df, list):
-            dfs = []
-            for d in df:
-                dfs.append(d.drop(data_view.columns_to_drop(), axis=1, errors='ignore'))
-            return dfs
-    
-        return df.drop(data_view.columns_to_drop(), axis=1, errors='ignore')
+        
+        return DataView(df=df, data_variant=data_variant, data_view_type=data_view_type)
         
     def _get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
