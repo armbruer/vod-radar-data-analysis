@@ -298,7 +298,7 @@ class DistributionPlotter:
     def plot_heatmap(self):
         semantic_dfs = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_LONG_LAT)
         
-        for df, clazz in zip(semantic_dfs, get_class_names()):
+        for df, clazz in zip(semantic_dfs.df, get_class_names()):
             fig, ax = plt.subplots()
             
             df = df.round(decimals=0).astype(int)
