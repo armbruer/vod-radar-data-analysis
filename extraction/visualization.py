@@ -44,7 +44,7 @@ class DistributionPlotter:
     def plot_data_test(self) -> None:
         for dv in [DataVariant.SEMANTIC_DATA]:
             data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
-            self.plot_data_improved(dfs=data_view.df, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
+            self.plot_data_improved(data_view=data_view, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],
@@ -93,37 +93,55 @@ class DistributionPlotter:
     # TODO everywhere: log    
         
     def plot_data_improved(self,
-                  dfs: Union[List[pd.DataFrame], pd.DataFrame],
+                  data_view: DataView,
                   plot_types: List[PlotType],
                   data_variant: DataVariant,
                   figure_name='') -> None:
+        dfs = data_view.df
         if not isinstance(dfs, list):
             dfs = [dfs]
         
         plot_functions = []
         
+        x_pts = [PlotType.HISTOGRAM, PlotType.HIST_KDE, PlotType.KDE]
+        
         if PlotType.HISTOGRAM in plot_types:
-            plot_functions.append(('hist', lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
+            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
         if PlotType.HIST_KDE in plot_types:   
-            plot_functions.append(('hist_kde', lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="density", kde=True)))
+            plot_functions.append((PlotType.HIST_KDE, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="density", kde=True)))
         if PlotType.KDE in plot_types:
-            plot_functions.append(('kde', lambda g: g.map_dataframe(sns.kdeplot, x="value")))
+            plot_functions.append((PlotType.KDE, lambda g: g.map_dataframe(sns.kdeplot, x="value")))
         if PlotType.VIOLIN in plot_types:
-            plot_functions.append(('violin', lambda g: g.map_dataframe(sns.violinplot, y="value")))
+            plot_functions.append((PlotType.VIOLIN, lambda g: g.map_dataframe(sns.violinplot, y="value")))
         if PlotType.BOXPLOT in plot_types:
-            plot_functions.append(('boxplot', lambda g: g.map_dataframe(sns.boxplot, y="value")))
+            plot_functions.append((PlotType.BOXPLOT, lambda g: g.map_dataframe(sns.boxplot, y="value")))
             
             
-        for k, df in enumerate(dfs):
+        for k, df_orig in enumerate(dfs):
             index_name = data_variant.index_to_str(k)
             
-            df = pd.melt(df, value_vars=df.columns, var_name='param')
-            for plot_name, pf in plot_functions:
+            df: pd.DataFrame = pd.melt(df_orig, value_vars=df_orig.columns, var_name='param')
+            for plot_type, pf in plot_functions:
                 
                 g = sns.FacetGrid(df, col_wrap=4, height=2.5, aspect=1, col='param', legend_out=True, sharex=False, sharey=False)
                 
                 pf(g)
+                g.set_titles("{col_name}")
+                #g.tight_layout()
+
+                for i, ax in enumerate(g.axes.flat):
+                    if plot_type in x_pts:
+                        g.set_xlabels("")
+                        ax.set_xlim(data_view.lims[i])
+                        if data_view.ticklabels[i] is not None:
+                            ax.set_xticklabels(data_view.ticklabels[i])
+                    else:
+                        g.set_ylabels("")
+                        ax.set_ylim(data_view.lims[i])
+                        if data_view.ticklabels[i] is not None:
+                            ax.set_ytickslabels(data_view.ticklabels[i])
                 
+                plot_name = plot_type.name.lower()
                 fig_name = f'{data_variant.shortname()}-{figure_name}-{plot_name}'
                 self._store_figure(g, data_variant, fig_name, index_name)
 
@@ -187,6 +205,7 @@ class DistributionPlotter:
         data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.RADE)
         object_class_dfs = data_view.df
         
+        indexes = get_class_ids()
         if most_important_only:
             # only keep the most important classes
             indexes = [get_class_id_from_name(name, summarized=True) for name in ['car', 'pedestrian', 'cyclist']]

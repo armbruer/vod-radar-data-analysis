@@ -133,9 +133,23 @@ class DataVariant(Enum):
 
         return ''
     
+    def ticklabels(self) -> List[List[int]]:
+        # must be in the order of the column_names(), see above
+        r = [0, 10, 20, 30, 40, 50]
+        a = [-90, -45, 0, 45, 90]
+        d = [-20, -10, 0, 10, 20]
+        e = [-90, -45, 0, 45, 90]
+        
+        to_str = lambda ticklabels: map(lambda l: map(str, l) if l is not None else None, ticklabels)
+        
+        if self in DataVariant.syntactic_variants():
+            return to_str( [None, r, a, d, e, None, None, None, None])
+        if self in DataVariant.semantic_variants():
+            return to_str([None, r, a, d, e, None, None, None, None, None, None, None, None])
+        
     
     def lims(self) -> List[Tuple[int, int]]:
-        # must be in the order of columns, see above
+        # must be in the order of column_names(), see above
         if self in DataVariant.syntactic_variants():
             return [None, (0, 55), (-90, 90), (-25, 25), (-90, 90), None, None, None, None]
         elif self in DataVariant.semantic_variants():

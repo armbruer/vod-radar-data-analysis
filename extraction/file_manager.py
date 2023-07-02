@@ -29,6 +29,7 @@ class DataView:
         drop_indexes = [self._tmp_df[0].columns.get_loc(col) for col in columns_to_drop]
         self._tmp_df = [df.drop(self.view.columns_to_drop(), axis=1, errors='ignore') for df in self._tmp_df]
         
+        self.ticklabels = [label for i, label in enumerate(self.variant.ticklabels()) if i not in drop_indexes]
         self.lims = [lim for i, lim in enumerate(self.variant.lims()) if i not in drop_indexes]
         self.df = self._tmp_df[0] if len(self._tmp_df) == 1 else self._tmp_df
         
