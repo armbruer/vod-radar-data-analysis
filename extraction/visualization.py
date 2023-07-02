@@ -172,9 +172,9 @@ class DistributionPlotter:
             columns: List[str] = rad_df.columns.to_list()
 
             plot_functions = [
-                ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="probability")),
-                ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax[i, j], stat="density", kde=True)),
-                ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
+                ('hist', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
+                ('hist_kde', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True)),
+                ('kde', lambda ax, df, column: sns.kdeplot(data=df, x=column, ax=ax))
             ]
             
             if data_view_type == DataViewType.RADE:
@@ -195,8 +195,8 @@ class DistributionPlotter:
                         param, column, xlim = next(iter)
                         df = pd.DataFrame(data = rad_df[param], columns=[column])
                     
-                        g = pf(i, j, df, column)
-                        
+                        axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
+                        g = pf(axis, df, column)
                         g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
