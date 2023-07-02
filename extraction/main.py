@@ -51,20 +51,20 @@ def main():
 
     plotter.correlation_heatmap(data_variant=DataVariant.SEMANTIC_DATA)
 
-    #plotter.plot_data_test()
+    plotter.plot_data_test()
 
-    #plotter.plot_data_simple([PlotType.HISTOGRAM])
+    plotter.plot_data_simple([PlotType.HISTOGRAM])
     
-    # generate_stats(dm)
+    generate_stats(dm)
     
-    # plotter.plot_syn_sem_combined()
-    # plotter.plot_by_class_combined()
-    # plotter.plot_by_class_combined(most_important_only=True)
-    # plotter.plot_rade()
-    # plotter.plot_rade(data_view_type=DataViewType.RAD)
-    # plotter.plot_heatmap()
+    plotter.plot_syn_sem_combined()
+    plotter.plot_by_class_combined()
+    plotter.plot_by_class_combined(most_important_only=True)
+    plotter.plot_rade()
+    plotter.plot_rade(data_view_type=DataViewType.RAD)
+    plotter.plot_heatmap()
     
-    # prepare_data_analysis(dm)
+    prepare_data_analysis(dm)
 
 if __name__ == '__main__':
     main()

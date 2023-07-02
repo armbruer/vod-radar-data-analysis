@@ -190,8 +190,8 @@ class DistributionPlotter:
                 fig, ax = plt.subplots(nrows, ncols, figsize=(8, 6), layout='constrained')
                 iter = zip(rad_df, columns, data_view.lims)
                 
-                for i in range(2):
-                    for j in range(2):
+                for i in range(nrows):
+                    for j in range(ncols):
                         param, column, xlim = next(iter)
                         df = pd.DataFrame(data = rad_df[param], columns=[column])
                     
@@ -245,7 +245,7 @@ class DistributionPlotter:
                         plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
         
-            self._store_figure(fig, figure_name=f'{name}-{fig_name}', subdir='{name}')
+            self._store_figure(fig, figure_name=f'{name}-{fig_name}', subdir=f'{name}')
             
         if not most_important_only:
             # reset global stuff to default
