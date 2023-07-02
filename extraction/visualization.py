@@ -146,7 +146,7 @@ class DistributionPlotter:
         
     def plot_rade(self, 
                   data_variants: List[DataVariant] = DataVariant.basic_variants(), 
-                  data_view_type: DataViewType =DataViewType.RADE):
+                  data_view_type: DataViewType=DataViewType.RADE):
         for dv in data_variants:
             data_view: DataView = self.data_manager.get_view(dv, data_view_type)
             dvt_str = data_view.view.name.lower()
@@ -159,8 +159,17 @@ class DistributionPlotter:
                 ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, ax=ax[i, j]))
             ]
             
+            if data_view_type == DataViewType.RADE:
+                nrows = 2
+                ncols = 2
+            elif data_view_type == DataViewType.RAD:
+                nrows = 1
+                ncols = 3
+            else:
+                raise ValueError(f'Unexpected value for data_view_type {data_view_type}')
+            
             for fig_name, pf in plot_functions:
-                fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
+                fig, ax = plt.subplots(nrows, ncols, figsize=(8, 6), layout='constrained')
                 iter = zip(rad_df, columns, data_view.lims)
                 
                 for i in range(2):
@@ -174,7 +183,7 @@ class DistributionPlotter:
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
         
-    def plot_by_class_combined(self, most_important_only: bool):
+    def plot_by_class_combined(self, most_important_only: bool = False):
         data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.RADE)
         object_class_dfs = data_view.df
         
@@ -234,14 +243,13 @@ class DistributionPlotter:
         return by_column_dfs
         
     def plot_syn_sem_combined(self, data_view_type: DataViewType = DataViewType.RADE):
-        syntactic_dv = self.data_manager.get_view(DataVariant.SYNTACTIC_DATA, data_view_type)
-        semantic_dv= self.data_manager.get_view(DataVariant.SEMANTIC_DATA, data_view_type)
+        syntactic_dv: DataView = self.data_manager.get_view(DataVariant.SYNTACTIC_DATA, data_view_type)
+        semantic_dv: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA, data_view_type)
     
         syntactic_rad_df = syntactic_dv.df
         semantic_rad_df = semantic_dv.df
 
         columns: List[str] = syntactic_rad_df.columns.to_list()
-        xlims = [(0, 55), (-90, 90), (-25, 25), (-90, 90)]
         
         
         plot_functions = [
@@ -254,7 +262,7 @@ class DistributionPlotter:
         for fig_name, pf in plot_functions:
             fig, ax = plt.subplots(2, 2, figsize=(8, 6), layout='constrained')
             
-            iter = zip(syntactic_rad_df, semantic_rad_df, columns, xlims)
+            iter = zip(syntactic_rad_df, semantic_rad_df, columns, semantic_dv.lims)
             for i in range(2):
                 for j in range(2):
                     syn_param, sem_param, column, xlim = next(iter)

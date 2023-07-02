@@ -25,12 +25,11 @@ class DataView:
         if not isinstance(self._tmp_df, list):
             self._tmp_df = [self.df]
             
+        columns_to_drop = [col for col in self.view.columns_to_drop() if col in self._tmp_df[0].columns]
+        drop_indexes = [self._tmp_df[0].columns.get_loc(col) for col in columns_to_drop]
         self._tmp_df = [df.drop(self.view.columns_to_drop(), axis=1, errors='ignore') for df in self._tmp_df]
-            
-        drop_indexes = self._tmp_df[0].columns.get_loc(self.view.columns_to_drop())
         
         self.lims = [lim for i, lim in enumerate(self.variant.lims()) if i not in drop_indexes]
-        
         self.df = self._tmp_df[0] if len(self._tmp_df) == 1 else self._tmp_df
         
         
