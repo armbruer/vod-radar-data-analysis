@@ -337,6 +337,18 @@ class DistributionPlotter:
             
             self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
         
+    def correlation_heatmap(self, data_variant: DataVariant):
+        data_view: DataView = self.data_manager.get_view(data_variant, data_view_type=DataViewType.EASY_PLOTABLE)
+        dfs = data_view.df
+        if not isinstance(dfs, list):
+            dfs = [dfs]
+            
+        for df in dfs:
+            corr = df.select_dtypes('number').corr()
+            fig, ax = plt.subplots()
+            ax = sns.heatmap(corr, ax=ax, cbar=True, annot=True)
+            figure_name= f'corr-heatmap-{data_view.variant.shortname()}-{data_view.view.name.lower()}'
+            self._store_figure(fig, figure_name=figure_name, subdir='corr-heatmaps')
         
         
     def _store_figure(self, figure: Union[Figure, sns.FacetGrid], data_variant: DataVariant=None, figure_name: str='', index_name: str='', subdir: str='', timestring: bool=False):
