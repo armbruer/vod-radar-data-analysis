@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import List, Optional, Tuple
 import numpy as np
+import numba
 
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
@@ -260,12 +261,19 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     Returns the azimuth angle in degrees to origin
     """
     
-    # see the radians formula here (we have origin (0, 0))
-    # https://en.wikipedia.org/wiki/Azimuth#In_cartography
-    # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of x, y = row[0], row[1]
-    # x = Longitudinal direction, y = Latitudinal direction
-    # x<->y are swapped with the forumla from Wikipedia
-    return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[1], row[0]), 1, locations))
+    # Notes:
+    # 1) See the radians formula https://en.wikipedia.org/wiki/Azimuth#In_cartography (we have origin (0, 0))
+    # 2) See docs/figures/Prius_sensor_setup_5.png (radar) for the directions of x, y
+    #    x = Longitudinal direction, y = Latitudinal direction
+    # 3) We have mirrored the y values alongside the x axis (-y) in extract.py, so angles left of north (north=x-axis) will be negatives
+    # 4) Additional note: https://stackoverflow.com/questions/283406/what-is-the-difference-between-atan-and-atan2-in-c
+    #    conslusion: essentially always use arctan2 over arctan
+    #    it is more stable, due to no y/x division, full 360 degrees output possible
+    # 5) x and y are swapped in the numpy formula
+    #    https://numpy.org/doc/stable/reference/generated/numpy.arctan2.html
+    # 
+    x, y = list(locations.T)
+    return np.arctan2(y, x) * 180 / np.pi
 
 def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     """
@@ -277,17 +285,19 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     Returns the elevation angle in degrees to origin
     """
     
-    # we can use the same formula as above
-    return np.rad2deg(np.apply_along_axis(lambda row: np.arctan2(row[1], row[0]), 1, locations))  
+    x, y = list(locations.T)
+    return np.arctan2(y, x) * 180 / np.pi
 
-def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.ndarray]:
+@numba.njit
+def points_in_bbox(radar_points: np.ndarray, radar_points_tr: np.ndarray, bbox: np.ndarray) -> Optional[List[np.ndarray]]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
     The required order of the bounding box coordinates is shown below.
 
     :param radar_points: the radar points in cartesian
-    :param bbox: the bounding box in cartesian
+    :param radar_points: the radar points in cartesian and in the camera coordinate system
+    :param bbox: the bounding box in cartesian and in the camera coordinate system (default)
 
     Returns: radar points inside the given bounding box
     """
@@ -303,22 +313,20 @@ def points_in_bbox(radar_points: np.ndarray, bbox: np.ndarray) -> Optional[np.nd
     # |/       |/
     # 2--------1
     
-    inside_points = []
+    inside_points: List[np.ndarray] = []
     
     for i in range(radar_points.shape[0]):
-        radar_point = radar_points[i, :3]
-        x, y, z = radar_point
+        x, y, z = radar_points_tr[i, :3]
 
         # the bounding box shape can be seen in transformed_3d_labels!
         # first index see order of corners above        
         # second index is x, y, z of the corner
         if x >= bbox[2, 0] and x <= bbox[1, 0] and y >= bbox[1, 1] and y <= bbox[0, 1] and z >= bbox[0, 2] and z <= bbox[4, 2]:
+            # VERY IMPORTANT: return radar_points in the original radar coordinate system
+            # otherwise azimuth and elevation calculation will be inherently flawed (due to the wrong origin!!!)
             inside_points.append(radar_points[i])
             
-    if not inside_points:
-        return None
-            
-    return np.vstack(inside_points)
+    return None if not inside_points else inside_points
     
 def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
     """
@@ -346,9 +354,9 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     if radar_data is None:
         return None
     
-    # Step 2: Transform points and labels into same coordinate system
-    radar_points = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
-    radar_data_transformed = np.hstack((radar_points, loader.radar_data[:, 3:]))
+    # Step Transform points into the same coordinate system as the labels
+    radar_points_tr = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
+    radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
     
     frame_numbers: List[np.ndarray] = []
     #object_ids: List[np.ndarray] = [] # TODO future work
@@ -370,9 +378,10 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     for label in labels_with_corners:
         # Step 3: For each bounding box get a list of radar points which are inside of it
         bbox = label['corners_3d_placed']
-        points_matching = points_in_bbox(radar_points=radar_data_transformed, bbox=bbox)
+        points_matching = points_in_bbox(radar_points=radar_data, radar_points_tr=radar_points_tr, bbox=bbox)
         
         if points_matching is not None:
+            points_matching = np.vstack(points_matching)
             clazz_id = get_class_id_from_name(label['label_class'], summarized=False)
             summarized_id = convert_to_summarized_class_id(clazz_id)
             
@@ -385,18 +394,19 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             bbox_vols.append(label['l'] * label['h'] * label['w'])            
              
             loc = np.array([[label['x'], label['y'], label['z']]])
+            
             # transform from camera coordinates to radar coordinates, stay cartesian
             loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
-            
-            # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
-            # see docs/figures/Prius_sensor_setup_5.png (radar)
-            loc_transformed[0, 1] = -loc_transformed[0, 1]
-            range_from_loc = locs_to_distance(loc_transformed)
-            
+            range_from_loc = locs_to_distance(loc_transformed)            
             ranges.append(range_from_loc)
-            azimuths.append(azimuth_angle_from_location(loc_transformed[:, :2]))
+            
+            # DO NOT USE radar_coordinates to calculate the azimuth and elevation
+            # The problem: camera located behind radar
+            # look at Prius_sensor_setup_5 camera coordinate system to understand indexes in the next lines
+            # x is already mirrored, no reason to mirror it
+            azimuths.append(azimuth_angle_from_location(loc[:, [2, 0]]))
             dopplers.append(np.mean(points_matching[:, 4]))
-            elevations.append(elevation_angle_from_location(loc_transformed[:, [0, 2]]))
+            elevations.append(elevation_angle_from_location(loc[:, [2, 1]]))
             
             x.append(loc_transformed[0, 0])
             y.append(loc_transformed[0, 1])

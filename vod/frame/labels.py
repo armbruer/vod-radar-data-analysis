@@ -15,6 +15,8 @@ class FrameLabels:
         self.raw_labels: List[str] = raw_labels
 
         self._labels_dict: Optional[List[dict]] = None
+        
+        self._complete_labels_dict: Optional[List[dict]] = None
 
     @property
     def labels_dict(self):
@@ -38,11 +40,11 @@ class FrameLabels:
         """
         if self._complete_labels_dict is not None:
             # When the data is already loaded.
-            return self._labels_dict
+            return self._complete_labels_dict
         else:
             # Load data if it is not loaded yet.
             self._complete_labels_dict = self.get_labels_dict(complete=True)
-            return self._labels_dict
+            return self._complete_labels_dict
 
     def get_labels_dict(self, complete=False) -> List[dict]:
         """

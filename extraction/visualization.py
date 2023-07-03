@@ -9,7 +9,7 @@ from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
-matplotlib.use('Agg') # disable interactive matplotlib backend
+#matplotlib.use('Agg') # disable interactive matplotlib backend
 import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -36,13 +36,13 @@ class DistributionPlotter:
         data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_XYZ_ONLY)
         self.plot_data(dfs=data_view.df, plot_types=[PlotType.HISTOGRAM], data_variant=data_view.variant)
 
-    def plot_data_simple(self, plot_types: List[PlotType]) -> None:
-        for dv in DataVariant.all_variants():
+    def plot_data_simple(self, plot_types: List[PlotType], data_variants: List[DataVariant] = DataVariant.all_variants()) -> None:
+        for dv in data_variants:
             data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
             self.plot_data(dfs=data_view.df, plot_types=plot_types, data_variant=dv)
             
-    def plot_data_test(self) -> None:
-        for dv in [DataVariant.SEMANTIC_DATA]:
+    def plot_data_test(self, data_variants: List[DataVariant] = [DataVariant.SEMANTIC_DATA]) -> None:
+        for dv in data_variants:
             data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
             self.plot_data_improved(data_view=data_view, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
 
@@ -107,6 +107,7 @@ class DistributionPlotter:
         
         if PlotType.HISTOGRAM in plot_types:
             plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
+            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="count", log_scale=(False, True))))
         if PlotType.HIST_KDE in plot_types:   
             plot_functions.append((PlotType.HIST_KDE, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="density", kde=True)))
         if PlotType.KDE in plot_types:
@@ -121,7 +122,7 @@ class DistributionPlotter:
             index_name = data_variant.index_to_str(k)
             
             df: pd.DataFrame = pd.melt(df_orig, value_vars=df_orig.columns, var_name='param')
-            for plot_type, pf in plot_functions:
+            for j, (plot_type, pf) in enumerate(plot_functions):
                 
                 g = sns.FacetGrid(df, col_wrap=4, height=2.5, aspect=1, col='param', legend_out=True, sharex=False, sharey=False)
                 
@@ -129,20 +130,21 @@ class DistributionPlotter:
                 g.set_titles("{col_name}")
                 #g.tight_layout()
 
-                for i, ax in enumerate(g.axes.flat):
-                    if plot_type in x_pts:
-                        g.set_xlabels("")
-                        ax.set_xlim(data_view.lims[i])
-                        if data_view.ticklabels[i] is not None:
-                            ax.set_xticklabels(data_view.ticklabels[i])
-                    else:
-                        g.set_ylabels("")
-                        ax.set_ylim(data_view.lims[i])
-                        if data_view.ticklabels[i] is not None:
-                            ax.set_ytickslabels(data_view.ticklabels[i])
+                # for i, ax in enumerate(g.axes.flat):
+                #     if plot_type in x_pts:
+                #         g.set_xlabels("")
+                #         ax.set_xlim(data_view.lims[i])
+                #         if data_view.ticklabels[i] is not None:
+                #             ax.set_xticklabels(data_view.ticklabels[i])
+                #     else:
+                #         g.set_ylabels("")
+                #         ax.set_ylim(data_view.lims[i])
+                #         if data_view.ticklabels[i] is not None:
+                #             ax.set_ytickslabels(data_view.ticklabels[i])
                 
                 plot_name = plot_type.name.lower()
-                fig_name = f'{data_variant.shortname()}-{figure_name}-{plot_name}'
+                fig_name = f'{data_variant.shortname()}-{figure_name}-{plot_name}-{j}'
+                
                 self._store_figure(g, data_variant, fig_name, index_name)
 
     def plot_kneeplot_for_syntactic_data(self) -> None:
