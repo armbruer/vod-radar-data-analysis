@@ -268,6 +268,6 @@ This method displays the plot with the specified arguments.
             if subdir:
                 path = f'{path}{subdir}/'
 
-            with open(f'{path}{html_name}.html', 'w') as f:
+            with open(f'{path}{html_name}-{self.frame_data.frame_number}.html', 'w') as f:
                 f.write(data)
 
