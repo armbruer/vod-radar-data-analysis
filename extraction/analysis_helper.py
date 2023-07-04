@@ -159,7 +159,7 @@ class DataAnalysisHelper:
                 self._draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
                 
                 vis3d = Visualization3D(loader, origin='camera') # TODO camera?
-                self._draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', selecetd_points=loc, selected_labels=labels)
+                self._draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
 
             imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
