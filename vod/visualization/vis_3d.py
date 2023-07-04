@@ -191,8 +191,8 @@ This method plots the annotations in the requested frame.
         for box in bboxes:
             object_class = box['label_class']
 
-            object_class_color = class_colors[object_class]
-            object_class_width = class_width[object_class]
+            object_class_color = class_colors.get(object_class, class_colors['default'])
+            object_class_width = class_width.get(object_class, class_width['default'])
 
             corners_object = box['corners_3d_transformed']
 
