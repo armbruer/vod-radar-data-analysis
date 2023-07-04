@@ -145,7 +145,7 @@ This method plots the radar pcl on the requested frame.
         :param color: Color of the pcl particles in the graph.
         :param selected_points: Plot only the selected radar points.
         """
-        points = self.frame_data.radar_data if selected_points is not None else selected_points
+        points = self.frame_data.radar_data if selected_points is None else selected_points
         radar_points_camera_frame = transform_pcl(points=points,
                                                   transform_matrix=self.transform_matrices['radar'])
 
@@ -161,7 +161,7 @@ This method plots the radar radial velocity vectors for each radar point in the 
         :param color: Color of the vector.
         :param selected_points: Plot only the selected radar points.
         """
-        points = self.frame_data.radar_data if selected_points is not None else selected_points
+        points = self.frame_data.radar_data if selected_points is None else selected_points
         compensated_radial_velocity = points[:, 5]
         radar_points_camera_frame = transform_pcl(points=points,
                                                   transform_matrix=self.transform_matrices['radar'])
@@ -182,7 +182,7 @@ This method plots the annotations in the requested frame.
         :param class_width: Dictionary that contains the line width for the annotations.
         :param selected_labels: Plot only the annotations corresponding to the selected labels.
         """
-        labels: FrameLabels = FrameLabels(self.frame_data.raw_labels) if selected_labels is not None else selected_labels
+        labels: FrameLabels = FrameLabels(self.frame_data.raw_labels) if selected_labels is None else selected_labels
 
         bboxes = get_transformed_3d_label_corners(labels,
                                                   self.transform_matrices['lidar'],
