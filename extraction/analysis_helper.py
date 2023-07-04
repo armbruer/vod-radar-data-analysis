@@ -1,4 +1,6 @@
+from itertools import repeat
 import logging
+import multiprocessing
 import os
 import numpy as np
 import pandas as pd
@@ -26,8 +28,10 @@ class DataAnalysisHelper:
         data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view)
         df = data_view.df
         if isinstance(df, list):
-            for d, v in zip(df, data_variant.subvariant_names()):
-                self._prepare_data_analysis( d, data_variant, v)
+            iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
+            cpus = int(multiprocessing.cpu_count() * 0.75)
+            pool = multiprocessing.Pool(processes=cpus)
+            pool.starmap(self._prepare_data_analysis, iter)
             return
         
         self._prepare_data_analysis(df, data_variant)

@@ -32,8 +32,9 @@ def generate_annotated_images(kitti_locations: KittiLocations,
 
     frames = get_frame_list_from_folder(kitti_locations.label_dir, '.txt')
     iter = zip(frames, repeat(dir), repeat(kitti_locations), repeat([lidar, radar]), repeat(subdir))
-    pool = multiprocessing.Pool(processes=12)
     
+    cpus = int(multiprocessing.cpu_count() * 0.75)
+    pool = multiprocessing.Pool(processes=cpus)
     pool.starmap(gen_annotation, iter)
         
         
