@@ -92,8 +92,6 @@ def get_placed_3d_label_corners(labels: FrameLabels) -> List[dict]:
 
 def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     corners_3d = get_3d_label_corners(labels)
-    
-    corners_3d_transformed: List[np.ndarray] = []
 
     for index, label in enumerate(labels.labels_dict):
         rotation = -(label['rotation'] + np.pi / 2)  # undo changes made to rotation
@@ -112,7 +110,7 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
                                                                               transformation)
         label['corners_3d_transformed'] = new_corners_3d_hom
     
-    return corners_3d_transformed
+    return labels.labels_dict
 
 def get_transformed_3d_label_corners_cartesian(labels: FrameLabels, transformation, t_camera_lidar) -> List[dict]:
     labels_with_corners = get_transformed_3d_label_corners(labels, transformation, t_camera_lidar)
