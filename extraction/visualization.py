@@ -9,7 +9,7 @@ from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
-#matplotlib.use('Agg') # disable interactive matplotlib backend
+matplotlib.use('Agg') # disable interactive matplotlib backend
 import logging
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -36,15 +36,23 @@ class DistributionPlotter:
         data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_XYZ_ONLY)
         self.plot_data(dfs=data_view.df, plot_types=[PlotType.HISTOGRAM], data_variant=data_view.variant)
 
-    def plot_data_simple(self, plot_types: List[PlotType], data_variants: List[DataVariant] = DataVariant.all_variants()) -> None:
+    def plot_data_simple(self, 
+                         plot_types: List[PlotType], 
+                         data_variants: List[DataVariant] = DataVariant.all_variants(),
+                         data_view_type: DataViewType = DataViewType.EASY_PLOTABLE) -> None:
+        
         for dv in data_variants:
-            data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
+            data_view: DataView = self.data_manager.get_view(dv, data_view_type)
             self.plot_data(dfs=data_view.df, plot_types=plot_types, data_variant=dv)
             
-    def plot_data_test(self, data_variants: List[DataVariant] = [DataVariant.SEMANTIC_DATA]) -> None:
+    def plot_data_simple_improved(self, 
+                                  plot_types: List[PlotType]=[PlotType.HISTOGRAM], 
+                                  data_variants: List[DataVariant] = [DataVariant.SEMANTIC_DATA],
+                                  data_view_type: DataViewType = DataViewType.EASY_PLOTABLE) -> None:
+        
         for dv in data_variants:
-            data_view: DataView = self.data_manager.get_view(dv, DataViewType.EASY_PLOTABLE)
-            self.plot_data_improved(data_view=data_view, plot_types=[PlotType.HISTOGRAM], data_variant=dv, figure_name='test')
+            data_view: DataView = self.data_manager.get_view(dv, data_view_type)
+            self.plot_data_improved(data_view=data_view, plot_types=plot_types, data_variant=dv, figure_name='improved')
 
     def plot_data(self,
                   dfs: Union[List[pd.DataFrame], pd.DataFrame],
