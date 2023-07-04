@@ -296,13 +296,13 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     return np.arctan2(y, x) * 180 / np.pi
 
 @numba.njit
-def points_in_bbox(radar_points: np.ndarray, radar_points_tr: np.ndarray, bbox: np.ndarray) -> Optional[List[np.ndarray]]:
+def points_in_bbox(radar_points_radar: np.ndarray, radar_points_camera: np.ndarray, bbox: np.ndarray) -> Optional[List[np.ndarray]]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
     The required order of the bounding box coordinates is shown below.
 
-    :param radar_points: the radar points in cartesian
+    :param radar_points: the radar points in cartesian and in the radar coordinate system
     :param radar_points: the radar points in cartesian and in the camera coordinate system
     :param bbox: the bounding box in cartesian and in the camera coordinate system (default)
 
@@ -322,8 +322,8 @@ def points_in_bbox(radar_points: np.ndarray, radar_points_tr: np.ndarray, bbox: 
     
     inside_points: List[np.ndarray] = []
     
-    for i in range(radar_points.shape[0]):
-        x, y, z = radar_points_tr[i, :3]
+    for i in range(radar_points_radar.shape[0]):
+        x, y, z = radar_points_camera[i, :3]
 
         # the bounding box shape can be seen in transformed_3d_labels!
         # first index see order of corners above        
@@ -331,7 +331,7 @@ def points_in_bbox(radar_points: np.ndarray, radar_points_tr: np.ndarray, bbox: 
         if x >= bbox[2, 0] and x <= bbox[1, 0] and y >= bbox[1, 1] and y <= bbox[0, 1] and z >= bbox[0, 2] and z <= bbox[4, 2]:
             # VERY IMPORTANT: return radar_points in the original radar coordinate system
             # otherwise azimuth and elevation calculation will be inherently flawed (due to the wrong origin!!!)
-            inside_points.append(radar_points[i])
+            inside_points.append(radar_points_radar[i])
             
     return None if not inside_points else inside_points
     
@@ -385,7 +385,7 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
     for label in labels_with_corners:
         # Step 3: For each bounding box get a list of radar points which are inside of it
         bbox = label['corners_3d_placed']
-        points_matching = points_in_bbox(radar_points=radar_data, radar_points_tr=radar_points_tr, bbox=bbox)
+        points_matching = points_in_bbox(radar_points_radar=radar_data, radar_points_camera=radar_points_tr, bbox=bbox)
         
         if points_matching is not None:
             points_matching = np.vstack(points_matching)

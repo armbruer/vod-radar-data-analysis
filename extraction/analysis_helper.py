@@ -77,7 +77,7 @@ class DataAnalysisHelper:
 
         logging.info(f'Analysis data written to file:///{filename}')
         
-    def find_labels_for_locs(self, loader: FrameDataLoader, transforms: FrameTransformMatrix, locs: np.ndarray) -> Optional[FrameLabels]:
+    def find_labels_for_locs(self, loader: FrameDataLoader, transforms: FrameTransformMatrix, locs_radar: np.ndarray) -> Optional[FrameLabels]:
         # there is probably a more efficient way to do this whole method, but time
         labels = loader.get_labels()
         if labels is None:
@@ -88,10 +88,10 @@ class DataAnalysisHelper:
         if radar_data is None:
             return None
         
-        locs = homogenous_transformation_cartesian_coordinates(locs, transform=transforms.t_camera_radar)
+        locs_camera = homogenous_transformation_cartesian_coordinates(locs_radar, transform=transforms.t_camera_radar)
         
         matching_labels = [label for label in labels 
-                           if points_in_bbox(radar_points=locs, bbox=label['corners_3d_placed']) is not None]
+                           if points_in_bbox(radar_points_radar=locs_radar, radar_points_camera=locs_camera, bbox=label['corners_3d_placed']) is not None]
         res = FrameLabels([]) # a bit hacky, but do not set the raw labels
         res._labels_dict = matching_labels
         return res
@@ -143,6 +143,6 @@ class DataAnalysisHelper:
 def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in DataVariant.all_variants():
+    for dv in DataVariant.semantic_variants():
         analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
         #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)
