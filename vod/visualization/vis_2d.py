@@ -33,6 +33,7 @@ Constructor of the class, which loads the required frame properties, and creates
         """
         This method plots the ground truth labels on the frame.
         :param max_distance_threshold: The maximum distance where labels are rendered.
+        :param selected_labels: Plot only the annotations corresponding to the selected labels.
         """
         frame_labels_class = FrameLabels(self.frame_data_loader.raw_labels) if selected_labels is None else selected_labels
         
@@ -47,7 +48,7 @@ Constructor of the class, which loads the required frame properties, and creates
         if selected_labels is None:
             colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
         else:
-            colors = [label_color_palette_2d['DontCare'] for _ in filtered]
+            colors = [label_color_palette_2d['Default'] for _ in filtered]
         
         labels = [d['corners'] for d in filtered]
 
@@ -81,6 +82,7 @@ Constructor of the class, which loads the required frame properties, and creates
         This method plots the radar pcl on the frame. It colors the points based on distance.
         :param max_distance_threshold: The maximum distance where points are rendered.
         :param min_distance_threshold: The minimum distance where points are rendered.
+        :param selected_points: Plot only the selected radar points.
         """
         
         radar_data = self.frame_data_loader.radar_data if selected_points is None else selected_points
@@ -95,8 +97,11 @@ Constructor of the class, which loads the required frame properties, and creates
                                      min_value=min_distance_threshold)
         uvs = uvs[min_max_idx]
         points_depth = points_depth[min_max_idx]
-
-        plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
+        
+        if selected_points is None:
+            plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
+        else:
+            plt.scatter(uvs[:, 0], uvs[:, 1], alpha=0.8, s=(70 / points_depth) ** 2, color='green')
 
     def plot_lidar_pcl(self,max_distance_threshold, min_distance_threshold):
         """
@@ -141,6 +146,8 @@ This method plots the lidar pcl on the frame. It colors the points based on dist
         :param max_distance_threshold: Maximum distance of objects to be plotted.
         :param min_distance_threshold:  Minimum distance of objects to be plotted.
         :param score_threshold: Minimum score for objects to be plotted.
+        :param selected_points: Plot only the selected radar points.
+        :param selected_labels: Plot only the annotations corresponding to the selected labels.
         """
         fig = plt.figure(figsize=(12, 8))
         fig.set_dpi(150)

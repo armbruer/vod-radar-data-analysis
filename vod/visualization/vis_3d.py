@@ -1,3 +1,4 @@
+from typing import Optional
 import k3d
 import numpy as np
 from .helpers import k3d_get_axes, get_transformed_3d_label_corners, k3d_plot_box, \
@@ -136,27 +137,33 @@ This method plots the lidar pcl on the requested frame.
 
     def plot_radar_points(self,
                           pcl_size: float = radar_pcl_size,
-                          color: int = radar_plot_color_3d
-                          ):
+                          color: int = radar_plot_color_3d,
+                          selected_points: Optional[np.ndarray] = None):
         """
 This method plots the radar pcl on the requested frame.
         :param pcl_size: Size of the pcl particles in the graph.
         :param color: Color of the pcl particles in the graph.
+        :param selected_points: Plot only the selected radar points.
         """
-        radar_points_camera_frame = transform_pcl(points=self.frame_data.radar_data,
+        points = self.frame_data.radar_data if selected_points is not None else selected_points
+        radar_points_camera_frame = transform_pcl(points=points,
                                                   transform_matrix=self.transform_matrices['radar'])
 
         self.plot += k3d.points(positions=np.asarray(radar_points_camera_frame[:, :3], dtype=float),
                                 point_size=pcl_size,
                                 color=color)
 
-    def plot_radar_radial_velocity(self, color: int = radar_velocity_color_3d):
+    def plot_radar_radial_velocity(self, 
+                                   color: int = radar_velocity_color_3d,
+                                   selected_points: Optional[np.ndarray] = None):
         """
 This method plots the radar radial velocity vectors for each radar point in the requested frame.
         :param color: Color of the vector.
+        :param selected_points: Plot only the selected radar points.
         """
-        compensated_radial_velocity = self.frame_data.radar_data[:, 5]
-        radar_points_camera_frame = transform_pcl(points=self.frame_data.radar_data,
+        points = self.frame_data.radar_data if selected_points is not None else selected_points
+        compensated_radial_velocity = points[:, 5]
+        radar_points_camera_frame = transform_pcl(points=points,
                                                   transform_matrix=self.transform_matrices['radar'])
 
         pc_radar = radar_points_camera_frame[:, 0:3]
@@ -165,13 +172,17 @@ This method plots the radar radial velocity vectors for each radar point in the 
 
         self.plot += k3d.vectors(origins=pc_radar, vectors=velocity_vectors, color=color)
 
-    def plot_annotations(self, class_colors=label_color_palette_3d, class_width=label_line_width_3d):
+    def plot_annotations(self, 
+                         class_colors=label_color_palette_3d, 
+                         class_width=label_line_width_3d,
+                         selected_labels: Optional[FrameLabels] = None):
         """
 This method plots the annotations in the requested frame.
         :param class_colors: Dictionary that contains the colors for the annotations.
         :param class_width: Dictionary that contains the line width for the annotations.
+        :param selected_labels: Plot only the annotations corresponding to the selected labels.
         """
-        labels: FrameLabels = FrameLabels(self.frame_data.raw_labels)
+        labels: FrameLabels = FrameLabels(self.frame_data.raw_labels) if selected_labels is not None else selected_labels
 
         bboxes = get_transformed_3d_label_corners(labels,
                                                   self.transform_matrices['lidar'],
@@ -199,6 +210,9 @@ This method plots the annotations in the requested frame.
                   html_name: str = "example",
                   grid_visible: bool = False,
                   auto_frame: bool = False,
+                  subdir: str ='',
+                  selected_points: Optional[np.ndarray] = None,
+                  selected_labels: Optional[FrameLabels] = None
                   ):
         """
 This method displays the plot with the specified arguments.
@@ -213,6 +227,8 @@ This method displays the plot with the specified arguments.
         :param annotations_plot: Plots the annotations.
         :param write_to_html: Allows the plot to be written to html.
         :param html_name: Name of the html file if written to disk.
+        :param selected_points: Plot only the selected radar points.
+        :param selected_labels: Plot only the annotations corresponding to the selected labels.
         """
 
         self.plot = k3d.plot(camera_auto_fit=auto_frame, axes_helper=0.0, grid_visible=grid_visible)
@@ -230,13 +246,13 @@ This method displays the plot with the specified arguments.
             self.plot_lidar_points()
 
         if radar_points_plot:
-            self.plot_radar_points()
+            self.plot_radar_points(selected_points=selected_points)
 
         if radar_velocity_plot:
-            self.plot_radar_radial_velocity()
+            self.plot_radar_radial_velocity(selected_points=selected_points)
 
         if annotations_plot:
-            self.plot_annotations()
+            self.plot_annotations(selected_labels=selected_labels)
 
         if not auto_frame:
             self.plot.camera = get_default_camera(self.transform_matrices['lidar'])
@@ -247,7 +263,11 @@ This method displays the plot with the specified arguments.
             self.plot.snapshot_type = 'inline'
 
             data = self.plot.get_snapshot()
+            
+            path = f'{self.frame_data.kitti_locations.output_dir}/'
+            if subdir:
+                path = f'{path}{subdir}/'
 
-            with open(f'{html_name}.html', 'w') as f:
+            with open(f'{path}{html_name}.html', 'w') as f:
                 f.write(data)
 

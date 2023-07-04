@@ -14,6 +14,7 @@ from vod.frame.labels import FrameLabels
 from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
 from vod.visualization.helpers import get_placed_3d_label_corners
 from vod.visualization.vis_2d import Visualization2D
+from vod.visualization.vis_3d import Visualization3D
 
 class DataAnalysisHelper:
     
@@ -77,7 +78,7 @@ class DataAnalysisHelper:
 
         logging.info(f'Analysis data written to file:///{filename}')
         
-    def find_labels_for_locs(self, loader: FrameDataLoader, transforms: FrameTransformMatrix, locs_radar: np.ndarray) -> Optional[FrameLabels]:
+    def _find_labels_for_locs(self, loader: FrameDataLoader, transforms: FrameTransformMatrix, locs_radar: np.ndarray) -> Optional[FrameLabels]:
         # there is probably a more efficient way to do this whole method, but time
         labels = loader.get_labels()
         if labels is None:
@@ -97,7 +98,7 @@ class DataAnalysisHelper:
         return res
     
     
-    def _draw_helper(self,
+    def _draw_helper2D(self,
                      vis2d: Visualization2D, 
                      data_variant: DataVariant, 
                      filename: str, 
@@ -114,7 +115,28 @@ class DataAnalysisHelper:
                         subdir=f'analysis/{dv_str}', 
                         filename=f'{dv_str}-{filename}',
                         selected_points=selected_points,
+                        selected_labels=selected_labels,
+                        max_distance_threshold=105,
+                        min_distance_threshold=-10)
+        
+    def _draw_helper3D(self,
+                     vis3d: Visualization3D, 
+                     data_variant: DataVariant, 
+                     filename: str, 
+                     selected_points: Optional[np.ndarray]=None,
+                     selected_labels: Optional[FrameLabels]=None):
+        dv_str = data_variant.shortname()
+        
+        vis3d.draw_plot(radar_origin_plot=True,
+                        camera_origin_plot=True,
+                        radar_points_plot=True,
+                        annotations_plot=True,
+                        write_to_html=True,
+                        html_name=f'{dv_str}-{filename}',
+                        subdir=f'analysis/{dv_str}',
+                        selected_points=selected_points,
                         selected_labels=selected_labels)
+        
                 
     
     def _visualize_frames(self, 
@@ -129,13 +151,15 @@ class DataAnalysisHelper:
             dv_str = data_variant.shortname()
             
             if data_variant in DataVariant.semantic_variants():
-                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names())
+                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(summarized=False))
                 
-                labels = self.find_labels_for_locs(loader, transforms, loc)
+                labels = self._find_labels_for_locs(loader, transforms, loc)
                 
-                self._draw_helper(vis2d=vis2d, data_variant=data_variant, filename='radar')
-                self._draw_helper(vis2d=vis2d, data_variant=data_variant, filename='lidar', lidar=True)
-                self._draw_helper(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
+                self._draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='radar')
+                self._draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
+                
+                vis3d = Visualization3D(loader, origin='camera') # TODO camera?
+                self._draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', selecetd_points=loc, selected_labels=labels)
 
             imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
@@ -143,6 +167,6 @@ class DataAnalysisHelper:
 def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in DataVariant.semantic_variants():
+    for dv in [DataVariant.SEMANTIC_DATA]:
         analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
         #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)

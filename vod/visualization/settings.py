@@ -2,7 +2,8 @@ label_color_palette_2d = {'Cyclist': (1.0, 0.0, 0.0),
                        'Pedestrian': (0.0, 1.0, 0.0),
                        'Car': (0.0, 0.0, 1.0),
                        'truck': (1.0, 1.0, 0.0),
-                       'DontCare': (0.0, 1.0, 1.0)}
+                       'DontCare': (0.0, 1.0, 1.0),
+                       'Default':(1.0, 0.0, 0.0)}
 
 axis_length_3d = 1
 axis_label_size = 0.5
@@ -18,7 +19,8 @@ label_color_palette_3d = {
             "moped_scooter": 0xAAAAAA,
             "rider": 0xFF0000,
             "bicycle_rack": 0xAAAAAA,
-            "ride_other": 0xAAAAAA
+            "ride_other": 0xAAAAAA,
+            'default': 0xFF0000
 
 }
 
@@ -33,7 +35,8 @@ label_line_width_3d = {
             "moped_scooter": 0.05,
             "rider": 0.02,
             "bicycle_rack": 0.01,
-            "ride_other": 0.01
+            "ride_other": 0.01,
+            "default": 0.01
         }
 
 radar_plot_color_3d = 0xFF0000
