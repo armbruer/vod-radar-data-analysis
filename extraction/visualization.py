@@ -1,9 +1,8 @@
 
-from typing import List
+from typing import List, Optional
 from matplotlib.image import imsave
 
 import numpy as np
-from pyparsing import Optional
 from extraction.helpers import DataVariant, get_class_names, points_in_bbox
 from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
