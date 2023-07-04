@@ -136,25 +136,32 @@ class DataVariant(Enum):
     
     def ticklabels(self) -> List[List[int]]:
         # must be in the order of the column_names(), see above
-        r = [0, 10, 20, 30, 40, 50]
-        a = [-90, -45, 0, 45, 90]
-        d = [-20, -10, 0, 10, 20]
-        e = [-90, -45, 0, 45, 90]
         
         to_str = lambda ticklabels: map(lambda l: map(str, l) if l is not None else None, ticklabels)
         
         if self in DataVariant.syntactic_variants():
+            r = [0, 20, 40, 60, 80, 100]
+            a = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
+            d = [-20, -10, 0, 10, 20]
+            e = [-10, 0, 10, 30, 50]
+            
             return to_str( [None, r, a, d, e, None, None, None, None])
+        
         if self in DataVariant.semantic_variants():
+            r = [0, 20, 40]
+            a = [-90, -45, 0, 45, 90]
+            d = [-20, -10, 0, 10, 20]
+            e = [-10, 0, 10, 30, 50]
+            
             return to_str([None, r, a, d, e, None, None, None, None, None, None, None, None])
         
     
     def lims(self) -> List[Tuple[int, int]]:
         # must be in the order of column_names(), see above
         if self in DataVariant.syntactic_variants():
-            return [None, (0, 55), (-90, 90), (-25, 25), (-90, 90), None, None, None, None]
+            return [None, (0, 105), (-180, 180), (-30, 30), (-10, 90), None, None, None, None]
         elif self in DataVariant.semantic_variants():
-            return [None, (0, 55), (-90, 90), (-25, 25), (-90, 90), None, None, None, None, None, None, None, None]
+            return [None, (0, 55), (-90, 90), (-30, 30), (-10, 50), None, None, None, None, None, None, None, None]
 
         return []
 
