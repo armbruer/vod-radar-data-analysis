@@ -105,4 +105,6 @@ def _draw_helper3D(
                     html_name=f'{dv_str}-{filename}',
                     subdir=f'analysis/{dv_str}',
                     selected_points=selected_points,
-                    selected_labels=selected_labels)
+                    selected_labels=selected_labels,
+                    auto_frame=True,
+                    grid_visible=True)
