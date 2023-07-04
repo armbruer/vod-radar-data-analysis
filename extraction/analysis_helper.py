@@ -5,18 +5,10 @@ import os
 import numpy as np
 import pandas as pd
 
-from typing import List, Optional
-from matplotlib.image import imsave
+from typing import List
 from extraction.file_manager import DataManager, DataView
-from extraction.helpers import DataVariant, DataViewType, get_class_names, points_in_bbox
-
-from vod.configuration.file_locations import KittiLocations
-from vod.frame.data_loader import FrameDataLoader
-from vod.frame.labels import FrameLabels
-from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
-from vod.visualization.helpers import get_placed_3d_label_corners
-from vod.visualization.vis_2d import Visualization2D
-from vod.visualization.vis_3d import Visualization3D
+from extraction.helpers import DataVariant, DataViewType
+from extraction.visualization import visualize_frames
 
 class DataAnalysisHelper:
     
@@ -35,6 +27,8 @@ class DataAnalysisHelper:
             return
         
         self._prepare_data_analysis(df, data_variant)
+        
+    
         
     def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[int]:
         return list(data[indexes, 0]) # 0 is framenumber
@@ -68,7 +62,7 @@ class DataAnalysisHelper:
         
         iter = zip(min_fns, max_fns, min_locs, max_locs)
         for min_fn, max_fn, min_loc, max_loc in iter:
-            self._visualize_frames(data_variant=data_variant, kitti_locations=self.kitti_locations, frame_numbers=[min_fn, max_fn], locs=[min_loc, max_loc])
+            visualize_frames(data_variant=data_variant, kitti_locations=self.kitti_locations, frame_numbers=[min_fn, max_fn], locs=[min_loc, max_loc])
             
         stats = np.vstack((mins, min_fns, maxs, max_fns))
         columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:-3]))
@@ -81,96 +75,11 @@ class DataAnalysisHelper:
         df.to_csv(filename, index=False)
 
         logging.info(f'Analysis data written to file:///{filename}')
-        
-    def _find_labels_for_locs(self, loader: FrameDataLoader, transforms: FrameTransformMatrix, locs_radar: np.ndarray) -> Optional[FrameLabels]:
-        # there is probably a more efficient way to do this whole method, but time
-        labels = loader.get_labels()
-        if labels is None:
-            return None
-        
-        labels = get_placed_3d_label_corners(FrameLabels(labels))
-        radar_data = loader.radar_data
-        if radar_data is None:
-            return None
-        
-        locs_camera = homogenous_transformation_cartesian_coordinates(locs_radar, transform=transforms.t_camera_radar)
-        
-        matching_labels = [label for label in labels 
-                           if points_in_bbox(radar_points_radar=locs_radar, radar_points_camera=locs_camera, bbox=label['corners_3d_placed']) is not None]
-        res = FrameLabels([]) # a bit hacky, but do not set the raw labels
-        res._labels_dict = matching_labels
-        return res
-    
-    
-    def _draw_helper2D(self,
-                     vis2d: Visualization2D, 
-                     data_variant: DataVariant, 
-                     filename: str, 
-                     lidar=False,
-                     selected_points: Optional[np.ndarray]=None,
-                     selected_labels: Optional[FrameLabels]=None):
-        dv_str = data_variant.shortname()
-        
-        vis2d.draw_plot(plot_figure=False, 
-                        save_figure=True, 
-                        show_gt=True,
-                        show_lidar=lidar, 
-                        show_radar=True, 
-                        subdir=f'analysis/{dv_str}', 
-                        filename=f'{dv_str}-{filename}',
-                        selected_points=selected_points,
-                        selected_labels=selected_labels,
-                        max_distance_threshold=105,
-                        min_distance_threshold=-10)
-        
-    def _draw_helper3D(self,
-                     vis3d: Visualization3D, 
-                     data_variant: DataVariant, 
-                     filename: str, 
-                     selected_points: Optional[np.ndarray]=None,
-                     selected_labels: Optional[FrameLabels]=None):
-        dv_str = data_variant.shortname()
-        
-        vis3d.draw_plot(radar_origin_plot=True,
-                        camera_origin_plot=True,
-                        radar_points_plot=True,
-                        annotations_plot=True,
-                        write_to_html=True,
-                        html_name=f'{dv_str}-{filename}',
-                        subdir=f'analysis/{dv_str}',
-                        selected_points=selected_points,
-                        selected_labels=selected_labels)
-        
-                
-    
-    def _visualize_frames(self, 
-                          data_variant: DataVariant, 
-                          kitti_locations: KittiLocations, 
-                          frame_numbers: List[str], 
-                          locs: List[np.ndarray]):
-        
-        for frame_number, loc in zip(frame_numbers, locs):
-            loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
-            transforms = FrameTransformMatrix(frame_data_loader_object=loader)
-            dv_str = data_variant.shortname()
-            
-            if data_variant in DataVariant.semantic_variants():
-                vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(summarized=False))
-                
-                labels = self._find_labels_for_locs(loader, transforms, loc)
-                
-                self._draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='radar')
-                self._draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
-                
-                vis3d = Visualization3D(loader, origin='camera') # TODO camera?
-                self._draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', selected_points=loc, selected_labels=labels)
-
-            imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
 
 def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in DataVariant.all_variants():
+    for dv in [DataVariant.SEMANTIC_DATA]:
         analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
         #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)

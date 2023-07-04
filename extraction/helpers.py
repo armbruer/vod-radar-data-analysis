@@ -503,33 +503,3 @@ def get_class_id_from_name(name: str, summarized: bool = True) -> int:
     
     name_to_class_id = {n: i for i, n in enumerate(get_class_names(summarized))}
     return name_to_class_id[name]
-
-
-def vis_to_debug(loader: FrameDataLoader) -> None:
-    """
-    Helper function to visually debug a frame. 
-    Provides visualization of the current frame.
-    Best used from a jupyter notebook.
-    
-    :param loader: the loader of the frame to be debugged
-    """
-    
-    from vod.visualization import Visualization3D
-    vis3d = Visualization3D(loader)
-
-    vis3d.draw_plot(radar_origin_plot = True,
-                  lidar_origin_plot = True,
-                  camera_origin_plot = True,
-                  lidar_points_plot = True,
-                  radar_points_plot = True,
-                  annotations_plot = True)
-    
-    from vod.visualization import Visualization2D
-    vis2d = Visualization2D(loader)
-    
-    vis2d.draw_plot(show_lidar=True,
-                             show_radar=True,
-                             show_gt=True,
-                             min_distance_threshold=5,
-                             max_distance_threshold=40,
-                             save_figure=True)
