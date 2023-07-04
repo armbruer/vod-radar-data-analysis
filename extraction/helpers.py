@@ -396,8 +396,8 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             loc = np.array([[label['x'], label['y'], label['z']]])
             
             # transform from camera coordinates to radar coordinates, stay cartesian
-            loc_transformed = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
-            range_from_loc = locs_to_distance(loc_transformed)            
+            loc_radar = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
+            range_from_loc = locs_to_distance(loc_radar)            
             ranges.append(range_from_loc)
             
             # DO NOT USE radar_coordinates to calculate the azimuth and elevation
@@ -408,9 +408,10 @@ def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTran
             dopplers.append(np.mean(points_matching[:, 4]))
             elevations.append(elevation_angle_from_location(loc[:, [2, 1]]))
             
-            x.append(loc_transformed[0, 0])
-            y.append(loc_transformed[0, 1])
-            z.append(loc_transformed[0, 2])
+            # we need to use radar coordinates here to stay in one coordinate system between different data variants
+            x.append(loc_radar[0, 0])
+            y.append(loc_radar[0, 1])
+            z.append(loc_radar[0, 2])
     
     if not object_clazz:
         return None
