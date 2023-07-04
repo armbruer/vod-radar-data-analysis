@@ -167,6 +167,6 @@ class DataAnalysisHelper:
 def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in [DataVariant.SEMANTIC_DATA]:
+    for dv in DataVariant.all_variants():
         analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
         #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)
