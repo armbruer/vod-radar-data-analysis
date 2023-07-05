@@ -76,10 +76,15 @@ class ParameterRangeExtractor:
     def extract_object_data_from_semantic_data(self) -> pd.DataFrame:
         """
         For each object in the frame retrieve the following data: frame number, ranges, azimuths, 
-        object class, relative velocity (doppler) compensated, 
-        number of detections, bounding box volume, relative velocity (doppler), x, y, z.
+        object class, summarized class, relative velocity compensated, number of detections, 
+        bounding box volume, relative velocity (doppler), height, width, length, x, y, z.
 
-        Returns a dataframe shape (-1, 8) with the columns listed above
+        :param loader: the loader of the current frame
+        :param transforms: the transformation matrix of the current frame
+
+        Returns: a pandas dataframe with the following columns: frame number, ranges, azimuths, 
+        object class, summarized class, relative velocity compensated, number of detections, 
+        bounding box volume, relative velocity (doppler), height, width, length, x, y, z
         """
 
         # only those frame_numbers which have annotations
@@ -137,15 +142,15 @@ class ParameterRangeExtractor:
                                        transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
         """
         For each object in the frame retrieve the following data: frame number, ranges, azimuths, 
-        object class, summarized class, relative velocity compensated, 
-        number of detections, bounding box volume, relative velocity (doppler), x, y, z.
+        object class, summarized class, relative velocity compensated, number of detections, 
+        bounding box volume, relative velocity (doppler), height, width, length, x, y, z.
 
         :param loader: the loader of the current frame
         :param transforms: the transformation matrix of the current frame
 
-        Returns: a numpy array with the following columns: frame number, ranges, azimuths, 
-        object class, summarized class, relative velocity compensated, 
-        number of detections, bounding box volume, relative velocity (doppler), x, y, z
+        Returns: a list of arrays in the following order: frame number, ranges, azimuths, 
+        object class, summarized class, relative velocity compensated, number of detections, 
+        bounding box volume, relative velocity (doppler), height, width, length, x, y, z
         """
         
         labels = loader.get_labels()
@@ -161,11 +166,6 @@ class ParameterRangeExtractor:
         radar_data = loader.radar_data
         if radar_data is None:
             return None
-        
-        # Step Transform points into the same coordinate system as the labels
-        radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
-                                                                          transform=transforms.t_camera_radar)
-        radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
         
         frame_numbers: List[np.ndarray] = []
         #object_ids: List[np.ndarray] = [] # TODO future work
@@ -184,10 +184,21 @@ class ParameterRangeExtractor:
         y: List[np.ndarray] = []
         z: List[np.ndarray] = []
         
+        height: List[np.ndarray] = []
+        width: List[np.ndarray] = []
+        length: List[np.ndarray] = []
+        
+        # Step 2: Transform points into the same coordinate system as the labels
+        radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
+                                                                          transform=transforms.t_camera_radar)
+        radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
+        
         for label in labels_with_corners:
             # Step 3: For each bounding box get a list of radar points which are inside of it
             bbox = label['corners_3d_placed']
-            points_matching = ex.points_in_bbox(radar_points_radar=radar_data, radar_points_camera=radar_points_tr, bbox=bbox)
+            points_matching = ex.points_in_bbox(radar_points_radar=radar_data, 
+                                                radar_points_camera=radar_points_tr, 
+                                                bbox=bbox)
             
             if points_matching is not None:
                 points_matching = np.vstack(points_matching)
@@ -200,7 +211,7 @@ class ParameterRangeExtractor:
                 summarized_clazz.append(summarized_id)
                 dopplers_compensated.append(np.mean(points_matching[:, 5]))
                 detections.append(points_matching.shape[0])
-                bbox_vols.append(label['l'] * label['h'] * label['w'])            
+                bbox_vols.append(label['l'] * label['h'] * label['w'])         
                 
                 loc = np.array([[label['x'], label['y'], label['z']]])
                 
@@ -222,10 +233,16 @@ class ParameterRangeExtractor:
                 x.append(loc_radar[0, 0])
                 y.append(loc_radar[0, 1])
                 z.append(loc_radar[0, 2])
+                
+                height.append(label['h'])
+                width.append(label['w'])
+                length.append(label['l'])
+                
         
         if not object_clazz:
             return None
         
         columns = [frame_numbers, ranges, azimuths, dopplers, elevations, 
-                   object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, x, y, z]
+                   object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, 
+                   height, width, length, x, y, z]
         return list(map(np.hstack, columns))

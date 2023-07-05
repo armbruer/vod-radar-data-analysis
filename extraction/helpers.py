@@ -89,10 +89,12 @@ class DataVariant(Enum):
                     "Doppler Compensated [m/s]", "x", "y", "z"]
         elif self in DataVariant.semantic_variants():
             # the Data Class stems directly from the dataset with no modification
-            # the Class is summarized list of classes (that we are more interested in), see convert_to_summarized_class_id() below
+            # the Class is summarized list of classes (that we are more interested in), 
+            # see convert_to_summarized_class_id() below
             return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", 
                     "Elevation [degree]", "Data Class", "Class", "Detections [#]", 
-                    "Bbox volume [m^3]", "Doppler Compensated [m/s]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Doppler Compensated [m/s]", 
+                    "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
 
         return []
     
@@ -124,7 +126,7 @@ class DataVariant(Enum):
         if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
             return get_name_from_class_id(index, summarized=True)
         elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
-            return "static_rad" if index == 0 else "dynamic_rad"
+            return "static" if index == 0 else "dynamic"
 
         return ''
     
@@ -147,7 +149,8 @@ class DataVariant(Enum):
             d = [-20, -10, 0, 10, 20]
             e = [-10, 0, 10, 30, 50]
             
-            return to_str([None, r, a, d, e, None, None, None, None, None, None, None, None])
+            return to_str([None, r, a, d, e, None, None, None, None, 
+                           None, None, None, None, None, None, None])
         
     
     def lims(self) -> List[Tuple[int, int]]:
@@ -155,7 +158,8 @@ class DataVariant(Enum):
         if self in DataVariant.syntactic_variants():
             return [None, (0, 105), (-180, 180), (-30, 30), (-10, 90), None, None, None, None]
         elif self in DataVariant.semantic_variants():
-            return [None, (0, 55), (-90, 90), (-30, 30), (-10, 50), None, None, None, None, None, None, None, None]
+            return [None, (0, 55), (-90, 90), (-30, 30), (-10, 50), None, 
+                    None, None, None, None, None, None, None, None, None, None]
 
         return []
 
@@ -209,32 +213,34 @@ class DataViewType(Enum):
         """
         if self == self.RAD:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Elevation [degree]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Elevation [degree]", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
             
         if self == self.RADE:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
                 
         elif self == self.STATS:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
                 
         elif self == self.PLOT_LONG_LAT:
             return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
-                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
+                    "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]", "Range [m]", 
+                    "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
         
         elif self == self.EASY_PLOTABLE:
-            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Class", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
         
         elif self == self.BASIC_ANALYSIS:
             return ["Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]"]
+                    "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]"]
         
         elif self == self.EXTENDED_ANALYSIS:
             return ["Data Class", "Class"]
         
         elif self == self.PLOT_XYZ_ONLY:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]"]
+                    "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]",
+                    "Height [m]", "Width [m]", "Length [m]"]
         
         # NONE
         return []
@@ -290,7 +296,9 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     return np.arctan2(y, x) * 180 / np.pi
 
 @numba.njit
-def points_in_bbox(radar_points_radar: np.ndarray, radar_points_camera: np.ndarray, bbox: np.ndarray) -> Optional[List[np.ndarray]]:
+def points_in_bbox(radar_points_radar: np.ndarray, 
+                   radar_points_camera: np.ndarray, 
+                   bbox: np.ndarray) -> Optional[List[np.ndarray]]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
