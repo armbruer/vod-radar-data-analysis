@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction import DataVariant
+from extraction.helpers import DataVariant
 import extraction as ex
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
