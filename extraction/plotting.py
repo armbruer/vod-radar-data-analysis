@@ -327,6 +327,7 @@ class DistributionPlotter:
             
             df_extend = pd.DataFrame(all_xy, columns=df.columns)
             df = pd.concat([df, df_extend], ignore_index=True)
+            df['y'] = -df['y']
             
             # remove outliers (don't need'em for this plot)
             # remember columns are weirdly named for this because of the radar coordinate system
