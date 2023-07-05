@@ -30,13 +30,13 @@ def data_manager(kitti_locations):
 def cart2pol(x, y):
     r = np.sqrt(x**2 + y**2)
     angle = np.arctan2(y, x) * 180 / np.pi
-    return pd.Series(r), pd.Series(angle)
+    return r, angle
 
 def pol2cart(r, angle):
     angle = angle * np.pi / 180
     x = r * np.cos(angle)
     y = r * np.sin(angle)
-    return pd.Series(x), pd.Series(y)
+    return x, y
 
 def radar_to_camera_loc(kitti_locations, df, loc_radar):
     
@@ -54,9 +54,8 @@ def radar_to_camera_loc(kitti_locations, df, loc_radar):
     return np.vstack(loc_camera_list)
 
 
-def equals(s1: pd.Series, s2: pd.Series) -> bool:
-    return s1.round(1).eq(s2.round(1)).all()
-
+def equals(a1: np.ndarray, a2: np.ndarray) -> bool:
+    return np.allclose(a1, a2)
     
 
 class TestHelpers():
@@ -91,8 +90,7 @@ class TestHelpers():
         assert np.array_equal(inside_points_res, inside_points_expected)
     
     def test_azimuth_elevation_calculation(self, data_manager: DataManager, kitti_locations: KittiLocations):
-        # TODO: Fix the other data variants!!!!
-        for dv in [DataVariant.SYNTACTIC_DATA]:
+        for dv in DataVariant.all_variants():
             data_view: DataView = data_manager.get_view(dv, DataViewType.NONE)
             dfs = data_view.df
             if not isinstance(dfs, list):
@@ -101,15 +99,15 @@ class TestHelpers():
             for df in dfs:
                 df = df.head(n=5)
                 
-                range_exp = df['Range [m]']
-                az_exp = df['Azimuth [degree]']
-                ev_exp = df['Elevation [degree]']
+                range_exp = df['Range [m]'].to_numpy()
+                az_exp = df['Azimuth [degree]'].to_numpy()
+                ev_exp = df['Elevation [degree]'].to_numpy()
                 loc_radar = np.array([df['x'], df['y'], df['z']]).T
                 
                 camera_loc = radar_to_camera_loc(kitti_locations, df, loc_radar)
                 x_camera, y_camera, z_camera = list(camera_loc.T)
                 
-                assert range_exp.eq( locs_to_distance(loc_radar)).all()
+                assert equals(range_exp,  locs_to_distance(loc_radar))
                 r, az = cart2pol(z_camera, x_camera)
                 assert equals(az, az_exp)
                 
