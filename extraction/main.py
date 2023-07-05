@@ -48,18 +48,18 @@ def main():
     # ffmpeg -framerate 30 -pattern_type glob -i '*.png' -c:v libx264 -pix_fmt yuv420p out.mp4
     # to convert to video (see https://stackoverflow.com/questions/24961127/how-to-create-a-video-from-images-with-ffmpeg)
 
-    plotter.correlation_heatmap(data_variant=DataVariant.SEMANTIC_DATA)
+    # plotter.correlation_heatmap(data_variant=DataVariant.SEMANTIC_DATA)
 
-    plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
+    # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
     
-    generate_stats(dm)
+    # generate_stats(dm)
     
-    plotter.plot_syn_sem_combined()
-    plotter.plot_by_class_combined()
-    plotter.plot_by_class_combined(most_important_only=True)
-    plotter.plot_rade()
-    plotter.plot_rade(data_view_type=DataViewType.RAD)
-    plotter.plot_heatmap()
+    # plotter.plot_syn_sem_combined()
+    # plotter.plot_by_class_combined()
+    # plotter.plot_by_class_combined(most_important_only=True)
+    # plotter.plot_rade()
+    # plotter.plot_rade(data_view_type=DataViewType.RAD)
+    # plotter.plot_heatmap()
     
     prepare_data_analysis(dm)
 

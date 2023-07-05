@@ -20,10 +20,13 @@ class DataAnalysisHelper:
         data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
         df = data_view.df
         if isinstance(df, list):
-            iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
-            cpus = int(multiprocessing.cpu_count() * 0.75)
-            pool = multiprocessing.Pool(processes=cpus)
-            pool.starmap(self._prepare_data_analysis, iter)
+            # iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
+            # cpus = int(multiprocessing.cpu_count() * 0.75)
+            # pool = multiprocessing.Pool(processes=cpus)
+            # pool.starmap(self._prepare_data_analysis, iter)
+            
+            for d, s in zip(df, data_variant.subvariant_names()):
+                self._prepare_data_analysis(d, data_variant, s)
             return
         
         self._prepare_data_analysis(df, data_variant)
@@ -67,20 +70,26 @@ class DataAnalysisHelper:
         stats = np.vstack((mins, min_fns, maxs, max_fns))
         columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:-3]))
 
-        df = pd.DataFrame(stats, columns=columns)
-        df.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
+        df_res = pd.DataFrame(stats, columns=columns)
+        df_res.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
         
         filename = f'{dir}/{dv_str}.csv'
         
-        df.to_csv(filename, index=False)
+        df_res.to_csv(filename, index=False)
+        
         
         data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=DataViewType.NONE)
-        df = data_view.df 
+        df_full = data_view.df
+        if isinstance(df_full, list):
+            df_full = df_full[data_variant.subvariant_name_to_index(subvariant)]
+        
         filename = f'{dir}/full-data-{dv_str}.csv'
         all_fns = [*min_fns, *max_fns]
-        df = df[df['Frame Number'].isin(all_fns)]
+        df_full = df_full[df_full['Frame Number'].isin(all_fns)]
         
-        df.to_csv(filename, index=False)
+        df_full.to_csv(filename, index=False)
+        
+        
         logging.info(f'Analysis data written to file:///{filename}')
 
 

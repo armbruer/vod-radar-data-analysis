@@ -130,6 +130,14 @@ class DataVariant(Enum):
 
         return ''
     
+    def subvariant_name_to_index(self, subvariant_name) -> str:
+        if self == DataVariant.SEMANTIC_DATA_BY_CLASS:
+            return get_class_id_from_name(subvariant_name, summarized=True)
+        elif self == DataVariant.SYNTACTIC_DATA_BY_MOVING:
+            return 0 if subvariant_name == "static" else 1
+
+        return ''
+    
     def ticklabels(self) -> List[List[int]]:
         # must be in the order of the column_names(), see above
         
