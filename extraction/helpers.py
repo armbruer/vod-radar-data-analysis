@@ -191,21 +191,25 @@ class DataViewType(Enum):
     """
     EASY_PLOTABLE = 4,
     """
+    Keeps columns useful for a correlation heatmap.
+    """
+    CORR_HEATMAP = 5,
+    """
     Keeps only columns that are required or useful for a basic data analysis (RADE).
     """
-    BASIC_ANALYSIS = 5,
+    BASIC_ANALYSIS = 6,
     """
     Like BASIC_ANALYSIS, but including additional columns for semantic data.
     """
-    EXTENDED_ANALYSIS = 6,
+    EXTENDED_ANALYSIS = 7,
     """
     Keeps only x,y,z for plotting. This can be useful for debugging the other code.
     """
-    PLOT_XYZ_ONLY = 7,
+    PLOT_XYZ_ONLY = 8,
     """
     Keeps all columns, (no change to datavariant only)
     """
-    NONE = 8
+    NONE = 9
     
     def columns_to_drop(self) -> List[str]:
         """
@@ -241,7 +245,10 @@ class DataViewType(Enum):
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]",
                     "Height [m]", "Width [m]", "Length [m]"]
-        
+            
+        elif self == self.CORR_HEATMAP:
+            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
+
         # NONE
         return []
             

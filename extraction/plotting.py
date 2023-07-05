@@ -306,7 +306,8 @@ class DistributionPlotter:
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
     def plot_heatmap(self):
-        semantic_dfs = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.PLOT_LONG_LAT)
+        semantic_dfs = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS, 
+                                                  data_view_type=DataViewType.PLOT_LONG_LAT)
         
         for df, clazz in zip(semantic_dfs.df, get_class_names()):
             fig, ax = plt.subplots()
@@ -348,7 +349,8 @@ class DistributionPlotter:
             self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
         
     def correlation_heatmap(self, data_variant: DataVariant):
-        data_view: DataView = self.data_manager.get_view(data_variant, data_view_type=DataViewType.EASY_PLOTABLE)
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
+                                                         data_view_type=DataViewType.CORR_HEATMAP)
         dfs = data_view.df
         if not isinstance(dfs, list):
             dfs = [dfs]
@@ -361,7 +363,14 @@ class DistributionPlotter:
             self._store_figure(fig, figure_name=figure_name, subdir='corr-heatmaps')
         
         
-    def _store_figure(self, figure: Union[Figure, sns.FacetGrid], data_variant: DataVariant=None, figure_name: str='', index_name: str='', subdir: str='', timestring: bool=False):
+    def _store_figure(self, 
+                      figure: Union[Figure, sns.FacetGrid], 
+                      data_variant: DataVariant=None, 
+                      figure_name: str='', 
+                      index_name: str='', 
+                      subdir: str='', 
+                      timestring: bool=False):
+        
         figures_dir = f"{self.kitti_locations.figures_dir}"
         if data_variant is not None:
             path = f"{figures_dir}/{data_variant.shortname()}/"
