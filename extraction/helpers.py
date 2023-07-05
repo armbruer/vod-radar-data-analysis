@@ -3,12 +3,6 @@ from typing import List, Optional, Tuple
 import numpy as np
 import numba
 
-from vod.frame.data_loader import FrameDataLoader
-from vod.frame.labels import FrameLabels
-from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
-from vod.visualization.helpers import get_placed_3d_label_corners
-        
-
 """
 The DataVariant enum provides names for the fundamentally different approaches 
 to work with the data in this dataset. 
@@ -334,99 +328,6 @@ def points_in_bbox(radar_points_radar: np.ndarray, radar_points_camera: np.ndarr
             inside_points.append(radar_points_radar[i])
             
     return None if not inside_points else inside_points
-    
-def get_data_for_objects_in_frame(loader: FrameDataLoader, transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
-    """
-    For each object in the frame retrieve the following data: frame number, ranges, azimuths, object class, summarized class, relative velocity compensated, 
-    number of detections, bounding box volume, relative velocity (doppler), x, y, z.
-
-    :param loader: the loader of the current frame
-    :param transforms: the transformation matrix of the current frame
-
-    Returns: a numpy array with the following columns: frame number, ranges, azimuths, object class, summarized class, relative velocity compensated, 
-    number of detections, bounding box volume, relative velocity (doppler), x, y, z
-    """
-    
-    labels = loader.get_labels()
-    if labels is None:
-        return None
-    
-    labels = FrameLabels(labels)
-    
-    # Step 1: Obtain corners of bounding boxes and radar data points
-    labels_with_corners = get_placed_3d_label_corners(labels)
-    
-    # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-    radar_data = loader.radar_data
-    if radar_data is None:
-        return None
-    
-    # Step Transform points into the same coordinate system as the labels
-    radar_points_tr = homogenous_transformation_cartesian_coordinates(radar_data[:, :3], transform=transforms.t_camera_radar)
-    radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
-    
-    frame_numbers: List[np.ndarray] = []
-    #object_ids: List[np.ndarray] = [] # TODO future work
-    object_clazz: List[np.ndarray] = [] # this class stems from the dataset
-    summarized_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
-    dopplers_compensated: List[np.ndarray] = [] # avg doppler, but compensated for ego-vehicle movement, per object
-    dopplers: List[np.ndarray] = [] # one avg doppler value per bounding box
-    detections: List[np.ndarray] = [] # number of radar_points inside a bounding box
-    bbox_vols: List[np.ndarray] = [] # bounding box volume in m^3
-    ranges: List[np.ndarray] = [] # range in m
-    azimuths: List[np.ndarray] = [] # azimuth in degrees
-    elevations: List[np.ndarray] = [] # elevation in degrees
-    
-    # IMPORTANT: see docs/figures/Prius_sensor_setup_5.png (radar) for the directions of these variables
-    x: List[np.ndarray] = []
-    y: List[np.ndarray] = []
-    z: List[np.ndarray] = []
-    
-    for label in labels_with_corners:
-        # Step 3: For each bounding box get a list of radar points which are inside of it
-        bbox = label['corners_3d_placed']
-        points_matching = points_in_bbox(radar_points_radar=radar_data, radar_points_camera=radar_points_tr, bbox=bbox)
-        
-        if points_matching is not None:
-            points_matching = np.vstack(points_matching)
-            clazz_id = get_class_id_from_name(label['label_class'], summarized=False)
-            summarized_id = convert_to_summarized_class_id(clazz_id)
-            
-            # Step 4: Get the avg doppler value of the object and collect it
-            frame_numbers.append(loader.frame_number)
-            object_clazz.append(clazz_id)
-            summarized_clazz.append(summarized_id)
-            dopplers_compensated.append(np.mean(points_matching[:, 5]))
-            detections.append(points_matching.shape[0])
-            bbox_vols.append(label['l'] * label['h'] * label['w'])            
-             
-            loc = np.array([[label['x'], label['y'], label['z']]])
-            
-            # transform from camera coordinates to radar coordinates, stay cartesian
-            loc_radar = homogenous_transformation_cartesian_coordinates(loc, transforms.t_radar_camera)
-            range_from_loc = locs_to_distance(loc_radar)            
-            ranges.append(range_from_loc)
-            
-            # DO NOT USE radar_coordinates to calculate the azimuth and elevation
-            # The problem: camera located behind radar
-            # look at Prius_sensor_setup_5 camera coordinate system to understand indexes in the next lines
-            # x is already mirrored, no reason to mirror it
-            azimuths.append(azimuth_angle_from_location(loc[:, [2, 0]]))
-            dopplers.append(np.mean(points_matching[:, 4]))
-            elevations.append(elevation_angle_from_location(loc[:, [2, 1]]))
-            
-            # we need to use radar coordinates here to stay in one coordinate system between different data variants
-            x.append(loc_radar[0, 0])
-            y.append(loc_radar[0, 1])
-            z.append(loc_radar[0, 2])
-    
-    if not object_clazz:
-        return None
-    
-    columns = [frame_numbers, ranges, azimuths, dopplers, elevations, object_clazz, summarized_clazz, 
-               detections, bbox_vols, dopplers_compensated, x, y, z]
-    return list(map(np.hstack, columns))
-
 
 def get_class_names(summarized: bool = True) -> List[str]:
     """
