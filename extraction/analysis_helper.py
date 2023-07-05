@@ -17,16 +17,17 @@ class DataAnalysisHelper:
         self.kitti_locations = data_manager.kitti_locations
         
     def prepare_data_analysis(self, data_variant: DataVariant, data_view_type: DataViewType):
-        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
+                                                         data_view_type=data_view_type)
         df = data_view.df
         if isinstance(df, list):
-            # iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
-            # cpus = int(multiprocessing.cpu_count() * 0.75)
-            # pool = multiprocessing.Pool(processes=cpus)
-            # pool.starmap(self._prepare_data_analysis, iter)
+            iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
+            cpus = int(multiprocessing.cpu_count() * 0.75)
+            pool = multiprocessing.Pool(processes=cpus)
+            pool.starmap(self._prepare_data_analysis, iter)
             
-            for d, s in zip(df, data_variant.subvariant_names()):
-                self._prepare_data_analysis(d, data_variant, s)
+            # for d, s in zip(df, data_variant.subvariant_names()):
+            #     self._prepare_data_analysis(d, data_variant, s)
             return
         
         self._prepare_data_analysis(df, data_variant)
@@ -97,5 +98,4 @@ def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
     for dv in DataVariant.all_variants():
-        analysis.prepare_data_analysis(dv, DataViewType.BASIC_ANALYSIS)
-        #analysis.prepare_data_analysis(dv, DataViewType.ANALYSIS)
+        analysis.prepare_data_analysis(dv, DataViewType.EXTENDED_ANALYSIS)
