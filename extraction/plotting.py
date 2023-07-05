@@ -358,7 +358,7 @@ class DistributionPlotter:
         for df in dfs:
             corr = df.select_dtypes('number').corr()
             fig, ax = plt.subplots()
-            ax = sns.heatmap(corr, ax=ax, cbar=True, annot=True)
+            ax = sns.heatmap(corr, ax=ax, cbar=True, annot=True, annot_kws={"fontsize":8})
             figure_name= f'corr-heatmap-{data_view.variant.shortname()}-{data_view.view.name.lower()}'
             self._store_figure(fig, figure_name=figure_name, subdir='corr-heatmaps')
         
