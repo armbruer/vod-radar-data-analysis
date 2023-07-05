@@ -44,6 +44,7 @@ class ParameterRangeExtractor:
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
+            transforms = FrameTransformMatrix(frame_data_loader_object=loader)
 
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data = loader.radar_data
@@ -53,10 +54,14 @@ class ParameterRangeExtractor:
                 # this is required for azimuth and elevation calculation
                 radar_data[:,1] = -radar_data[:, 1]
                 
+                radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
+                                                                                transform=transforms.t_camera_radar)
+                radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
+                
                 frame_nums.append(np.full(radar_data.shape[0], frame_number))
                 ranges.append(ex.locs_to_distance(radar_data[:, :3]))
-                azimuths.append(ex.azimuth_angle_from_location(radar_data[:, :2]))
-                elevations.append(ex.elevation_angle_from_location(radar_data[:, [1, 3]]))
+                azimuths.append(ex.azimuth_angle_from_location(radar_points_tr[:, [2, 0]]))
+                elevations.append(ex.elevation_angle_from_location(radar_points_tr[:, [2, 1]]))
                 dopplers.append(radar_data[:, 4])
                 dopplers_compensated.append(radar_data[:, 5])
                 
@@ -221,8 +226,6 @@ class ParameterRangeExtractor:
                 range_from_loc = ex.locs_to_distance(loc_radar)            
                 ranges.append(range_from_loc)
                 
-                # DO NOT USE radar_coordinates to calculate the azimuth and elevation
-                # The problem: camera located behind radar
                 # look at Prius_sensor_setup_5 camera coordinate system to understand indexes in the next lines
                 # x is already mirrored, no reason to mirror it
                 azimuths.append(ex.azimuth_angle_from_location(loc[:, [2, 0]]))
