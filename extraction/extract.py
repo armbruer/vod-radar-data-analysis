@@ -217,7 +217,7 @@ class ParameterRangeExtractor:
                 
                 # transform from camera coordinates to radar coordinates, stay cartesian
                 loc_radar = homogenous_transformation_cartesian_coordinates(points=loc, 
-                                                                            transforms=transforms.t_radar_camera)
+                                                                            transform=transforms.t_radar_camera)
                 range_from_loc = ex.locs_to_distance(loc_radar)            
                 ranges.append(range_from_loc)
                 
