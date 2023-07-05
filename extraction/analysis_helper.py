@@ -16,8 +16,8 @@ class DataAnalysisHelper:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
         
-    def prepare_data_analysis(self, data_variant: DataVariant, data_view: DataViewType):
-        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view)
+    def prepare_data_analysis(self, data_variant: DataVariant, data_view_type: DataViewType):
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
         df = data_view.df
         if isinstance(df, list):
             iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
@@ -73,7 +73,14 @@ class DataAnalysisHelper:
         filename = f'{dir}/{dv_str}.csv'
         
         df.to_csv(filename, index=False)
-
+        
+        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=DataViewType.NONE)
+        df = data_view.df 
+        filename = f'{dir}/full-data-{dv_str}.csv'
+        all_fns = [*min_fns, *max_fns]
+        df = df[df['Frame Number'].isin(all_fns)]
+        
+        df.to_csv(filename, index=False)
         logging.info(f'Analysis data written to file:///{filename}')
 
 
