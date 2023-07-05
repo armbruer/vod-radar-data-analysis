@@ -49,11 +49,6 @@ class ParameterRangeExtractor:
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data = loader.radar_data
             if radar_data is not None:
-                # flip the y-axis, so left of 0 is negative and right is positive as one would expect it in plots
-                # see docs/figures/Prius_sensor_setup_5.png (radar)
-                # this is required for azimuth and elevation calculation
-                radar_data[:,1] = -radar_data[:, 1]
-                
                 radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
                                                                                 transform=transforms.t_camera_radar)
                 radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
@@ -64,9 +59,6 @@ class ParameterRangeExtractor:
                 elevations.append(ex.elevation_angle_from_location(radar_points_tr[:, [2, 1]]))
                 dopplers.append(radar_data[:, 4])
                 dopplers_compensated.append(radar_data[:, 5])
-                
-                # unflip the y coordinate
-                radar_data[:,1] = -radar_data[:, 1]
                 
                 x.append(radar_data[:, 0])
                 y.append(radar_data[:, 1])

@@ -83,14 +83,16 @@ class TestHelpers():
         
         radar_points = np.array([[1, 1, 1], [9, 8, 7], [-1, 1, 1], [1, 11, 0], [0, 0, 0], [10, 10, 10], [1, 1, -1]])
         
-        inside_points_res = points_in_bbox(radar_points_radar=radar_points, radar_points_camera=radar_points bbox=bbox)
+        inside_points_res = points_in_bbox(radar_points_radar=radar_points, 
+                                           radar_points_camera=radar_points,
+                                           bbox=bbox)
         inside_points_expected = np.array([[1, 1, 1], [9, 8, 7], [0, 0, 0], [10, 10, 10]])
         
         assert np.array_equal(inside_points_res, inside_points_expected)
     
     def test_azimuth_elevation_calculation(self, data_manager: DataManager, kitti_locations: KittiLocations):
         # TODO: Fix the other data variants!!!!
-        for dv in [DataVariant.SEMANTIC_DATA]:
+        for dv in [DataVariant.SYNTACTIC_DATA]:
             data_view: DataView = data_manager.get_view(dv, DataViewType.NONE)
             dfs = data_view.df
             if not isinstance(dfs, list):
