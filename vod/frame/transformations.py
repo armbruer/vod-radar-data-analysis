@@ -281,7 +281,7 @@ This method returns the world transformations matrices from the dataset.
         return t_odom_camera, t_map_camera, t_utm_camera
     
     
-def homogenous_transformation_cartesian_coordinates(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
+def homogenous_transformation_cart(points: np.ndarray, transform: np.ndarray) -> np.ndarray:
     """
     This function applies the homogenous transform using the dot product.
     This function expects the points in cartesian coordinates and returns the points in cartesian coordinates.

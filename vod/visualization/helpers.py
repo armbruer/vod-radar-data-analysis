@@ -78,22 +78,48 @@ This function returns a list of 3d corners of each label in a frame given a Fram
 
     return label_corners
 
-def get_placed_3d_label_corners(labels: FrameLabels) -> List[dict]:
-    # we need to place the corners in the camera coordinate system using the center point
-    corners_3d = get_3d_label_corners(labels)
+# def get_placed_3d_label_corners(labels: FrameLabels, _) -> List[dict]:
+#     # we need to place the corners in the camera coordinate system using the center point
+#     corners_3d = get_3d_label_corners(labels)
     
-    for index, label in enumerate(labels.labels_dict):
-        center = np.array([label['x'], label['y'], label['z']])
-        new_corners_3d = corners_3d[index]['corners_3d'].T + center
-        label['corners_3d_placed'] = new_corners_3d
+#     for index, label in enumerate(labels.labels_dict):
+#         center = np.array([label['x'], label['y'], label['z']])
+#         new_corners_3d = corners_3d[index]['corners_3d'].T + center
+#         label['corners_3d_placed'] = new_corners_3d
         
-    return labels.labels_dict
+#     return labels.labels_dict
+
+def get_placed_3d_label_corners(labels: FrameLabels, transforms: transformations.FrameTransformMatrix) -> List[dict]:
+    labels: List[dict] = get_transformed_3d_label_corners(labels, transforms.t_radar_lidar, transforms.t_camera_lidar)
+    
+    for label in labels:
+        new_corners_3d_hom = label['corners_3d_transformed']
+        
+        label['corners_3d_placed'] = transformations.cartesian_coordinates(new_corners_3d_hom)
+
+    return labels
+
+def get_transformed_3d_center_point(label: dict, center_point: np.ndarray, transformation, t_camera_lidar):
+    # this transforms only the center point of a single object
+    # as the center point itself was never drawn, it never needed to be rotated
+    
+    center_point = np.atleast_2d(center_point)[0]
+    rotation = -(label['rotation'] + np.pi / 2)  # undo changes made to rotation
+    rot_matrix = np.array([[np.cos(rotation), -np.sin(rotation), 0],
+                            [np.sin(rotation), np.cos(rotation), 0],
+                            [0, 0, 1]])
+
+    center = (np.linalg.inv(t_camera_lidar) @ np.array([*list(center_point), 1]))[:3]
+
+    center_rotated = np.dot(rot_matrix, center).T
+    center_rotated_hom = np.array([[*list(center_rotated), 1]])
+    center_transformed_hom = transformations.homogeneous_transformation(center_rotated_hom,
+                                                                            transformation)
+    return center_transformed_hom
 
 
 def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar):
     corners_3d = get_3d_label_corners(labels)
-
-    transformed_3d_label_corners = []
 
     for index, label in enumerate(labels.labels_dict):
         rotation = -(label['rotation'] + np.pi / 2)  # undo changes made to rotation
@@ -101,21 +127,29 @@ def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_came
                                [np.sin(rotation), np.cos(rotation), 0],
                                [0, 0, 1]])
 
+        # das ist eine basiswechselmatrix von lidar-> camera
+        # invertiert: camera -> lidar
+        # alles was der code hier macht ist eine 
+        # homogenous_transformation von camera nach lidar um im nächsten schritt die
+        # rotationsmatrix anwenden zu können und danach wieder cartesian
         center = (np.linalg.inv(t_camera_lidar) @ np.array([label['x'],
                                                              label['y'],
                                                              label['z'],
                                                              1]))[:3]
 
+        # 1. Anwenden der rotationsmatrix auf unsere corners, corners shape ist (3, 8)
+        # 2. Danach zu (8, 3) und center per broadcast anwenden
         new_corner_3d = np.dot(rot_matrix, corners_3d[index]['corners_3d']).T + center
+        # Transformieren der corners in homogene Koordinatensystem
         new_corners_3d_hom = np.concatenate((new_corner_3d, np.ones((8, 1))), axis=1)
+        # 3. Anwenden der homogenen Transformation
+        # Es muss eine Transformation von lidar -> x Format sein
         new_corners_3d_hom = transformations.homogeneous_transformation(new_corners_3d_hom,
                                                                               transformation)
 
-        transformed_3d_label_corners.append({'label_class': label['label_class'],
-                                             'corners_3d_transformed': new_corners_3d_hom,
-                                             'score': label['score']})
+        label['corners_3d_transformed'] = new_corners_3d_hom
 
-    return transformed_3d_label_corners
+    return labels.labels_dict
 
 
 def get_2d_label_corners(labels: FrameLabels, transformations_matrix: transformations.FrameTransformMatrix):

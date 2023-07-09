@@ -295,7 +295,7 @@ def azimuth_angle_from_location(locations: np.ndarray) -> np.ndarray:
     #    https://numpy.org/doc/stable/reference/generated/numpy.arctan2.html
     # 
     x, y = list(locations.T)
-    return np.arctan2(y, x) * 180 / np.pi
+    return np.arctan2(-y, x) * 180 / np.pi  # flip y for correct angles (see prius image)
 
 def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     """
@@ -311,8 +311,7 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     return np.arctan2(y, x) * 180 / np.pi
 
 @numba.njit
-def points_in_bbox(radar_points_radar: np.ndarray, 
-                   radar_points_camera: np.ndarray, 
+def points_in_bbox(radar_points: np.ndarray, 
                    bbox: np.ndarray) -> Optional[List[np.ndarray]]:
     """
     Returns the radar points inside the given bounding box.
@@ -320,35 +319,40 @@ def points_in_bbox(radar_points_radar: np.ndarray,
     The required order of the bounding box coordinates is shown below.
 
     :param radar_points: the radar points in cartesian and in the radar coordinate system
-    :param radar_points: the radar points in cartesian and in the camera coordinate system
-    :param bbox: the bounding box in cartesian and in the camera coordinate system (default)
+    :param bbox: the bounding box in cartesian and in the radar coordinate system
 
     Returns: radar points inside the given bounding box
     """
     
     # order of corners
-    #    7--------4
-    #   /|       /|
-    #  / |      / |
-    # 6--------5  |
+    #    5--------4 
+    #   /|       /| | height (z)
+    #  / |      / | |
+    # 6--------7  | |
     # |  |     |  |
-    # |  3-----|--0
-    # | /      | /
-    # |/       |/
-    # 2--------1
+    # |  1-----|--0 ^ length (x)
+    # | /      | / /
+    # |/       |/ /
+    # 2--------3 <--- width (y)
     
     inside_points: List[np.ndarray] = []
     
-    for i in range(radar_points_radar.shape[0]):
-        x, y, z = radar_points_camera[i, :3]
+    for i in range(radar_points.shape[0]):
+        x, y, z = radar_points[i, :3]
 
-        # the bounding box shape can be seen in transformed_3d_labels!
+        # the bounding box has shape (8, 3)
         # first index see order of corners above        
         # second index is x, y, z of the corner
-        if x >= bbox[2, 0] and x <= bbox[1, 0] and y >= bbox[1, 1] and y <= bbox[0, 1] and z >= bbox[0, 2] and z <= bbox[4, 2]:
-            # VERY IMPORTANT: return radar_points in the original radar coordinate system
-            # otherwise azimuth and elevation calculation will be inherently flawed (due to the wrong origin!!!)
-            inside_points.append(radar_points_radar[i])
+        if (x <= bbox[0, 0] and x >= bbox[3, 0] and 
+            y <= bbox[0, 1] and y >= bbox[1, 1] and  
+            z >= bbox[0, 2] and z <= bbox[4, 2] and
+            
+            # theoretically, these latter three checks are not needed
+            x >= bbox[6, 0] and x <= bbox[5, 0] and 
+            y >= bbox[6, 1] and y <= bbox[7, 1] and 
+            z <= bbox[6, 2] and z >= bbox[3, 2]):
+            
+            inside_points.append(radar_points[i])
             
     return None if not inside_points else inside_points
 
@@ -391,7 +395,7 @@ def get_class_names(summarized: bool = True) -> List[str]:
     
 def convert_to_summarized_class_id(class_id: int) -> int:
     # we summarize the last four classes to one
-    return 9 if class_id >=9 else class_id
+    return 9 if class_id >= 9 else class_id
     
 def get_class_ids(summarized: bool = True) -> List[int]:
     """

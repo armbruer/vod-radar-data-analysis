@@ -1,7 +1,9 @@
 from typing import Optional
 import k3d
 import numpy as np
-from .helpers import k3d_get_axes, get_transformed_3d_label_corners, k3d_plot_box, \
+
+from vod.frame.transformations import homogenous_transformation_cart
+from .helpers import get_transformed_3d_center_point, k3d_get_axes, get_transformed_3d_label_corners, k3d_plot_box, \
     get_radar_velocity_vectors, get_default_camera
 from vod.frame import FrameDataLoader, FrameTransformMatrix, FrameLabels, transform_pcl
 from .settings import *
@@ -212,7 +214,8 @@ This method plots the annotations in the requested frame.
                   auto_frame: bool = False,
                   subdir: str ='',
                   selected_points: Optional[np.ndarray] = None,
-                  selected_labels: Optional[FrameLabels] = None
+                  selected_labels: Optional[FrameLabels] = None,
+                  draw_object_center: bool = False,
                   ):
         """
 This method displays the plot with the specified arguments.
@@ -227,8 +230,10 @@ This method displays the plot with the specified arguments.
         :param annotations_plot: Plots the annotations.
         :param write_to_html: Allows the plot to be written to html.
         :param html_name: Name of the html file if written to disk.
-        :param selected_points: Plot only the selected radar points.
+        :param selected_points: Plot only the selected radar points (must be given in camera coordinates).
         :param selected_labels: Plot only the annotations corresponding to the selected labels.
+        :param selected_points: Plot only the selected radar points (must be given in camera coordinates).
+        :param draw_object_center: Whether to draw the center of the object
         """
 
         self.plot = k3d.plot(camera_auto_fit=auto_frame, axes_helper=0.0, grid_visible=grid_visible)
@@ -246,6 +251,20 @@ This method displays the plot with the specified arguments.
             self.plot_lidar_points()
 
         if radar_points_plot:
+            if draw_object_center:
+                # we know that it contains only one object
+                labels_object = selected_labels.labels_dict[0]
+                center = np.array([labels_object['x'], labels_object['y'], labels_object['z']])
+                center = get_transformed_3d_center_point(
+                      label=labels_object, 
+                      center_point=center, 
+                      transformation=self.frame_transforms.t_radar_lidar,
+                      t_camera_lidar=self.frame_transforms.t_camera_lidar)
+                
+                #center = homogenous_transformation_cartesian_coordinates(np.atleast_2d(center), self.frame_transforms.t_radar_camera)
+                
+                self.plot_radar_points(selected_points=center, color=0x0000FF)
+                
             self.plot_radar_points(selected_points=selected_points)
 
         if radar_velocity_plot:

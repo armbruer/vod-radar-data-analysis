@@ -1,13 +1,14 @@
-from typing import List
+from typing import Tuple
 import numpy as np
 import pytest
-import pandas as pd
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, locs_to_distance, points_in_bbox
 
 from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
-from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cartesian_coordinates
+from vod.frame.labels import FrameLabels
+from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cart
+from vod.visualization.helpers import get_3d_label_corners, get_transformed_3d_center_point, get_transformed_3d_label_corners
 
 @pytest.fixture()
 def kitti_locations():
@@ -24,6 +25,21 @@ def kitti_locations():
 def data_manager(kitti_locations):
     data_manager = DataManager(kitti_locations=kitti_locations)
     yield data_manager
+    
+@pytest.fixture()
+def object_sample(kitti_locations):
+    # extracted labels dict for a single object
+    labels_dict_object = [{'label_class': 'rider', 'h': 1.5620380218093075, 'w': 0.8727467348937346, 'l': 0.7789294078511312, 
+                         'x': 1.7167627537059729, 'y': 1.3749588244970534, 'z': 2.060029085851716, 'rotation': -1.880353040241324, 'score': 1.0}]
+        
+    labels = FrameLabels([])
+    labels._labels_dict = labels_dict_object
+    
+    loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number='01211')
+    transforms = FrameTransformMatrix(loader)
+    
+    yield labels, loader, transforms
+
 
 
 # https://stackoverflow.com/questions/20924085/python-conversion-between-coordinates
@@ -38,21 +54,6 @@ def pol2cart(r, angle):
     y = r * np.sin(angle)
     return x, y
 
-def radar_to_camera_loc(kitti_locations, df, loc_radar):
-    
-    loc_camera_list: List[np.ndarray] = []
-    
-    # they do not neccessarily all have the same frame number, so this is kind of complicated...
-    for i, (_, series) in enumerate(df.iterrows()):
-        fn = series['Frame Number']
-        loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=fn)
-        transforms = FrameTransformMatrix(frame_data_loader_object=loader)
-        loc_camera = homogenous_transformation_cartesian_coordinates(np.atleast_2d(loc_radar[i]), transforms.t_camera_radar)
-        
-        loc_camera_list.append(loc_camera)
-        
-    return np.vstack(loc_camera_list)
-
 
 def equals(a1: np.ndarray, a2: np.ndarray) -> bool:
     return np.allclose(a1, a2)
@@ -60,19 +61,59 @@ def equals(a1: np.ndarray, a2: np.ndarray) -> bool:
 
 class TestHelpers():
     
+    def test_corners_layout(self, object_sample: Tuple[FrameLabels, FrameDataLoader, FrameTransformMatrix]):
+        # quick sanity check that my understanding of corners layout order is correct
+        
+        # order of corners
+        #    5--------4 
+        #   /|       /| | height (z)
+        #  / |      / | |
+        # 6--------7  | |
+        # |  |     |  |
+        # |  1-----|--0 ^ length (x)
+        # | /      | / /
+        # |/       |/ /
+        # 2--------3 <--- width (y)
+        
+        labels, _, _ = object_sample
+        labels_dict = labels.labels_dict
+        
+        corners = get_3d_label_corners(labels)[0]['corners_3d'].T
+        
+        assert abs(corners[4][2] - corners[0][2]) == labels_dict[0]['h']
+        assert abs(corners[1][1] - corners[0][1]) == labels_dict[0]['w'] 
+        assert abs(corners[1][0] - corners[3][0]) == labels_dict[0]['l']
+        
+        assert abs(corners[6][1] - corners[7][1]) == labels_dict[0]['w'] 
+        assert abs(corners[6][0] - corners[5][0]) == labels_dict[0]['l']
+        assert abs(corners[6][2] - corners[3][2]) == labels_dict[0]['h']
+        
+        assert corners[5][0] == corners[4][0] == corners[1][0] == corners[0][0]
+        assert corners[3][0] == corners[2][0] == corners[6][0] == corners[7][0]
+        
+        assert corners[3][1] == corners[0][1] == corners[7][1] == corners[4][1]
+        assert corners[1][1] == corners[2][1] == corners[5][1] == corners[6][1]
+        
+        assert corners[5][2] == corners[4][2] == corners[6][2] == corners[7][2]
+        assert corners[1][2] == corners[2][2] == corners[3][2] == corners[0][2]
+        
+        
+        
+        
+         
+
     def test_points_in_bbox(self):
 
         # order of corners
-        #    7--------4
-        #   /|       /|
-        #  / |      / |
-        # 6--------5  |
+        #    5--------4 
+        #   /|       /| | height (z)
+        #  / |      / | |
+        # 6--------7  | |
         # |  |     |  |
-        # |  3-----|--0
-        # | /      | /
-        # |/       |/
-        # 2--------1
-        # but the origin is at 2!
+        # |  1-----|--0 ^ length (x)
+        # | /      | / /
+        # |/       |/ /
+        # 2--------3 <--- width (y)
 
         x_corners = [10, 10, 0, 0, 10, 10, 0, 0]
         y_corners = [10, 0, 0, 10, 10, 0, 0, 10]
@@ -82,14 +123,23 @@ class TestHelpers():
         
         radar_points = np.array([[1, 1, 1], [9, 8, 7], [-1, 1, 1], [1, 11, 0], [0, 0, 0], [10, 10, 10], [1, 1, -1]])
         
-        inside_points_res = points_in_bbox(radar_points_radar=radar_points, 
-                                           radar_points_camera=radar_points,
-                                           bbox=bbox)
+        inside_points_res = points_in_bbox(radar_points=radar_points, bbox=bbox)
         inside_points_expected = np.array([[1, 1, 1], [9, 8, 7], [0, 0, 0], [10, 10, 10]])
         
         assert np.array_equal(inside_points_res, inside_points_expected)
+        
+    def test_transformations(self, object_sample: Tuple[FrameLabels, FrameDataLoader, FrameTransformMatrix]):
+        labels, _, transforms = object_sample
+        labels_dict = labels.labels_dict[0]
+        
+        loc_c = np.array([[labels_dict['x'], labels_dict['y'], labels_dict['z']]])
+        
+        loc_r = homogenous_transformation_cart(points=loc_c, transform=transforms.t_radar_camera)
+        loc_c2 = homogenous_transformation_cart(points=loc_r, transform=transforms.t_camera_radar)
+        
+        np.array_equal(loc_c, loc_c2)
     
-    def test_azimuth_elevation_calculation(self, data_manager: DataManager, kitti_locations: KittiLocations):
+    def test_azimuth_elevation_calculation(self, data_manager: DataManager):
         for dv in DataVariant.all_variants():
             data_view: DataView = data_manager.get_view(dv, DataViewType.NONE)
             dfs = data_view.df
@@ -99,26 +149,57 @@ class TestHelpers():
             for df in dfs:
                 df = df.head(n=5)
                 
-                range_exp = df['Range [m]'].to_numpy()
-                az_exp = df['Azimuth [degree]'].to_numpy()
-                ev_exp = df['Elevation [degree]'].to_numpy()
-                loc_radar = np.array([df['x'], df['y'], df['z']]).T
+                range_exp = df['Range [m]'].to_numpy().T
+                az_exp = df['Azimuth [degree]'].to_numpy().T
+                ev_exp = df['Elevation [degree]'].to_numpy().T
                 
-                camera_loc = radar_to_camera_loc(kitti_locations, df, loc_radar)
-                x_camera, y_camera, z_camera = list(camera_loc.T)
+                # split into three separate numpy arrays
+                loc_radar = df[['x', 'y', 'z']].to_numpy()
+                x_radar, y_radar, z_radar = map(np.array, list(loc_radar.T))
                 
                 assert equals(range_exp,  locs_to_distance(loc_radar))
-                r, az = cart2pol(z_camera, x_camera)
+                r, az = cart2pol(x_radar, -y_radar)
                 assert equals(az, az_exp)
                 
-                z, x = pol2cart(r, az)
-                assert equals(z, z_camera)
-                assert equals(x, x_camera)
+                x, y = pol2cart(r, az)
+                assert equals(x, x_radar)
+                assert equals(y, -y_radar)
   
-                r, ev = cart2pol(z_camera, y_camera)
+                r, ev = cart2pol(x_radar, z_radar)
                 assert equals(ev, ev_exp)
                 
-                z, y = pol2cart(r, ev)
-                assert equals(z, z_camera)
-                assert equals(y, y_camera)
-                    
+                x, z = pol2cart(r, ev)
+                assert equals(x, x_radar)
+                assert equals(z, z_radar)
+                
+    def test_center_placement(self, object_sample: Tuple[FrameLabels, FrameDataLoader, FrameTransformMatrix]):
+        labels, _, transforms = object_sample
+        labels_dict = labels.labels_dict[0]
+        
+        loc_c = np.array([[labels_dict['x'], labels_dict['y'], labels_dict['z']]])
+        
+        center_transformed = get_transformed_3d_center_point(labels_dict, loc_c, transforms.t_camera_lidar, transforms.t_camera_lidar)
+        
+        corners = get_transformed_3d_label_corners(labels, transforms.t_camera_lidar, transforms.t_camera_lidar)[0]['corners_3d_transformed']
+        
+        
+        # order of corners
+        #    5--------4 
+        #   /|       /| | height (z)
+        #  / |      / | |
+        # 6--------7  | |
+        # |  |     |  |
+        # |  1-----|--0 ^ length (x)
+        # | /      | / /
+        # |/       |/ /
+        # 2--------3 <--- width (y)
+        
+        x, y, z = center_transformed[0, :3]
+        l = labels_dict
+        assert x + l['l']/2 == corners[0][0]
+        assert y + l['w']/2 == corners[0][1]
+        assert z + l['h'] == corners[4][2]
+        
+        assert x - l['l']/2 == corners[3][0]
+        assert x - l['w']/2 == corners[2][1]
+        assert z + 0 == corners[0][2]

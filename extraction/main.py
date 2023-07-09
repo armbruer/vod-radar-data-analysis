@@ -50,7 +50,7 @@ def main():
 
     # plotter.correlation_heatmap(data_variant=DataVariant.SEMANTIC_DATA)
 
-    # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
+    # # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
     
     # generate_stats(dm)
     

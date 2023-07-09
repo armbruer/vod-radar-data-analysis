@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import DataVariant
+from extraction.helpers import DataVariant, get_class_names
 import extraction as ex
+from extraction.visualization import _draw_helper2D, _draw_helper3D, _find_labels_and_points_for_center
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -11,8 +12,10 @@ from vod.common.file_handling import get_frame_list_from_folder
 from typing import Dict, List, Optional
 
 from vod.frame.labels import FrameLabels
-from vod.frame.transformations import homogenous_transformation_cartesian_coordinates
-from vod.visualization.helpers import get_placed_3d_label_corners
+from vod.frame.transformations import homogenous_transformation_cart
+from vod.visualization.helpers import get_3d_label_corners, get_placed_3d_label_corners, get_transformed_3d_center_point, get_transformed_3d_label_corners
+from vod.visualization.vis_2d import Visualization2D
+from vod.visualization.vis_3d import Visualization3D
 
 class ParameterRangeExtractor:
 
@@ -44,25 +47,25 @@ class ParameterRangeExtractor:
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
-            transforms = FrameTransformMatrix(frame_data_loader_object=loader)
 
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-            radar_data = loader.radar_data
-            if radar_data is not None:
-                radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
-                                                                                transform=transforms.t_camera_radar)
-                radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
+            radar_data_r = loader.radar_data
+            
+            # we don't want to include points from previous scans, i.e. accumulated points
+            # not needed probably, just to be safe
+            radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
+            
+            if radar_data_r is not None:
+                frame_nums.append(np.full(radar_data_r.shape[0], frame_number))
+                ranges.append(ex.locs_to_distance(radar_data_r[:, :3]))
+                azimuths.append(ex.azimuth_angle_from_location(radar_data_r[:, :2]))
+                elevations.append(ex.elevation_angle_from_location(radar_data_r[:, [0, 2]]))
+                dopplers.append(radar_data_r[:, 4])
+                dopplers_compensated.append(radar_data_r[:, 5])
                 
-                frame_nums.append(np.full(radar_data.shape[0], frame_number))
-                ranges.append(ex.locs_to_distance(radar_data[:, :3]))
-                azimuths.append(ex.azimuth_angle_from_location(radar_points_tr[:, [2, 0]]))
-                elevations.append(ex.elevation_angle_from_location(radar_points_tr[:, [2, 1]]))
-                dopplers.append(radar_data[:, 4])
-                dopplers_compensated.append(radar_data[:, 5])
-                
-                x.append(radar_data[:, 0])
-                y.append(radar_data[:, 1])
-                z.append(radar_data[:, 2])
+                x.append(radar_data_r[:, 0])
+                y.append(radar_data_r[:, 1])
+                z.append(radar_data_r[:, 2])
 
         columns = [frame_nums, ranges, azimuths, dopplers, elevations, dopplers_compensated, x, y, z]
         data = list(map(np.hstack, columns))
@@ -155,13 +158,14 @@ class ParameterRangeExtractor:
             return None
         
         labels = FrameLabels(labels)
-        
+        transforms = FrameTransformMatrix(loader)
         # Step 1: Obtain corners of bounding boxes and radar data points
-        labels_with_corners = get_placed_3d_label_corners(labels)
+        
+        labels_with_corners = get_placed_3d_label_corners(labels, transforms)
         
         # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-        radar_data = loader.radar_data
-        if radar_data is None:
+        radar_data_r = loader.radar_data
+        if radar_data_r is None:
             return None
         
         frame_numbers: List[np.ndarray] = []
@@ -185,17 +189,24 @@ class ParameterRangeExtractor:
         width: List[np.ndarray] = []
         length: List[np.ndarray] = []
         
+        shape_before = radar_data_r.shape
+        
+        # we don't want to include points from previous scans, i.e. accumulated points
+        # not needed probably, just to be safe
+        radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
+        
+        shape_after = radar_data_r.shape
+        if shape_before != shape_after:
+            print(f"Shape: {shape_before} {shape_after}")
+        
         # Step 2: Transform points into the same coordinate system as the labels
-        radar_points_tr = homogenous_transformation_cartesian_coordinates(points=radar_data[:, :3], 
-                                                                          transform=transforms.t_camera_radar)
-        radar_points_tr = np.hstack((radar_points_tr, radar_data[:, 3:]))
+        radar_data_c = homogenous_transformation_cart(points=radar_data_r[:, :3], transform=transforms.t_camera_radar)
+        radar_data_c = np.hstack((radar_data_c, radar_data_r[:, 3:]))
         
         for label in labels_with_corners:
             # Step 3: For each bounding box get a list of radar points which are inside of it
             bbox = label['corners_3d_placed']
-            points_matching = ex.points_in_bbox(radar_points_radar=radar_data, 
-                                                radar_points_camera=radar_points_tr, 
-                                                bbox=bbox)
+            points_matching = ex.points_in_bbox(radar_points=radar_data_r, bbox=bbox)
             
             if points_matching is not None:
                 points_matching = np.vstack(points_matching)
@@ -210,21 +221,19 @@ class ParameterRangeExtractor:
                 detections.append(points_matching.shape[0])
                 bbox_vols.append(label['l'] * label['h'] * label['w'])         
                 
-                loc = np.array([[label['x'], label['y'], label['z']]])
+                loc_camera = np.array([[label['x'], label['y'], label['z']]])
                 
                 # transform from camera coordinates to radar coordinates, stay cartesian
-                loc_radar = homogenous_transformation_cartesian_coordinates(points=loc, 
-                                                                            transform=transforms.t_radar_camera)
-                range_from_loc = ex.locs_to_distance(loc_radar)            
+                # we take the center point of the object to calculate, its elevation and azimuth
+                loc_radar = homogenous_transformation_cart(points=loc_camera, transform=transforms.t_radar_camera)
+                range_from_loc = ex.locs_to_distance(loc_radar)
                 ranges.append(range_from_loc)
                 
                 # look at Prius_sensor_setup_5 camera coordinate system to understand indexes in the next lines
-                # x is already mirrored, no reason to mirror it
-                azimuths.append(ex.azimuth_angle_from_location(loc[:, [2, 0]]))
+                azimuths.append(ex.azimuth_angle_from_location(loc_radar[:, :2]))
                 dopplers.append(np.mean(points_matching[:, 4]))
-                elevations.append(ex.elevation_angle_from_location(loc[:, [2, 1]]))
+                elevations.append(ex.elevation_angle_from_location(loc_radar[:, [0, 2]]))
                 
-                # we need to use radar coordinates here to stay in one coordinate system between different data variants
                 x.append(loc_radar[0, 0])
                 y.append(loc_radar[0, 1])
                 z.append(loc_radar[0, 2])
@@ -241,3 +250,13 @@ class ParameterRangeExtractor:
                    object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, 
                    height, width, length, x, y, z]
         return list(map(np.hstack, columns))
+    
+
+def debug(loader, data_variant, matching_points, labels):
+    vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(summarized=False))
+    _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='radar')
+    _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', matching_points=matching_points, selected_labels=labels)
+    
+    vis3d = Visualization3D(loader, origin='camera')
+    _draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='radar')
+    _draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', matching_points=matching_points, selected_labels=labels)
