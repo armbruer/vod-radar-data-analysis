@@ -40,6 +40,10 @@ def visualize_frames(data_variant: DataVariant,
                 
                 labels, matching_points = _find_labels_and_points_for_center(loader, loc_radar)
                 
+                # there is a 2D bounding box visualization bug that is part of the original VoD code
+                # I double checked whether the bbox in this frame is visualized also wrongly in the original code
+                # An example of this bug can be seen in frame 01839
+                # the bug is not relevant for us, we can use different samples for visualization in the thesis
                 _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='radar')
                 _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', matching_points=matching_points, selected_labels=labels)
                 
