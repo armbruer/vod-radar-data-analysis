@@ -95,6 +95,10 @@ def _find_labels_and_points_for_center(loader: FrameDataLoader, center_radar: np
         
         bbox = labels_3d_corners[0]['corners_3d_placed']
         matching_points_r = points_in_bbox(radar_points=radar_data_r, bbox=bbox)
+        if matching_points_r is None:
+            # this indicates an error, but is not handled as such, as I want to continue execution
+            logging.error("No matching points :(")
+            return resLabels, None
         
         return resLabels, np.vstack(matching_points_r)
 
@@ -138,5 +142,4 @@ def _draw_helper3D(
                     selected_labels=selected_labels,
                     auto_frame=True,
                     grid_visible=True,
-                    radar_velocity_plot=True,
-                    draw_object_center=selected_labels != None)
+                    radar_velocity_plot=True)

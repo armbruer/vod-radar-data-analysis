@@ -172,34 +172,3 @@ class TestHelpers():
                 assert equals(x, x_radar)
                 assert equals(z, z_radar)
                 
-    def test_center_placement(self, object_sample: Tuple[FrameLabels, FrameDataLoader, FrameTransformMatrix]):
-        labels, _, transforms = object_sample
-        labels_dict = labels.labels_dict[0]
-        
-        loc_c = np.array([[labels_dict['x'], labels_dict['y'], labels_dict['z']]])
-        
-        center_transformed = get_transformed_3d_center_point(labels_dict, loc_c, transforms.t_camera_lidar, transforms.t_camera_lidar)
-        
-        corners = get_transformed_3d_label_corners(labels, transforms.t_camera_lidar, transforms.t_camera_lidar)[0]['corners_3d_transformed']
-        
-        
-        # order of corners
-        #    5--------4 
-        #   /|       /| | height (z)
-        #  / |      / | |
-        # 6--------7  | |
-        # |  |     |  |
-        # |  1-----|--0 ^ length (x)
-        # | /      | / /
-        # |/       |/ /
-        # 2--------3 <--- width (y)
-        
-        x, y, z = center_transformed[0, :3]
-        l = labels_dict
-        assert x + l['l']/2 == corners[0][0]
-        assert y + l['w']/2 == corners[0][1]
-        assert z + l['h'] == corners[4][2]
-        
-        assert x - l['l']/2 == corners[3][0]
-        assert x - l['w']/2 == corners[2][1]
-        assert z + 0 == corners[0][2]

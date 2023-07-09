@@ -214,8 +214,7 @@ This method plots the annotations in the requested frame.
                   auto_frame: bool = False,
                   subdir: str ='',
                   selected_points: Optional[np.ndarray] = None,
-                  selected_labels: Optional[FrameLabels] = None,
-                  draw_object_center: bool = False,
+                  selected_labels: Optional[FrameLabels] = None
                   ):
         """
 This method displays the plot with the specified arguments.
@@ -251,20 +250,6 @@ This method displays the plot with the specified arguments.
             self.plot_lidar_points()
 
         if radar_points_plot:
-            if draw_object_center:
-                # we know that it contains only one object
-                labels_object = selected_labels.labels_dict[0]
-                center = np.array([labels_object['x'], labels_object['y'], labels_object['z']])
-                center = get_transformed_3d_center_point(
-                      label=labels_object, 
-                      center_point=center, 
-                      transformation=self.frame_transforms.t_radar_lidar,
-                      t_camera_lidar=self.frame_transforms.t_camera_lidar)
-                
-                #center = homogenous_transformation_cartesian_coordinates(np.atleast_2d(center), self.frame_transforms.t_radar_camera)
-                
-                self.plot_radar_points(selected_points=center, color=0x0000FF)
-                
             self.plot_radar_points(selected_points=selected_points)
 
         if radar_velocity_plot:
