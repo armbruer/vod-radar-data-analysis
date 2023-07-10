@@ -37,10 +37,12 @@ class DataView:
 
 class DataManager:
         
-    def __init__(self, kitti_locations: KittiLocations) -> None:
+    def __init__(self, kitti_locations: KittiLocations, testing: bool = False) -> None:
         self.kitti_locations = kitti_locations
         self.extractor = ParameterRangeExtractor(kitti_locations)
         self.data: Dict[DataVariant, pd.DataFrame] = {}
+        self.testing = testing
+        self.data_dir = f'{self.kitti_locations.data_dir}' if not testing else f'{self.kitti_locations.testing_dir}'
         
     def get_view(self, data_variant: DataVariant, data_view_type: DataViewType = DataViewType.NONE, refresh=False) -> DataView:
         """
@@ -63,7 +65,8 @@ class DataManager:
 
         Returns the dataframe containing the data requested through the data variant
         """
-        if not refresh and (self.data.get(data_variant) is not None or self.load_dataframe(data_variant) is not None):
+        if not refresh and (self.data.get(data_variant) is not None 
+                            or self.load_dataframe(data_variant) is not None):
             return self.data[data_variant]
 
         if data_variant == DataVariant.SYNTACTIC_DATA:
@@ -93,11 +96,9 @@ class DataManager:
         :param data_variant: the data variant of the dataframe to be loaded
         """
         dv_str = data_variant.shortname()
-        data_dir = f'{self.kitti_locations.data_dir}'
-        os.makedirs(data_dir, exist_ok=True)
 
         matching_files = []
-        for file in os.listdir(data_dir):
+        for file in os.listdir(self.data_dir):
             if file.endswith('.hdf5') and dv_str in file:
                 datetime_str = file.split('-')[-1].split('.')[0]
                 matching_files.append((file, datetime_str))
@@ -110,7 +111,7 @@ class DataManager:
 
         most_recent: str = matching_files[-1][0]
         
-        df = pd.read_hdf(f'{data_dir}/{most_recent}', key=dv_str)
+        df = pd.read_hdf(f'{self.data_dir}/{most_recent}', key=dv_str)
 
         self.data[data_variant] = df
         return df
@@ -126,12 +127,11 @@ class DataManager:
             raise ValueError('df must not be of type list')
 
         dv_str = data_variant.shortname()
-        data_dir = f'{self.kitti_locations.data_dir}'
-        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(self.data_dir, exist_ok=True)
 
         now = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         self.data[data_variant] = df
-        path = f'{data_dir}/{dv_str}-{now}.hdf5'
+        path = f'{self.data_dir}/{dv_str}-{now}.hdf5'
         df.to_hdf(path, key=dv_str, mode='w')
         logging.info(f'Data saved in file:///{path}')
             
