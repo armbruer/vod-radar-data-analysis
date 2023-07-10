@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 
 from tqdm import tqdm
-from extraction.helpers import DataVariant, get_class_names
+from extraction.helpers import DataVariant
 import extraction as ex
-from extraction.visualization import _draw_helper2D, _draw_helper3D
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -22,16 +21,16 @@ class ParameterRangeExtractor:
     def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
 
-    def extract_data_from_syntactic_data(self) -> pd.DataFrame:
+    def extract_data_from_syntactic_data(self, frame_numbers: Optional[List[str]]=None) -> pd.DataFrame:
         """
         Extract the frame number, range, azimuth, doppler values and loactions for each detection in this dataset.
         This method works on the syntactic (unannotated) data of the dataset.
 
-
         Returns a dataframe with columns frame_number, range, azimuth, doppler, relative velocity (doppler) compensated, x, y, z
         """
-        frame_numbers = get_frame_list_from_folder(
-            self.kitti_locations.radar_dir, fileending='.bin')
+        if frame_numbers is None:
+            frame_numbers = get_frame_list_from_folder(
+                self.kitti_locations.radar_dir, fileending='.bin')
 
         ranges: List[np.ndarray] = []
         azimuths: List[np.ndarray] = []
@@ -43,11 +42,11 @@ class ParameterRangeExtractor:
         y: List[np.ndarray] = []
         z: List[np.ndarray] = []
         
-        # TODO future work: rcs
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
             loader = FrameDataLoader(
                 kitti_locations=self.kitti_locations, frame_number=frame_number)
 
+            # TODO future work: rcs
             # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
             radar_data_r = loader.radar_data
             
@@ -73,36 +72,41 @@ class ParameterRangeExtractor:
         # we construct via series to keep the datatype correct
         return pd.DataFrame({ name : pd.Series(content) for name, content in zip(col_names, data)})
 
-    def extract_object_data_from_semantic_data(self) -> pd.DataFrame:
+    def extract_object_data_from_semantic_data(self, frame_numbers: Optional[List[str]]=None) -> pd.DataFrame:
         """
         For each object in the frame retrieve the following data: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
         bounding box volume, relative velocity (doppler), height, width, length, x, y, z.
-
-        :param loader: the loader of the current frame
-        :param transforms: the transformation matrix of the current frame
 
         Returns: a pandas dataframe with the following columns: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
         bounding box volume, relative velocity (doppler), height, width, length, x, y, z
         """
 
-        # only those frame_numbers which have annotations
-        frame_numbers = get_frame_list_from_folder(
-            self.kitti_locations.label_dir)
+        if frame_numbers is None:
+            # only those frame_numbers which have annotations
+            frame_numbers = get_frame_list_from_folder(self.kitti_locations.label_dir)
 
         object_data_dict: Dict[int, List[np.ndarray]] = {}
 
         for frame_number in tqdm(iterable=frame_numbers, desc='Semantic data: Going through frames'):
-            loader = FrameDataLoader(
-                kitti_locations=self.kitti_locations, frame_number=frame_number)
+            loader = FrameDataLoader(kitti_locations=self.kitti_locations, frame_number=frame_number)
+            
+            labels = loader.get_labels()
+            if labels is None:
+                continue
+            
+            labels = FrameLabels(labels)
             transforms = FrameTransformMatrix(frame_data_loader_object=loader)
 
             object_data = self._get_data_for_objects_in_frame(
-                loader=loader, transforms=transforms)
-            if object_data is not None:
-                for i, param in enumerate(object_data):
-                    object_data_dict.setdefault(i, []).append(param)
+                loader=loader, transforms=transforms, labels=labels)
+            
+            if object_data is None:
+                continue
+            
+            for i, param in enumerate(object_data):
+                object_data_dict.setdefault(i, []).append(param)
                 
       
         object_data = map(np.hstack, object_data_dict.values())
@@ -139,7 +143,8 @@ class ParameterRangeExtractor:
     
     def _get_data_for_objects_in_frame(self, 
                                        loader: FrameDataLoader, 
-                                       transforms: FrameTransformMatrix) -> Optional[List[np.ndarray]]:
+                                       transforms: FrameTransformMatrix,
+                                       labels: FrameLabels) -> Optional[List[np.ndarray]]:
         """
         For each object in the frame retrieve the following data: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
@@ -147,20 +152,15 @@ class ParameterRangeExtractor:
 
         :param loader: the loader of the current frame
         :param transforms: the transformation matrix of the current frame
+        :param labels: the labels of the current frame
 
         Returns: a list of arrays in the following order: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
         bounding box volume, relative velocity (doppler), height, width, length, x, y, z
         """
         
-        labels = loader.get_labels()
-        if labels is None:
-            return None
-        
-        labels = FrameLabels(labels)
-        transforms = FrameTransformMatrix(loader)
-        # Step 1: Obtain corners of bounding boxes and radar data points
-        
+
+        # Step 1: Obtain corners of bounding boxes and radar data points        
         labels_with_corners = get_placed_3d_label_corners(labels, transforms)
         
         # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
@@ -189,15 +189,9 @@ class ParameterRangeExtractor:
         width: List[np.ndarray] = []
         length: List[np.ndarray] = []
         
-        shape_before = radar_data_r.shape
-        
         # we don't want to include points from previous scans, i.e. accumulated points
         # not needed probably, just to be safe
         radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
-        
-        shape_after = radar_data_r.shape
-        if shape_before != shape_after:
-            print(f"Shape: {shape_before} {shape_after}")
         
         # Step 2: Transform points into the same coordinate system as the labels
         radar_data_c = homogenous_transformation_cart(points=radar_data_r[:, :3], transform=transforms.t_camera_radar)
@@ -229,7 +223,7 @@ class ParameterRangeExtractor:
                 range_from_loc = ex.locs_to_distance(loc_radar)
                 ranges.append(range_from_loc)
                 
-                # look at Prius_sensor_setup_5 camera coordinate system to understand indexes in the next lines
+                # look at Prius_sensor_setup_5 radar coordinate system to understand indexes in the next lines
                 azimuths.append(ex.azimuth_angle_from_location(loc_radar[:, :2]))
                 dopplers.append(np.mean(points_matching[:, 4]))
                 elevations.append(ex.elevation_angle_from_location(loc_radar[:, [0, 2]]))
