@@ -17,7 +17,8 @@ import logging
 def visualize_frames(data_variant: DataVariant, 
                      kitti_locations: KittiLocations, 
                      frame_numbers: List[str], 
-                     locs: List[np.ndarray]):
+                     locs: List[np.ndarray],
+                     detections: List[int]):
         """
         Visualizes radar points and corresponding annotations in 2D and 3D for the given frames (use semantic data_variants!).
         Useful for debugging.
@@ -31,14 +32,14 @@ def visualize_frames(data_variant: DataVariant,
         
         """
         
-        for frame_number, loc_radar in zip(frame_numbers, locs):
+        for frame_number, loc_radar, dets in zip(frame_numbers, locs, detections):
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
             dv_str = data_variant.shortname()
             
             if data_variant in DataVariant.semantic_variants():
                 vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(summarized=False))
                 
-                labels, matching_points = _find_labels_and_points_for_center(loader, loc_radar)
+                labels, matching_points = _find_labels_and_points_for_center(loader, loc_radar, dets)
                 
                 # there is a 2D bounding box visualization bug that is part of the original VoD code
                 # I double checked whether the bbox in this frame is visualized also wrongly in the original code
@@ -54,7 +55,9 @@ def visualize_frames(data_variant: DataVariant,
                 imsave(f'{kitti_locations.analysis_dir}/{dv_str}/{frame_number}.png', loader.image)
 
 
-def _find_labels_and_points_for_center(loader: FrameDataLoader, center_radar: np.ndarray) -> Optional[FrameLabels]:        
+def _find_labels_and_points_for_center(loader: FrameDataLoader, 
+                                       center_radar: np.ndarray, 
+                                       detections: int) -> Optional[FrameLabels]:
         # 1. Find the labels_dict matching the center point (that means the object annotation corresponding to the center)
         labels = loader.get_labels()
         if labels is None:
@@ -90,9 +93,6 @@ def _find_labels_and_points_for_center(loader: FrameDataLoader, center_radar: np
         
         radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
         
-        radar_data_c = homogenous_transformation_cart(points=radar_data_r[:, :3], transform=transforms.t_camera_radar)
-        radar_data_c = np.hstack((radar_data_c, radar_data_r[:, 3:]))
-        
         transforms = FrameTransformMatrix(loader)
         labels_3d_corners = get_placed_3d_label_corners(resLabels, transforms)
         assert len(labels_3d_corners) == 1
@@ -103,6 +103,10 @@ def _find_labels_and_points_for_center(loader: FrameDataLoader, center_radar: np
             # this indicates an error, but is not handled as such, as I want to continue execution
             logging.error("No matching points :(")
             return resLabels, None
+        
+        if detections != len(matching_points_r):
+            logging.error("Detections did not match!")
+            
         
         return resLabels, np.vstack(matching_points_r)
 

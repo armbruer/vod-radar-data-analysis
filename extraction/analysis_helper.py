@@ -44,6 +44,9 @@ class DataAnalysisHelper:
         locs = [loc.astype(np.float64) for loc in locs]
         
         return locs
+    
+    def _detections_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[int]:
+         return list(data[indexes, 7]) # 7 is # detections
 
     def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant, subvariant: str = ''):
         data = df.to_numpy()
@@ -53,20 +56,26 @@ class DataAnalysisHelper:
         min_indexes = np.argmin(rdata, axis=0)
         min_fns = self._framenums_from_index(min_indexes, data)
         min_locs = self._loc_from_index(min_indexes, data)
+        min_detections = self._detections_from_index(indexes=min_indexes, data=data)
         
         maxs = np.round(np.max(rdata, axis=0).astype(np.float64), decimals=2)
         max_indexes = np.argmax(rdata, axis=0)
         max_fns = self._framenums_from_index(max_indexes, data)
         max_locs = self._loc_from_index(max_indexes, data)
+        max_detections = self._detections_from_index(indexes=max_indexes, data=data)
         
         dv_str = data_variant.shortname()
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
         dir = dir if not subvariant else f'{dir}/{subvariant}'
         os.makedirs(dir, exist_ok=True)
         
-        iter = zip(min_fns, max_fns, min_locs, max_locs)
-        for min_fn, max_fn, min_loc, max_loc in iter:
-            visualize_frames(data_variant=data_variant, kitti_locations=self.kitti_locations, frame_numbers=[min_fn, max_fn], locs=[min_loc, max_loc])
+        iter = zip(min_fns, max_fns, min_locs, max_locs, min_detections, max_detections)
+        for min_fn, max_fn, min_loc, max_loc, min_det, max_det in iter:
+            visualize_frames(data_variant=data_variant, 
+                             kitti_locations=self.kitti_locations, 
+                             frame_numbers=[min_fn, max_fn], 
+                             locs=[min_loc, max_loc], 
+                             detections=[min_det, max_det])
             
         stats = np.vstack((mins, min_fns, maxs, max_fns))
         columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:-3]))
