@@ -137,7 +137,7 @@ class TestHelpers():
         loc_r = homogenous_transformation_cart(points=loc_c, transform=transforms.t_radar_camera)
         loc_c2 = homogenous_transformation_cart(points=loc_r, transform=transforms.t_camera_radar)
         
-        np.array_equal(loc_c, loc_c2)
+        assert np.array_equal(loc_c, loc_c2)
     
     def test_azimuth_elevation_calculation(self, data_manager: DataManager):
         for dv in DataVariant.all_variants():
