@@ -4,7 +4,7 @@ import pandas as pd
 from tqdm import tqdm
 from extraction.helpers import DataVariant, get_class_names
 import extraction as ex
-from extraction.visualization import _draw_helper2D, _draw_helper3D, _find_labels_and_points_for_center
+from extraction.visualization import _draw_helper2D, _draw_helper3D
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import homogenous_transformation_cart
-from vod.visualization.helpers import get_3d_label_corners, get_placed_3d_label_corners, get_transformed_3d_center_point, get_transformed_3d_label_corners
+from vod.visualization.helpers import get_placed_3d_label_corners
 from vod.visualization.vis_2d import Visualization2D
 from vod.visualization.vis_3d import Visualization3D
 
@@ -250,13 +250,3 @@ class ParameterRangeExtractor:
                    object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, 
                    height, width, length, x, y, z]
         return list(map(np.hstack, columns))
-    
-
-def debug(loader, data_variant, matching_points, labels):
-    vis2d = Visualization2D(frame_data_loader=loader, classes_visualized=get_class_names(summarized=False))
-    _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='radar')
-    _draw_helper2D(vis2d=vis2d, data_variant=data_variant, filename='extremum-highlighted', matching_points=matching_points, selected_labels=labels)
-    
-    vis3d = Visualization3D(loader, origin='camera')
-    _draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='radar')
-    _draw_helper3D(vis3d=vis3d, data_variant=data_variant, filename='extremum-highlighted', matching_points=matching_points, selected_labels=labels)

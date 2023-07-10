@@ -8,7 +8,7 @@ from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cart
-from vod.visualization.helpers import get_3d_label_corners, get_transformed_3d_center_point, get_transformed_3d_label_corners
+from vod.visualization.helpers import get_3d_label_corners
 
 @pytest.fixture()
 def kitti_locations():

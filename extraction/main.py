@@ -5,9 +5,7 @@ import logging
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
-from extraction.helpers import DataVariant, DataViewType
 from extraction.analysis_helper import prepare_data_analysis
-from extraction.stats_table import generate_stats
 from extraction.file_manager import DataManager
 from extraction.plotting import DistributionPlotter
 from vod.configuration.file_locations import KittiLocations

@@ -1,10 +1,9 @@
-from extraction.file_manager import DataManager, DataView
-
 import logging
 import os
 import numpy as np
 import pandas as pd
 
+from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType
 
 class StatsTableGenerator:

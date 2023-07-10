@@ -4,7 +4,7 @@ import numpy as np
 
 from vod.frame import FrameDataLoader, FrameTransformMatrix, FrameLabels, project_pcl_to_image, min_max_filter
 
-from .helpers import get_transformed_3d_center_point, plot_boxes, get_2d_label_corners
+from .helpers import plot_boxes, get_2d_label_corners
 from .settings import label_color_palette_2d
 
 

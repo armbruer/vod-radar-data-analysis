@@ -2,8 +2,7 @@ from typing import Optional
 import k3d
 import numpy as np
 
-from vod.frame.transformations import homogenous_transformation_cart
-from .helpers import get_transformed_3d_center_point, k3d_get_axes, get_transformed_3d_label_corners, k3d_plot_box, \
+from .helpers import k3d_get_axes, get_transformed_3d_label_corners, k3d_plot_box, \
     get_radar_velocity_vectors, get_default_camera
 from vod.frame import FrameDataLoader, FrameTransformMatrix, FrameLabels, transform_pcl
 from .settings import *
