@@ -13,8 +13,6 @@ from typing import Dict, List, Optional
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import homogenous_transformation_cart
 from vod.visualization.helpers import get_placed_3d_label_corners
-from vod.visualization.vis_2d import Visualization2D
-from vod.visualization.vis_3d import Visualization3D
 
 class ParameterRangeExtractor:
 
