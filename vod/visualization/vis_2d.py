@@ -45,11 +45,7 @@ Constructor of the class, which loads the required frame properties, and creates
         # Distance filter
         filtered = list(filter(lambda elem: elem['range'] < max_distance_threshold, filtered))
 
-        if selected_labels is None:
-            colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
-        else:
-            colors = [label_color_palette_2d['Default'] for _ in filtered]
-        
+        colors = [label_color_palette_2d.get(v["label_class"], label_color_palette_2d['DontCare']) for v in filtered]
         labels = [d['corners'] for d in filtered]
 
         plot_boxes(labels, colors)
@@ -80,8 +76,7 @@ Constructor of the class, which loads the required frame properties, and creates
     def plot_radar_pcl(self, 
                        max_distance_threshold, 
                        min_distance_threshold, 
-                       selected_points: Optional[np.ndarray],
-                       color='green'):
+                       selected_points: Optional[np.ndarray]):
         """
         This method plots the radar pcl on the frame. It colors the points based on distance.
         :param max_distance_threshold: The maximum distance where points are rendered.
@@ -102,10 +97,7 @@ Constructor of the class, which loads the required frame properties, and creates
         uvs = uvs[min_max_idx]
         points_depth = points_depth[min_max_idx]
         
-        if selected_points is None:
-            plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
-        else:
-            plt.scatter(uvs[:, 0], uvs[:, 1], alpha=0.8, s=(70 / points_depth) ** 2, color=color)
+        plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
 
     def plot_lidar_pcl(self,max_distance_threshold, min_distance_threshold):
         """
