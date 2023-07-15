@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from extraction.file_manager import DataManager, DataView
-from extraction.helpers import DataVariant, DataViewType, locs_to_distance, points_in_bbox
+from extraction.helpers import DataVariant, DataViewType, find_matching_points_for_bboxes, get_bbox_transformation_matrix, locs_to_distance, points_in_bbox, prepare_radar_data
 
 from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
@@ -22,12 +22,12 @@ def kitti_locations():
     yield kitti_locations
 
 @pytest.fixture()
-def data_manager(kitti_locations):
+def data_manager(kitti_locations: KittiLocations):
     data_manager = DataManager(kitti_locations=kitti_locations)
     yield data_manager
     
 @pytest.fixture()
-def object_sample(kitti_locations):
+def object_sample(kitti_locations: KittiLocations):
     # extracted labels dict for a single object
     labels_dict_object = [{'label_class': 'rider', 'h': 1.5620380218093075, 'w': 0.8727467348937346, 'l': 0.7789294078511312, 
                          'x': 1.7167627537059729, 'y': 1.3749588244970534, 'z': 2.060029085851716, 'rotation': -1.880353040241324, 'score': 1.0}]
@@ -40,8 +40,6 @@ def object_sample(kitti_locations):
     
     yield labels, loader, transforms
 
-
-
 # https://stackoverflow.com/questions/20924085/python-conversion-between-coordinates
 def cart2pol(x, y):
     r = np.sqrt(x**2 + y**2)
@@ -53,7 +51,6 @@ def pol2cart(r, angle):
     x = r * np.cos(angle)
     y = r * np.sin(angle)
     return x, y
-
 
 def equals(a1: np.ndarray, a2: np.ndarray) -> bool:
     return np.allclose(a1, a2)
@@ -73,7 +70,7 @@ class TestHelpers():
         # |  1-----|--0 ^ length (x)
         # | /      | / /
         # |/       |/ /
-        # 2--------3 <--- width (y)
+        # 2--------3 ---> width (y)
         
         labels, _, _ = object_sample
         labels_dict = labels.labels_dict
@@ -97,11 +94,6 @@ class TestHelpers():
         assert corners[5][2] == corners[4][2] == corners[6][2] == corners[7][2]
         assert corners[1][2] == corners[2][2] == corners[3][2] == corners[0][2]
         
-        
-        
-        
-         
-
     def test_points_in_bbox(self):
 
         # order of corners
@@ -113,7 +105,7 @@ class TestHelpers():
         # |  1-----|--0 ^ length (x)
         # | /      | / /
         # |/       |/ /
-        # 2--------3 <--- width (y)
+        # 2--------3 ---> width (y)
 
         x_corners = [10, 10, 0, 0, 10, 10, 0, 0]
         y_corners = [10, 0, 0, 10, 10, 0, 0, 10]
@@ -122,8 +114,10 @@ class TestHelpers():
         bbox = np.vstack([x_corners, y_corners, z_corners]).T
         
         radar_points = np.array([[1, 1, 1], [9, 8, 7], [-1, 1, 1], [1, 11, 0], [0, 0, 0], [10, 10, 10], [1, 1, -1]])
+        bbox_limits = np.array([10, 10 , 10])
         
-        inside_points_res = points_in_bbox(radar_points=radar_points, bbox=bbox)
+        transformation = get_bbox_transformation_matrix(bbox)
+        inside_points_res = points_in_bbox(radar_points=radar_points, bbox_limits=bbox_limits, transformation_matrix=transformation)
         inside_points_expected = np.array([[1, 1, 1], [9, 8, 7], [0, 0, 0], [10, 10, 10]])
         
         assert np.array_equal(inside_points_res, inside_points_expected)
@@ -171,4 +165,79 @@ class TestHelpers():
                 x, z = pol2cart(r, ev)
                 assert equals(x, x_radar)
                 assert equals(z, z_radar)
+                
+                
+    def test_points_in_bbox_with_different_coordinate_systems(self, 
+                                                              kitti_locations: KittiLocations):
+        loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number='04716')
+        transforms = FrameTransformMatrix(loader)
+        
+        labels = FrameLabels(loader.get_labels())
+        
+        radar_data_r = prepare_radar_data(loader)
+        if radar_data_r is None:
+            assert False
+            
+        radar_data_c = homogenous_transformation_cart(radar_data_r[:, :3], transform=transforms.t_camera_radar)
+        radar_data_c = np.hstack((radar_data_c, radar_data_r[:, 3:]))
+        
+        
+        matching_points_r = find_matching_points_for_bboxes(radar_points=radar_data_r, 
+                                                            labels=labels,
+                                                            transforms=transforms)
+        
+        matching_points_c = find_matching_points_for_bboxes(radar_points=radar_data_c, 
+                                                            labels=labels, 
+                                                            transforms=transforms, camera_coordinates=True)
+        
+        assert len(matching_points_c) == len(matching_points_r)
+        
+        points_only = lambda matching_points: [e[1][:, :3] for e in matching_points if e[1] is not None]
+        
+        
+        matching_points_exp = np.vstack(points_only(matching_points_r))
+        matching_points_c = np.vstack(points_only(matching_points_c))
+        matching_points_res = homogenous_transformation_cart(matching_points_c, transform=transforms.t_camera_radar)
+        
+        assert np.allclose(matching_points_exp, matching_points_res)
+        
+        
+        
+        
+                
+    def test_stuff(self):
+        # code below generated with bing ai
+
+        # Test case 1: No points inside the bounding box
+        radar_points = np.array([[0, 0, -1], [1, 1, 1], [2, 2, 2]])
+        bbox = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0], [1, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0], [0, 0, 1]])
+        bbox_limits = np.array([1, 1, 1])
+        transformation_matrix = get_bbox_transformation_matrix(bbox)
+        assert points_in_bbox(radar_points, bbox_limits, transformation_matrix) is None
+
+        # # Test case 1: Some points inside the bbox
+        # radar_points = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2]])
+        # bbox = np.array([[1, 1, 1], [0.5, 1.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5], [1.5, 1.5, 1.5], [0.5, 1.5, 1.5], [0.5, 0.5, 1.5], [1.5, 0.5, 1.5]])
+        # bbox_limits = np.array([np.sqrt(2), np.sqrt(2), np.sqrt(2)])
+        # transformation_matrix = get_bbox_transformation_matrix(bbox)
+        # assert points_in_bbox(radar_points,bbox_limits , transformation_matrix) is None
+
+        # import numpy as np
+
+        # Test case: Some points inside the bounding box, some points outside
+        # radar_points = np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5], [0.7, 0.7, 0.7], [1.3, 1.3, 1.3]])
+        # bbox = np.array([[1, 1, 1], [0.5, 1.5, 0.5], [0.5, 0.5, 0.5], [1.5, 0.5, 0.5], [1.5, 1.5, 1.5], [0.5, 1.5, 1.5], [0.5, 0.5, 1.5], [1.5, 0.5, 1.5]])
+        # bbox_limits = np.array([np.sqrt(2), np.sqrt(2), np.sqrt(2)])
+        # transformation_matrix = get_bbox_transformation_matrix(bbox)
+        # expected_result = np.array([[0.7 ,0.7 ,0.7],[1.3 ,1.3, 1.3]])
+        # assert points_in_bbox(radar_points,bbox_limits , transformation_matrix) == expected_result
+
+        
+        radar_points = np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5], [0.7, 0.7, 0.7], [1.3, 1.3, 1.3]])
+        bbox = np.array([[1, 1, 2], [2, 2, 3], [3, 1, 2], [2, 0, 1], [1, 1, 4], [2, 2, 5], [3, 1, 4], [2, 0, 3]])
+        bbox_limits = np.array([np.sqrt(2), np.sqrt(2), np.sqrt(2)])
+        transformation_matrix = get_bbox_transformation_matrix(bbox)
+        test = homogenous_transformation_cart(bbox, transformation_matrix)
+        expected_result = np.array([[0.7 ,0.7 ,0.7],[1.3 ,1.3, 1.3]])
+        assert points_in_bbox(radar_points,bbox_limits , transformation_matrix) == expected_result
                 

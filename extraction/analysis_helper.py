@@ -5,20 +5,28 @@ import os
 import numpy as np
 import pandas as pd
 
-from typing import List
+from typing import List, Optional
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType
-from extraction.visualization import visualize_frames
+from extraction.visualization import visualize_frame
 
 class DataAnalysisHelper:
+    
+    runs_counter = 0
     
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
+    
+    def prepare_data_analysis(self, 
+                              data_variant: DataVariant, 
+                              data_view_type: DataViewType, 
+
+                              frame_numbers: Optional[List[str]]=None):
         
-    def prepare_data_analysis(self, data_variant: DataVariant, data_view_type: DataViewType):
+        DataAnalysisHelper.runs_counter += 1 # make sure they are all unique
         data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
-                                                         data_view_type=data_view_type)
+                                                         data_view_type=data_view_type, frame_numbers=frame_numbers)
         df = data_view.df
         if isinstance(df, list):
             iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
@@ -26,85 +34,79 @@ class DataAnalysisHelper:
             pool = multiprocessing.Pool(processes=cpus)
             pool.starmap(self._prepare_data_analysis, iter)
             
+            # alternatively without multiprocessing:
+            
             # for d, s in zip(df, data_variant.subvariant_names()):
             #     self._prepare_data_analysis(d, data_variant, s)
             return
         
         self._prepare_data_analysis(df, data_variant)
-        
-    
-        
-    def _framenums_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[int]:
-        return list(data[indexes, 0]) # 0 is framenumber
-    
-    def _loc_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[np.ndarray]:
-        locs: List[np.ndarray] = list(data[indexes, -3:]) # the last three are x, y, z
-        
-        locs = map(lambda loc: loc[np.newaxis, ...] if loc.ndim == 1 else loc, locs)
-        locs = [loc.astype(np.float64) for loc in locs]
-        
-        return locs
-    
-    def _detections_from_index(self, indexes: np.ndarray, data: np.ndarray) -> List[int]:
-         return list(data[indexes, 7]) # 7 is # detections
 
-    def _prepare_data_analysis(self, df: pd.DataFrame, data_variant: DataVariant, subvariant: str = ''):
+    def _prepare_data_analysis(self, 
+                               df: pd.DataFrame, 
+                               data_variant: DataVariant, 
+                               subvariant: str = ''):
+        
+        stats_only_view: DataView = DataView(df, data_variant, DataViewType.MIN_MAX_USEFUL)
+        stats_only_df: pd.DataFrame = stats_only_view.df
+        
         data = df.to_numpy()
-        rdata = data[:, 1:-3] # exclude the last three, they are x y z and the first one, its the frame number
+        stats_only_data = stats_only_df.to_numpy()
+
+        # 0. Collect data        
+        mins = np.round(np.min(stats_only_data, axis=0).astype(np.float64), decimals=2)
+        maxs = np.round(np.max(stats_only_data, axis=0).astype(np.float64), decimals=2)
+        min_indexes = np.argmin(stats_only_data, axis=0)
+        max_indexes = np.argmax(stats_only_data, axis=0)
+        min_fns = data[min_indexes, 0]
+        max_fns = data[max_indexes, 0]
         
-        mins = np.round(np.min(rdata, axis=0).astype(np.float64), decimals=2)
-        min_indexes = np.argmin(rdata, axis=0)
-        min_fns = self._framenums_from_index(min_indexes, data)
-        min_locs = self._loc_from_index(min_indexes, data)
-        min_detections = self._detections_from_index(indexes=min_indexes, data=data)
+        min_max_rows = list(np.vstack((data[min_indexes], data[max_indexes])))
         
-        maxs = np.round(np.max(rdata, axis=0).astype(np.float64), decimals=2)
-        max_indexes = np.argmax(rdata, axis=0)
-        max_fns = self._framenums_from_index(max_indexes, data)
-        max_locs = self._loc_from_index(max_indexes, data)
-        max_detections = self._detections_from_index(indexes=max_indexes, data=data)
-        
+        # 1. Create output dir
         dv_str = data_variant.shortname()
+        dir = self._create_output_dir(dv_str, subvariant)
+        
+        # 2. Visualize each frame
+        for i, extremum in enumerate(min_max_rows):
+            frame_number = extremum[0]
+            center_radar = extremum[-3:] # x, y, z
+            class_id = extremum[5]
+            detections = extremum[7]
+            
+            visualize_frame(data_variant=data_variant, 
+                             kitti_locations=self.kitti_locations, 
+                             frame_number=frame_number, 
+                             center_radar=center_radar,
+                             detections=detections,
+                             class_id=class_id,
+                             i=i,
+                             runs_counter=DataAnalysisHelper.runs_counter)
+            
+        stats = np.vstack((mins, min_fns, maxs, max_fns))
+
+        df_res_stats = pd.DataFrame(stats, columns=stats_only_df.columns)
+        df_res_stats.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
+        
+        filename = f'{dir}/{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
+        df_res_stats.to_csv(filename, index=False)
+        
+        
+        df_full = pd.DataFrame(data=data[min_max_rows], columns=df.columns)
+        
+        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
+        df_full.to_csv(filename, index=False)
+        logging.info(f'Analysis data written to file:///{filename}')
+
+    def _create_output_dir(self, dv_str, subvariant):
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
         dir = dir if not subvariant else f'{dir}/{subvariant}'
         os.makedirs(dir, exist_ok=True)
-        
-        iter = zip(min_fns, max_fns, min_locs, max_locs, min_detections, max_detections)
-        for min_fn, max_fn, min_loc, max_loc, min_det, max_det in iter:
-            visualize_frames(data_variant=data_variant, 
-                             kitti_locations=self.kitti_locations, 
-                             frame_numbers=[min_fn, max_fn], 
-                             locs=[min_loc, max_loc], 
-                             detections=[min_det, max_det])
-            
-        stats = np.vstack((mins, min_fns, maxs, max_fns))
-        columns = list(map(lambda c: c.capitalize(), list(df.columns)[1:-3]))
-
-        df_res = pd.DataFrame(stats, columns=columns)
-        df_res.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
-        
-        filename = f'{dir}/{dv_str}.csv'
-        
-        df_res.to_csv(filename, index=False)
-        
-        
-        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, data_view_type=DataViewType.NONE)
-        df_full = data_view.df
-        if isinstance(df_full, list):
-            df_full = df_full[data_variant.subvariant_name_to_index(subvariant)]
-        
-        filename = f'{dir}/full-data-{dv_str}.csv'
-        all_fns = [*min_fns, *max_fns]
-        df_full = df_full[df_full['Frame Number'].isin(all_fns)]
-        
-        df_full.to_csv(filename, index=False)
-        
-        
-        logging.info(f'Analysis data written to file:///{filename}')
+        return dir
 
 
 def prepare_data_analysis(data_manager: DataManager):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in DataVariant.all_variants():
-        analysis.prepare_data_analysis(dv, DataViewType.EXTENDED_ANALYSIS)
+    for dv in DataVariant.semantic_variants():
+        analysis.prepare_data_analysis(dv, DataViewType.NONE)

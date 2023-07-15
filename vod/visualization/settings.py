@@ -40,6 +40,7 @@ label_line_width_3d = {
         }
 
 radar_plot_color_3d = 0xFF0000
+radar_plot_fallback_color_3d = 0xffc0cb
 lidar_plot_color_3d = 0x0000FF
 
 radar_velocity_color_3d = 0xFF0000

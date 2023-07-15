@@ -1,7 +1,11 @@
 from enum import Enum
 from typing import List, Optional, Tuple
 import numpy as np
-import numba
+from vod.frame.data_loader import FrameDataLoader
+from vod.frame.labels import FrameLabels
+
+from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cart
+from vod.visualization.helpers import get_placed_3d_label_corners
 
 """
 The DataVariant enum provides names for the fundamentally different approaches 
@@ -203,13 +207,9 @@ class DataViewType(Enum):
     """
     CORR_HEATMAP = 5,
     """
-    Keeps only columns that are required or useful for a basic data analysis (RADE).
+    Keeps only columns that are useful when computing min, max
     """
-    BASIC_ANALYSIS = 6,
-    """
-    Like BASIC_ANALYSIS, but including additional columns for semantic data.
-    """
-    EXTENDED_ANALYSIS = 7,
+    MIN_MAX_USEFUL = 7,
     """
     Keeps only x,y,z for plotting. This can be useful for debugging the other code.
     """
@@ -242,12 +242,8 @@ class DataViewType(Enum):
         elif self == self.EASY_PLOTABLE:
             return ["Frame Number", "Data Class", "Class", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
         
-        elif self == self.BASIC_ANALYSIS:
-            return ["Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]"]
-        
-        elif self == self.EXTENDED_ANALYSIS:
-            return ["Data Class", "Class"]
+        elif self == self.MIN_MAX_USEFUL:
+            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
         
         elif self == self.PLOT_XYZ_ONLY:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
@@ -260,7 +256,6 @@ class DataViewType(Enum):
         # NONE
         return []
             
-
 def locs_to_distance(locations: np.ndarray) -> np.ndarray:
     """
     Return the distance to the origin (0, 0, 0) for a given location array of shape (-1, 3)
@@ -310,16 +305,89 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     x, y = list(locations.T)
     return np.arctan2(y, x) * 180 / np.pi
 
-@numba.njit
+
+def get_bbox_transformation_matrix(bbox_placed: np.ndarray):
+    # order of corners of bbox
+    #    5--------4 
+    #   /|       /| | height (z)
+    #  / |      / | |
+    # 6--------7  | |
+    # |  |     |  |
+    # |  1-----|--0 ^ length (x)
+    # | /      | / /
+    # |/       |/ /
+    # 2--------3 ---> width (y)
+    #
+    
+    # bbox coordinate system (as above)
+    # ^z ^x
+    # | /
+    # |/
+    # --->y
+    
+    # camera and radar coordinate system
+    # this is the coordinate system of the bbox_placed parameter
+    # (see prius file)
+    # ^z ^y
+    # | /
+    # |/
+    # --->x 
+    
+    # we don't know after the transformation whether our axis all point into the positive direction
+    # meaning e.g. point 3 could have a negative y coordinate
+    # so we need to keep track of this additionally
+    
+    # we would later simply like to know whether the points are within bbox_limits
+    # for this we need positive unit vectors, so we need to take the appropriate origin
+    # but we do not know which one this is, so we need to check
+    
+    # origin_index = -1
+    # for i in bbox_placed.shape[0]:
+    #     if ((i <= 3 and 
+    #         bbox_placed[((i + 1) % 4)] - bbox_placed[i] >= 0 and 
+    #         bbox_placed[((i - 1) % 4)] - bbox_placed[i] >= 0 and 
+    #         bbox_placed[(i + 4)] - bbox_placed[i] >= 0) or 
+    #         (i > 3 and 
+    #         bbox_placed[((i + 1) % 8)] - bbox_placed[i] >= 0 and 
+    #         bbox_placed[((i - 1) % 8)] - bbox_placed[i] >= 0 and 
+    #         bbox_placed[(i - 4)] - bbox_placed[i] >= 0
+    #          )):
+    #         origin_index = i
+    #         break
+            
+    # assert origin_index != -1
+    # neighbor_indexes = (origin_index + 1) % 4, (origin_index - 1) % 4, origin_index + 4 if origin_index <= 3 else (origin_index + 1) % 8, (origin_index - 1) % 8, origin_index - 4 if origin_index <= 3
+        
+    
+    x_vec = bbox_placed[1] - bbox_placed[2]
+    y_vec = bbox_placed[3] - bbox_placed[2]
+    z_vec = bbox_placed[6] - bbox_placed[2]
+    
+    x_vec = list(x_vec / np.linalg.norm(x_vec))
+    y_vec = list(y_vec / np.linalg.norm(y_vec))
+    z_vec = list(z_vec / np.linalg.norm(z_vec))
+    
+    rotation_matrix = np.linalg.inv(np.array([x_vec, y_vec, z_vec]))
+    rotation_matrix_hom = np.hstack((
+        rotation_matrix, np.zeros((rotation_matrix.shape[1], 1), dtype=np.float32)))
+    
+    # translation from old origin to new origin (old is (0, 0, 0))
+    translation_hom = [list(-bbox_placed[2]) + [1]]
+    
+    translation_matrix = np.vstack((rotation_matrix_hom, translation_hom)).T
+    
+    return translation_matrix
+    
 def points_in_bbox(radar_points: np.ndarray, 
-                   bbox: np.ndarray) -> Optional[List[np.ndarray]]:
+                   bbox_limits: np.ndarray,
+                   transformation_matrix: np.ndarray = np.identity(4)) -> Optional[np.ndarray]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
     The required order of the bounding box coordinates is shown below.
 
     :param radar_points: the radar points in cartesian and in the radar coordinate system
-    :param bbox: the bounding box in cartesian and in the radar coordinate system
+    :param bbox_limits: height, width and length of the bbox
 
     Returns: radar points inside the given bounding box
     """
@@ -333,28 +401,63 @@ def points_in_bbox(radar_points: np.ndarray,
     # |  1-----|--0 ^ length (x)
     # | /      | / /
     # |/       |/ /
-    # 2--------3 <--- width (y)
+    # 2--------3 ---> width (y)
     
     inside_points: List[np.ndarray] = []
     
-    for i in range(radar_points.shape[0]):
-        x, y, z = radar_points[i, :3]
+    # transform radar coordinates to local reference frame of the cube with origin at point 2
+    radar_points_tr = homogenous_transformation_cart(radar_points[:, :3], transformation_matrix)
+    radar_points_tr = np.hstack((radar_points_tr, radar_points[:, 3:]))
+    
+    # the bounding box has shape (8, 3)
+    # first index see order of corners above        
+    # second index is x, y, z of the corner
+    
+    inside_points: np.ndarray = radar_points[np.where(
+        (radar_points_tr[:, 0] <= bbox_limits[0]) &
+        (radar_points_tr[:, 1] <= bbox_limits[1]) &
+        (radar_points_tr[:, 2] <= bbox_limits[2]) &
+        
+        (radar_points_tr[:, 0] >= 0) &
+        (radar_points_tr[:, 1] >= 0) &
+        (radar_points_tr[:, 2] >= 0))]
+            
+    return inside_points if inside_points.size != 0 else None
 
-        # the bounding box has shape (8, 3)
-        # first index see order of corners above        
-        # second index is x, y, z of the corner
-        if (x <= bbox[0, 0] and x >= bbox[3, 0] and 
-            y <= bbox[0, 1] and y >= bbox[1, 1] and  
-            z >= bbox[0, 2] and z <= bbox[4, 2] and
-            
-            # theoretically, these latter three checks are not needed
-            x >= bbox[6, 0] and x <= bbox[5, 0] and 
-            y >= bbox[6, 1] and y <= bbox[7, 1] and 
-            z <= bbox[6, 2] and z >= bbox[3, 2]):
-            
-            inside_points.append(radar_points[i])
-            
-    return None if not inside_points else inside_points
+
+def prepare_radar_data(loader: FrameDataLoader):
+    # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
+    radar_data_r = loader.radar_data
+    if radar_data_r is None:
+        return None
+    
+    # we don't want to include points from previous scans, i.e. accumulated points
+    # not needed probably, just to be safe
+    radar_data_r = radar_data_r[radar_data_r[:, 6] == 0]
+    return radar_data_r
+
+
+def find_matching_points_for_bboxes(radar_points: np.ndarray,
+                                    labels: FrameLabels,
+                                    transforms: FrameTransformMatrix,
+                                    camera_coordinates: bool = False) -> List[Tuple[dict, Optional[np.ndarray]]]:
+
+    labels_3d_corners = get_placed_3d_label_corners(labels=labels, transforms=transforms, camera_coordinates=camera_coordinates)
+    
+    matching_points: List[np.ndarray] = []
+    for label in labels_3d_corners:
+        bbox_placed = label['corners_3d_placed']
+        print(label['label_class'])
+        
+        # we need to apply a rotation matrix as the bbox is not aligned with the axis of the coordinate system
+        transformation_matrix: np.ndarray = get_bbox_transformation_matrix(bbox_placed)
+        bbox_limits = np.array([label['l'], label['w'], label['h']])
+        matching_points_r = points_in_bbox(radar_points=radar_points, 
+                                                bbox_limits=bbox_limits, transformation_matrix=transformation_matrix)
+        
+        matching_points.append((label, matching_points_r))
+        
+    return matching_points
 
 def get_class_names(summarized: bool = True) -> List[str]:
     """

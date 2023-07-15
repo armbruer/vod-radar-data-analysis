@@ -15,7 +15,7 @@ class Visualization3D:
 
     def __init__(self, frame_data: FrameDataLoader, origin='camera'):
         """
-Constructor which prepared the 3D plot in the requested frame.
+        Constructor which prepared the 3D plot in the requested frame.
         :param frame_data:
         """
         self.plot = None
@@ -67,7 +67,7 @@ Constructor which prepared the 3D plot in the requested frame.
                           axis_length: float = axis_length_3d,
                           label_size: float = axis_label_size):
         """
-This method plots the radar origin in the requested frame.
+        This method plots the radar origin in the requested frame.
         :param axis_length: Vector length of the axis.
         :param label: Bool which sets if the label should be displayed.
         :param color: Color of the label in int.
@@ -87,7 +87,7 @@ This method plots the radar origin in the requested frame.
                           axis_length: float = axis_length_3d,
                           label_size: float = axis_label_size):
         """
-This method plots the lidar origin in the requested frame.
+        This method plots the lidar origin in the requested frame.
         :param axis_length: Vector length of the axis.
         :param label: Bool which sets if the label should be displayed.
         :param color: Color of the label in int.
@@ -107,7 +107,7 @@ This method plots the lidar origin in the requested frame.
                            axis_length: float = axis_length_3d,
                            label_size: float = axis_label_size):
         """
-This method plots the camera origin in the requested frame.
+        This method plots the camera origin in the requested frame.
         :param axis_length: Vector length of the axis.
         :param label: Bool which sets if the label should be displayed.
         :param color: Color of the label in int.
@@ -125,7 +125,7 @@ This method plots the camera origin in the requested frame.
                           pcl_size: float = lidar_pcl_size,
                           color: int = lidar_plot_color_3d):
         """
-This method plots the lidar pcl on the requested frame.
+        This method plots the lidar pcl on the requested frame.
         :param pcl_size: Size of the pcl particles in the graph.
         :param color: Color of the pcl particles in the graph.
         """
@@ -141,7 +141,7 @@ This method plots the lidar pcl on the requested frame.
                           color: int = radar_plot_color_3d,
                           selected_points: Optional[np.ndarray] = None):
         """
-This method plots the radar pcl on the requested frame.
+        This method plots the radar pcl on the requested frame.
         :param pcl_size: Size of the pcl particles in the graph.
         :param color: Color of the pcl particles in the graph.
         :param selected_points: Plot only the selected radar points.
@@ -158,7 +158,7 @@ This method plots the radar pcl on the requested frame.
                                    color: int = radar_velocity_color_3d,
                                    selected_points: Optional[np.ndarray] = None):
         """
-This method plots the radar radial velocity vectors for each radar point in the requested frame.
+        This method plots the radar radial velocity vectors for each radar point in the requested frame.
         :param color: Color of the vector.
         :param selected_points: Plot only the selected radar points.
         """
@@ -178,7 +178,7 @@ This method plots the radar radial velocity vectors for each radar point in the 
                          class_width=label_line_width_3d,
                          selected_labels: Optional[FrameLabels] = None):
         """
-This method plots the annotations in the requested frame.
+        This method plots the annotations in the requested frame.
         :param class_colors: Dictionary that contains the colors for the annotations.
         :param class_width: Dictionary that contains the line width for the annotations.
         :param selected_labels: Plot only the annotations corresponding to the selected labels.
@@ -249,7 +249,8 @@ This method displays the plot with the specified arguments.
             self.plot_lidar_points()
 
         if radar_points_plot:
-            self.plot_radar_points(selected_points=selected_points)
+            color = radar_plot_color_3d if selected_points is None else radar_plot_fallback_color_3d
+            self.plot_radar_points(selected_points=selected_points, color=color)
 
         if radar_velocity_plot:
             self.plot_radar_radial_velocity(selected_points=selected_points)

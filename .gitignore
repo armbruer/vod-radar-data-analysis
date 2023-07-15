@@ -3,6 +3,7 @@ venv/
 mt/extractor/output/
 output/
 .vscode/
+output_test/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

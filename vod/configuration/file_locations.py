@@ -14,7 +14,7 @@ class KittiLocations:
                  stats_dir: str = None,
                  figures_dir: str = None,
                  analysis_dir: str = None,
-                 testing_dir: str = None):
+                 testing: bool = False):
         """
 Constructor which based on a few parameters defines the locations of possible data.
         :param root_dir: The root directory of the dataset.
@@ -32,7 +32,10 @@ Constructor which based on a few parameters defines the locations of possible da
         self.stats_dir: str = stats_dir
         self.figures_dir: str = figures_dir
         self.analysis_dir: str = analysis_dir
-        self.testing_dir: str = testing_dir
+        self.testing = testing
+        
+        if testing:
+            self.output_dir = f'{self.output_dir}_test'
         
         if self.output_dir is not None:
             if self.stats_dir is None:
@@ -43,8 +46,6 @@ Constructor which based on a few parameters defines the locations of possible da
                 self.data_dir = f'{self.output_dir}/data'
             if self.analysis_dir is None:
                 self.analysis_dir = f'{self.output_dir}/analysis'
-            if self.testing_dir is None:
-                self.testing_dir = f'{self.testing_dir}/testing'
 
         # Automatically defined variables. The location of sub-folders can be customized here.
         # Current definitions are based on the recommended locations.

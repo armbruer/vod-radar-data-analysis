@@ -37,14 +37,16 @@ class DataView:
 
 class DataManager:
         
-    def __init__(self, kitti_locations: KittiLocations, testing: bool = False) -> None:
+    def __init__(self, kitti_locations: KittiLocations) -> None:
         self.kitti_locations = kitti_locations
         self.extractor = ParameterRangeExtractor(kitti_locations)
         self.data: Dict[DataVariant, pd.DataFrame] = {}
-        self.testing = testing
-        self.data_dir = f'{self.kitti_locations.data_dir}' if not testing else f'{self.kitti_locations.testing_dir}'
+        self.data_dir = f'{self.kitti_locations.data_dir}'
         
-    def get_view(self, data_variant: DataVariant, data_view_type: DataViewType = DataViewType.NONE, refresh=False) -> DataView:
+    def get_view(self, data_variant: DataVariant, 
+                 data_view_type: DataViewType = DataViewType.NONE, 
+                 refresh=False, 
+                 frame_numbers: Optional[List[str]]=None) -> DataView:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset.
 
@@ -53,11 +55,14 @@ class DataManager:
 
         Returns the dataframe containing the data requested
         """
-        df = self._get_df(data_variant, refresh)
+        df = self._get_df(data_variant, refresh, frame_numbers)
         
         return DataView(df=df, data_variant=data_variant, data_view_type=data_view_type)
         
-    def _get_df(self, data_variant: DataVariant, refresh=False) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+    def _get_df(self, 
+                data_variant: DataVariant,
+                refresh=False, 
+                frame_numbers: Optional[List[str]]=None) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset
 
@@ -70,12 +75,12 @@ class DataManager:
             return self.data[data_variant]
 
         if data_variant == DataVariant.SYNTACTIC_DATA:
-            self.store_dataframe(
-                data_variant, self.extractor.extract_data_from_syntactic_data())
+            df = self.extractor.extract_data_from_syntactic_data(frame_numbers=frame_numbers)
+            self.store_dataframe(data_variant=data_variant, df=df)
 
         elif data_variant == DataVariant.SEMANTIC_DATA:
-            self.store_dataframe(
-                data_variant, self.extractor.extract_object_data_from_semantic_data())
+            df = self.extractor.extract_object_data_from_semantic_data(frame_numbers=frame_numbers)
+            self.store_dataframe(data_variant=data_variant, df=df)
 
         elif data_variant == DataVariant.SEMANTIC_DATA_BY_CLASS:
             semantic_df = self._get_df(DataVariant.SEMANTIC_DATA)
@@ -98,6 +103,7 @@ class DataManager:
         dv_str = data_variant.shortname()
 
         matching_files = []
+        os.makedirs(self.data_dir, exist_ok=True)
         for file in os.listdir(self.data_dir):
             if file.endswith('.hdf5') and dv_str in file:
                 datetime_str = file.split('-')[-1].split('.')[0]

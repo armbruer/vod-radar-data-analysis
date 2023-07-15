@@ -1,18 +1,17 @@
 import numpy as np
 import pandas as pd
+import extraction as ex
 
 from tqdm import tqdm
-from extraction.helpers import DataVariant
-import extraction as ex
+from extraction.helpers import DataVariant, find_matching_points_for_bboxes, prepare_radar_data
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
 from vod.frame import FrameDataLoader
-from vod.common.file_handling import get_frame_list_from_folder
-from typing import Dict, List, Optional
-
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import homogenous_transformation_cart
-from vod.visualization.helpers import get_placed_3d_label_corners
+from vod.common.file_handling import get_frame_list_from_folder
+from typing import Dict, List, Optional, Tuple
+
 
 class ParameterRangeExtractor:
 
@@ -41,28 +40,24 @@ class ParameterRangeExtractor:
         z: List[np.ndarray] = []
         
         for frame_number in tqdm(iterable=frame_numbers, desc='Syntactic data: Going through frames'):
-            loader = FrameDataLoader(
-                kitti_locations=self.kitti_locations, frame_number=frame_number)
+            loader = FrameDataLoader(kitti_locations=self.kitti_locations, frame_number=frame_number)
 
             # TODO future work: rcs
-            # radar_data shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-            radar_data_r = loader.radar_data
+            radar_data_r = prepare_radar_data(loader)
             
-            # we don't want to include points from previous scans, i.e. accumulated points
-            # not needed probably, just to be safe
-            radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
+            if radar_data_r is None:
+                continue
             
-            if radar_data_r is not None:
-                frame_nums.append(np.full(radar_data_r.shape[0], frame_number))
-                ranges.append(ex.locs_to_distance(radar_data_r[:, :3]))
-                azimuths.append(ex.azimuth_angle_from_location(radar_data_r[:, :2]))
-                elevations.append(ex.elevation_angle_from_location(radar_data_r[:, [0, 2]]))
-                dopplers.append(radar_data_r[:, 4])
-                dopplers_compensated.append(radar_data_r[:, 5])
-                
-                x.append(radar_data_r[:, 0])
-                y.append(radar_data_r[:, 1])
-                z.append(radar_data_r[:, 2])
+            frame_nums.append(np.full(radar_data_r.shape[0], frame_number))
+            ranges.append(ex.locs_to_distance(radar_data_r[:, :3]))
+            azimuths.append(ex.azimuth_angle_from_location(radar_data_r[:, :2]))
+            elevations.append(ex.elevation_angle_from_location(radar_data_r[:, [0, 2]]))
+            dopplers.append(radar_data_r[:, 4])
+            dopplers_compensated.append(radar_data_r[:, 5])
+            
+            x.append(radar_data_r[:, 0])
+            y.append(radar_data_r[:, 1])
+            z.append(radar_data_r[:, 2])
 
         columns = [frame_nums, ranges, azimuths, dopplers, elevations, dopplers_compensated, x, y, z]
         data = list(map(np.hstack, columns))
@@ -157,12 +152,7 @@ class ParameterRangeExtractor:
         bounding box volume, relative velocity (doppler), height, width, length, x, y, z
         """
         
-
-        # Step 1: Obtain corners of bounding boxes and radar data points        
-        labels_with_corners = get_placed_3d_label_corners(labels, transforms)
-        
-        # radar_points shape: [x, y, z, RCS, v_r, v_r_compensated, time] (-1, 7)
-        radar_data_r = loader.radar_data
+        radar_data_r = prepare_radar_data(loader)
         if radar_data_r is None:
             return None
         
@@ -187,53 +177,46 @@ class ParameterRangeExtractor:
         width: List[np.ndarray] = []
         length: List[np.ndarray] = []
         
-        # we don't want to include points from previous scans, i.e. accumulated points
-        # not needed probably, just to be safe
-        radar_data_r = radar_data_r[np.where(radar_data_r[:, 6] == 0)]
+        radar_data_r = prepare_radar_data(loader)
         
-        # Step 2: Transform points into the same coordinate system as the labels
-        radar_data_c = homogenous_transformation_cart(points=radar_data_r[:, :3], transform=transforms.t_camera_radar)
-        radar_data_c = np.hstack((radar_data_c, radar_data_r[:, 3:]))
+        # each array is of shape (N, 7) conataining the points matching one label
+        matching_points: List[Tuple[dict, Optional[np.ndarray]]] = find_matching_points_for_bboxes(radar_points=radar_data_r, labels=labels, transforms=transforms)
         
-        for label in labels_with_corners:
-            # Step 3: For each bounding box get a list of radar points which are inside of it
-            bbox = label['corners_3d_placed']
-            points_matching = ex.points_in_bbox(radar_points=radar_data_r, bbox=bbox)
+        for label, points_matching in matching_points:
+            if points_matching is None:
+                continue
             
-            if points_matching is not None:
-                points_matching = np.vstack(points_matching)
-                clazz_id = ex.get_class_id_from_name(label['label_class'], summarized=False)
-                summarized_id = ex.convert_to_summarized_class_id(clazz_id)
-                
-                # Step 4: Get the avg doppler value of the object and collect it
-                frame_numbers.append(loader.frame_number)
-                object_clazz.append(clazz_id)
-                summarized_clazz.append(summarized_id)
-                dopplers_compensated.append(np.mean(points_matching[:, 5]))
-                detections.append(points_matching.shape[0])
-                bbox_vols.append(label['l'] * label['h'] * label['w'])         
-                
-                loc_camera = np.array([[label['x'], label['y'], label['z']]])
-                
-                # transform from camera coordinates to radar coordinates, stay cartesian
-                # we take the center point of the object to calculate, its elevation and azimuth
-                loc_radar = homogenous_transformation_cart(points=loc_camera, transform=transforms.t_radar_camera)
-                range_from_loc = ex.locs_to_distance(loc_radar)
-                ranges.append(range_from_loc)
-                
-                # look at Prius_sensor_setup_5 radar coordinate system to understand indexes in the next lines
-                azimuths.append(ex.azimuth_angle_from_location(loc_radar[:, :2]))
-                dopplers.append(np.mean(points_matching[:, 4]))
-                elevations.append(ex.elevation_angle_from_location(loc_radar[:, [0, 2]]))
-                
-                x.append(loc_radar[0, 0])
-                y.append(loc_radar[0, 1])
-                z.append(loc_radar[0, 2])
-                
-                height.append(label['h'])
-                width.append(label['w'])
-                length.append(label['l'])
-                
+            clazz_id = ex.get_class_id_from_name(label['label_class'], summarized=False)
+            summarized_id = ex.convert_to_summarized_class_id(clazz_id)
+            
+            frame_numbers.append(loader.frame_number)
+            object_clazz.append(clazz_id)
+            summarized_clazz.append(summarized_id)
+            dopplers_compensated.append(np.mean(points_matching[:, 5]))
+            detections.append(points_matching.shape[0])
+            bbox_vols.append(label['l'] * label['h'] * label['w'])         
+            
+            loc_camera = np.array([[label['x'], label['y'], label['z']]])
+            
+            # transform from camera coordinates to radar coordinates, stay cartesian
+            # we take the center point of the object to calculate, its elevation and azimuth
+            loc_radar = homogenous_transformation_cart(points=loc_camera, transform=transforms.t_radar_camera)
+            range_from_loc = ex.locs_to_distance(loc_radar)
+            ranges.append(range_from_loc)
+            
+            # look at Prius_sensor_setup_5 radar coordinate system to understand indexes in the next lines
+            azimuths.append(ex.azimuth_angle_from_location(loc_radar[:, :2]))
+            dopplers.append(np.mean(points_matching[:, 4]))
+            elevations.append(ex.elevation_angle_from_location(loc_radar[:, [0, 2]]))
+            
+            x.append(loc_radar[0, 0])
+            y.append(loc_radar[0, 1])
+            z.append(loc_radar[0, 2])
+            
+            height.append(label['h'])
+            width.append(label['w'])
+            length.append(label['l'])
+            
         
         if not object_clazz:
             return None
@@ -242,3 +225,4 @@ class ParameterRangeExtractor:
                    object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, 
                    height, width, length, x, y, z]
         return list(map(np.hstack, columns))
+            

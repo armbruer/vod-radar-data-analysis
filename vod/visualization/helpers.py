@@ -31,19 +31,17 @@ This function returns a list of 3d corners of each label in a frame given a Fram
     :param labels: FrameLabels object.
     :return: List of 3d corners.
     """
-    label_corners = []
     
     # order of corners
-    # (origin is in the center of the box)
-    #    7--------4
-    #   /|       /|
-    #  / |      / |
-    # 6--------5  |
+    #    5--------4 
+    #   /|       /| | height (z)
+    #  / |      / | |
+    # 6--------7  | |
     # |  |     |  |
-    # |  3-----|--0
-    # | /      | /
-    # |/       |/
-    # 2--------1
+    # |  1-----|--0 ^ length (x)
+    # | /      | / /
+    # |/       |/ /
+    # 2--------3 ---> width (y)
 
     for label in labels.labels_dict:
         x_corners = [label['l'] / 2,
@@ -72,25 +70,13 @@ This function returns a list of 3d corners of each label in a frame given a Fram
                      label['h']]
 
         corners_3d = np.vstack([x_corners, y_corners, z_corners])
-        label_corners.append({'label_class': label['label_class'],
-                              'score': label['score'],
-                              'corners_3d': corners_3d})
+        label['corners_3d'] = corners_3d
 
-    return label_corners
+    return labels.labels_dict
 
-# def get_placed_3d_label_corners(labels: FrameLabels, _) -> List[dict]:
-#     # we need to place the corners in the camera coordinate system using the center point
-#     corners_3d = get_3d_label_corners(labels)
-    
-#     for index, label in enumerate(labels.labels_dict):
-#         center = np.array([label['x'], label['y'], label['z']])
-#         new_corners_3d = corners_3d[index]['corners_3d'].T + center
-#         label['corners_3d_placed'] = new_corners_3d
-        
-#     return labels.labels_dict
-
-def get_placed_3d_label_corners(labels: FrameLabels, transforms: transformations.FrameTransformMatrix) -> List[dict]:
-    labels: List[dict] = get_transformed_3d_label_corners(labels, transforms.t_radar_lidar, transforms.t_camera_lidar)
+def get_placed_3d_label_corners(labels: FrameLabels, transforms: transformations.FrameTransformMatrix, camera_coordinates: bool) -> List[dict]:
+    transformation = transformation=transforms.t_radar_lidar if not camera_coordinates else transforms.t_camera_lidar
+    labels: List[dict] = get_transformed_3d_label_corners(labels=labels, transformation=transformation, t_camera_lidar=transforms.t_camera_lidar)
     
     for label in labels:
         new_corners_3d_hom = label['corners_3d_transformed']
@@ -98,24 +84,6 @@ def get_placed_3d_label_corners(labels: FrameLabels, transforms: transformations
         label['corners_3d_placed'] = transformations.cartesian_coordinates(new_corners_3d_hom)
 
     return labels
-
-def get_transformed_3d_center_point(label: dict, center_point: np.ndarray, transformation, t_camera_lidar):
-    # this transforms only the center point of a single object
-    # as the center point itself was never drawn, it never needed to be rotated
-    
-    center_point = np.atleast_2d(center_point)[0]
-    rotation = -(label['rotation'] + np.pi / 2)  # undo changes made to rotation
-    rot_matrix = np.array([[np.cos(rotation), -np.sin(rotation), 0],
-                            [np.sin(rotation), np.cos(rotation), 0],
-                            [0, 0, 1]])
-
-    center = (np.linalg.inv(t_camera_lidar) @ np.array([*list(center_point), 1]))[:3]
-
-    center_rotated = np.dot(rot_matrix, center).T
-    center_rotated_hom = np.array([[*list(center_rotated), 1]])
-    center_transformed_hom = transformations.homogeneous_transformation(center_rotated_hom,
-                                                                            transformation)
-    return center_transformed_hom
 
 
 def get_transformed_3d_label_corners(labels: FrameLabels, transformation, t_camera_lidar):
