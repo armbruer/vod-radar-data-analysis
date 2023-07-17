@@ -306,7 +306,7 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
     return np.arctan2(y, x) * 180 / np.pi
 
 
-def get_bbox_transformation_matrix(bbox_placed: np.ndarray):
+def get_bbox_rotation_matrix(bbox_placed: np.ndarray):
     # order of corners of bbox
     #    5--------4 
     #   /|       /| | height (z)
@@ -319,75 +319,31 @@ def get_bbox_transformation_matrix(bbox_placed: np.ndarray):
     # 2--------3 ---> width (y)
     #
     
-    # bbox coordinate system (as above)
-    # ^z ^x
-    # | /
-    # |/
-    # --->y
+    # we don't know the orientation of the cube
+    # simply take 2 as reference point for the orientation of the new basis
     
-    # camera and radar coordinate system
-    # this is the coordinate system of the bbox_placed parameter
-    # (see prius file)
-    # ^z ^y
-    # | /
-    # |/
-    # --->x 
+    x_vec = list(bbox_placed[1] - bbox_placed[2])
+    y_vec = list(bbox_placed[3] - bbox_placed[2])
+    z_vec = list(bbox_placed[6] - bbox_placed[2])
     
-    # we don't know after the transformation whether our axis all point into the positive direction
-    # meaning e.g. point 3 could have a negative y coordinate
-    # so we need to keep track of this additionally
+    rotation_matrix = np.linalg.inv(np.array([x_vec, y_vec, z_vec]).T)
     
-    # we would later simply like to know whether the points are within bbox_limits
-    # for this we need positive unit vectors, so we need to take the appropriate origin
-    # but we do not know which one this is, so we need to check
-    
-    # origin_index = -1
-    # for i in bbox_placed.shape[0]:
-    #     if ((i <= 3 and 
-    #         bbox_placed[((i + 1) % 4)] - bbox_placed[i] >= 0 and 
-    #         bbox_placed[((i - 1) % 4)] - bbox_placed[i] >= 0 and 
-    #         bbox_placed[(i + 4)] - bbox_placed[i] >= 0) or 
-    #         (i > 3 and 
-    #         bbox_placed[((i + 1) % 8)] - bbox_placed[i] >= 0 and 
-    #         bbox_placed[((i - 1) % 8)] - bbox_placed[i] >= 0 and 
-    #         bbox_placed[(i - 4)] - bbox_placed[i] >= 0
-    #          )):
-    #         origin_index = i
-    #         break
-            
-    # assert origin_index != -1
-    # neighbor_indexes = (origin_index + 1) % 4, (origin_index - 1) % 4, origin_index + 4 if origin_index <= 3 else (origin_index + 1) % 8, (origin_index - 1) % 8, origin_index - 4 if origin_index <= 3
-        
-    
-    x_vec = bbox_placed[1] - bbox_placed[2]
-    y_vec = bbox_placed[3] - bbox_placed[2]
-    z_vec = bbox_placed[6] - bbox_placed[2]
-    
-    x_vec = list(x_vec / np.linalg.norm(x_vec))
-    y_vec = list(y_vec / np.linalg.norm(y_vec))
-    z_vec = list(z_vec / np.linalg.norm(z_vec))
-    
-    rotation_matrix = np.linalg.inv(np.array([x_vec, y_vec, z_vec]))
-    rotation_matrix_hom = np.hstack((
-        rotation_matrix, np.zeros((rotation_matrix.shape[1], 1), dtype=np.float32)))
-    
-    # translation from old origin to new origin (old is (0, 0, 0))
-    translation_hom = [list(-bbox_placed[2]) + [1]]
-    
-    translation_matrix = np.vstack((rotation_matrix_hom, translation_hom)).T
-    
-    return translation_matrix
+    return rotation_matrix
     
 def points_in_bbox(radar_points: np.ndarray, 
-                   bbox_limits: np.ndarray,
-                   transformation_matrix: np.ndarray = np.identity(4)) -> Optional[np.ndarray]:
+                   bbox_placed: np.ndarray,
+                   rotation_matrix: np.ndarray = np.identity(4)) -> Optional[np.ndarray]:
     """
     Returns the radar points inside the given bounding box.
     Requires that radar points and bounding boxes are in the same coordinate system.
     The required order of the bounding box coordinates is shown below.
 
     :param radar_points: the radar points in cartesian and in the radar coordinate system
-    :param bbox_limits: height, width and length of the bbox
+    :param bbox_placed: the bbox coordinates in cartesian and in the radar coordinate system
+    :param rotation_matrix: a matrix to transform from the unit vectors of the radar coordinate
+    system to a basis of the bbox (one of the corners is used as reference for orientation), 
+    the rotation matrix will shrink the edges of the bbox to unit vectors, i.e. it is additionally
+    scaling
 
     Returns: radar points inside the given bounding box
     """
@@ -405,23 +361,16 @@ def points_in_bbox(radar_points: np.ndarray,
     
     inside_points: List[np.ndarray] = []
     
-    # transform radar coordinates to local reference frame of the cube with origin at point 2
-    radar_points_tr = homogenous_transformation_cart(radar_points[:, :3], transformation_matrix)
-    radar_points_tr = np.hstack((radar_points_tr, radar_points[:, 3:]))
+    # as we do not use a transformation matrix (only rotation and scaling, i.e. origin still in same place)
+    # we need to subtract our new "origin" for the "translation"
+    point_vecs = radar_points[:, :3] - bbox_placed[2]
     
-    # the bounding box has shape (8, 3)
-    # first index see order of corners above        
-    # second index is x, y, z of the corner
+    # transform radar coordinates to local reference frame of the cube
+    point_vecs = rotation_matrix.dot(point_vecs.T).T
     
-    inside_points: np.ndarray = radar_points[np.where(
-        (radar_points_tr[:, 0] <= bbox_limits[0]) &
-        (radar_points_tr[:, 1] <= bbox_limits[1]) &
-        (radar_points_tr[:, 2] <= bbox_limits[2]) &
-        
-        (radar_points_tr[:, 0] >= 0) &
-        (radar_points_tr[:, 1] >= 0) &
-        (radar_points_tr[:, 2] >= 0))]
-            
+    # as the bbox's edges have been shrunk to unit vector length and aligned with axes, we can simply
+    # check wether the points are within the edges, i.e. within [0, 1]
+    inside_points: np.ndarray = radar_points[np.where((point_vecs >= 0).all(axis=1) & (point_vecs <= 1).all(axis=1))]
     return inside_points if inside_points.size != 0 else None
 
 
@@ -447,13 +396,12 @@ def find_matching_points_for_bboxes(radar_points: np.ndarray,
     matching_points: List[np.ndarray] = []
     for label in labels_3d_corners:
         bbox_placed = label['corners_3d_placed']
-        print(label['label_class'])
         
         # we need to apply a rotation matrix as the bbox is not aligned with the axis of the coordinate system
-        transformation_matrix: np.ndarray = get_bbox_transformation_matrix(bbox_placed)
-        bbox_limits = np.array([label['l'], label['w'], label['h']])
+        rotation_matrix: np.ndarray = get_bbox_rotation_matrix(bbox_placed)
         matching_points_r = points_in_bbox(radar_points=radar_points, 
-                                                bbox_limits=bbox_limits, transformation_matrix=transformation_matrix)
+                                                bbox_placed=bbox_placed, 
+                                                rotation_matrix=rotation_matrix)
         
         matching_points.append((label, matching_points_r))
         

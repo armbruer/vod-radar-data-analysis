@@ -92,10 +92,10 @@ class DataAnalysisHelper:
         df_res_stats.to_csv(filename, index=False)
         
         
-        df_full = pd.DataFrame(data=data[min_max_rows], columns=df.columns)
+        # df_full = pd.DataFrame(data=data[min_max_rows], columns=df.columns)
         
-        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
-        df_full.to_csv(filename, index=False)
+        # filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
+        # df_full.to_csv(filename, index=False)
         logging.info(f'Analysis data written to file:///{filename}')
 
     def _create_output_dir(self, dv_str, subvariant):

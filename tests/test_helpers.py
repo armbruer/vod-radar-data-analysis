@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from extraction.file_manager import DataManager, DataView
-from extraction.helpers import DataVariant, DataViewType, find_matching_points_for_bboxes, get_bbox_transformation_matrix, locs_to_distance, points_in_bbox, prepare_radar_data
+from extraction.helpers import DataVariant, DataViewType, find_matching_points_for_bboxes, get_bbox_rotation_matrix, locs_to_distance, points_in_bbox, prepare_radar_data
 
 from vod.configuration.file_locations import KittiLocations
 from vod.frame.data_loader import FrameDataLoader
@@ -116,8 +116,8 @@ class TestHelpers():
         radar_points = np.array([[1, 1, 1], [9, 8, 7], [-1, 1, 1], [1, 11, 0], [0, 0, 0], [10, 10, 10], [1, 1, -1]])
         bbox_limits = np.array([10, 10 , 10])
         
-        transformation = get_bbox_transformation_matrix(bbox)
-        inside_points_res = points_in_bbox(radar_points=radar_points, bbox_limits=bbox_limits, transformation_matrix=transformation)
+        transformation = get_bbox_rotation_matrix(bbox)
+        inside_points_res = points_in_bbox(radar_points=radar_points, bbox_limits=bbox_limits, rotation_matrix=transformation)
         inside_points_expected = np.array([[1, 1, 1], [9, 8, 7], [0, 0, 0], [10, 10, 10]])
         
         assert np.array_equal(inside_points_res, inside_points_expected)
@@ -212,7 +212,7 @@ class TestHelpers():
         radar_points = np.array([[0, 0, -1], [1, 1, 1], [2, 2, 2]])
         bbox = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0], [1, 0, 1], [0, 1, 1], [0, 1, 0], [0, 0, 0], [0, 0, 1]])
         bbox_limits = np.array([1, 1, 1])
-        transformation_matrix = get_bbox_transformation_matrix(bbox)
+        transformation_matrix = get_bbox_rotation_matrix(bbox)
         assert points_in_bbox(radar_points, bbox_limits, transformation_matrix) is None
 
         # # Test case 1: Some points inside the bbox
@@ -236,7 +236,7 @@ class TestHelpers():
         radar_points = np.array([[0.5, 0.5, 0.5], [1.5, 1.5, 1.5], [0.7, 0.7, 0.7], [1.3, 1.3, 1.3]])
         bbox = np.array([[1, 1, 2], [2, 2, 3], [3, 1, 2], [2, 0, 1], [1, 1, 4], [2, 2, 5], [3, 1, 4], [2, 0, 3]])
         bbox_limits = np.array([np.sqrt(2), np.sqrt(2), np.sqrt(2)])
-        transformation_matrix = get_bbox_transformation_matrix(bbox)
+        transformation_matrix = get_bbox_rotation_matrix(bbox)
         test = homogenous_transformation_cart(bbox, transformation_matrix)
         expected_result = np.array([[0.7 ,0.7 ,0.7],[1.3 ,1.3, 1.3]])
         assert points_in_bbox(radar_points,bbox_limits , transformation_matrix) == expected_result
