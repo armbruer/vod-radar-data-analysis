@@ -167,24 +167,3 @@ def _draw_helper3D(
                     grid_visible=True,
                     radar_velocity_plot=True)
     
-def _is_point_in_list(point: np.ndarray, point_list: List[np.ndarray]):
-    point = np.atleast_2d(point)[:, :3]
-    return any(map(lambda point_b: np.array_equal(point, np.atleast_2d(point_b)[:, :3]), point_list))
-        
-def distance_to_center(center: np.ndarray, point: np.ndarray):
-    point = np.atleast_2d(point)[:, :3]
-    center = np.atleast_2d(center)[:, :3]
-    return math.sqrt((point[:, 0] - center[:, 0])**2 + (point[:, 1] - center[:, 1])**2 + (point[:, 2] - center[:, 2])**2)
-
-def _debug_find_closest_points(already_matched: List[np.ndarray], all_points: List[np.ndarray], center: np.ndarray, n_samples=5):
-    
-    closest_points = sorted(all_points, key=lambda p: distance_to_center(center, p))
-    closest_points = list(filter(lambda p: not _is_point_in_list(p, already_matched), closest_points))
-    closest_points = closest_points[:n_samples]
-    
-    
-    for p in closest_points:
-        print(distance_to_center(center, p))
-    
-    return closest_points
-    
