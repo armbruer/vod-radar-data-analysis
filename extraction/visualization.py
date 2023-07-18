@@ -1,9 +1,8 @@
 import logging
 import pathlib
-import math
 import numpy as np
 
-from typing import List, Optional
+from typing import Optional
 from matplotlib.image import imsave
 from extraction.helpers import DataVariant, find_matching_points_for_bboxes, get_class_names, prepare_radar_data
 from vod.configuration.file_locations import KittiLocations
@@ -17,7 +16,6 @@ from vod.visualization.vis_3d import Visualization3D
 def visualize_frame(data_variant: DataVariant, 
                      kitti_locations: KittiLocations, 
                      frame_number: str,
-                     class_id: int,
                      center_radar: np.ndarray,
                      detections: int, 
                      i=0,

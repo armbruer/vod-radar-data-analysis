@@ -4,7 +4,7 @@ import numpy as np
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
 
-from vod.frame.transformations import FrameTransformMatrix, homogenous_transformation_cart
+from vod.frame.transformations import FrameTransformMatrix
 from vod.visualization.helpers import get_placed_3d_label_corners
 
 """
