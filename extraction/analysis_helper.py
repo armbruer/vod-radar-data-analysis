@@ -61,14 +61,16 @@ class DataAnalysisHelper:
         min_fns = data[min_indexes, 0]
         max_fns = data[max_indexes, 0]
         
-        min_max_rows = list(np.vstack((data[min_indexes], data[max_indexes])))
+        min_max_indexes = list(min_indexes) + list(max_indexes)
+        
+        min_max_rows = data[min_max_indexes]
         
         # 1. Create output dir
         dv_str = data_variant.shortname()
         dir = self._create_output_dir(dv_str, subvariant)
         
         # 2. Visualize each frame
-        for i, extremum in enumerate(min_max_rows):
+        for i, extremum in enumerate(list(min_max_rows)):
             frame_number = extremum[0]
             center_radar = extremum[-3:] # x, y, z
             class_id = extremum[5]
@@ -92,10 +94,10 @@ class DataAnalysisHelper:
         df_res_stats.to_csv(filename, index=False)
         
         
-        # df_full = pd.DataFrame(data=data[min_max_rows], columns=df.columns)
+        df_full = pd.DataFrame(data=min_max_rows, columns=df.columns)
         
-        # filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
-        # df_full.to_csv(filename, index=False)
+        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
+        df_full.to_csv(filename, index=False)
         logging.info(f'Analysis data written to file:///{filename}')
 
     def _create_output_dir(self, dv_str, subvariant):
