@@ -307,6 +307,12 @@ def elevation_angle_from_location(locations: np.ndarray) -> np.ndarray:
 
 
 def get_bbox_rotation_matrix(bbox_placed: np.ndarray):
+    """
+    Returns a rotation matrix from the standard basis to a basis using the corner with id 2 
+    as reference point for orientation.
+    
+    :bbox_placed: points of the bbox placed in a coordinate system (radar, camera, lidar)
+    """
     # order of corners of bbox
     #    5--------4 
     #   /|       /| | height (z)
@@ -321,6 +327,11 @@ def get_bbox_rotation_matrix(bbox_placed: np.ndarray):
     
     # we don't know the orientation of the cube
     # simply take 2 as reference point for the orientation of the new basis
+    # this way bbox edges around the corner 2 will be aligned with the axes of the coordinate system
+    
+    # DO normalize the vectors, as we do not want to preserve distance
+    # we want to get unit vectors in the new basis, as this will make checking
+    # whether a point is inside the basis easier
     
     x_vec = list(bbox_placed[1] - bbox_placed[2])
     y_vec = list(bbox_placed[3] - bbox_placed[2])
@@ -362,7 +373,7 @@ def points_in_bbox(radar_points: np.ndarray,
     inside_points: List[np.ndarray] = []
     
     # as we do not use a transformation matrix (only rotation and scaling, i.e. origin still in same place)
-    # we need to subtract our new "origin" for the "translation"
+    # we need to subtract our new "origin" to achieve a "translation" effect
     point_vecs = radar_points[:, :3] - bbox_placed[2]
     
     # transform radar coordinates to local reference frame of the cube
@@ -390,8 +401,20 @@ def find_matching_points_for_bboxes(radar_points: np.ndarray,
                                     labels: FrameLabels,
                                     transforms: FrameTransformMatrix,
                                     camera_coordinates: bool = False) -> List[Tuple[dict, Optional[np.ndarray]]]:
-
-    labels_3d_corners = get_placed_3d_label_corners(labels=labels, transforms=transforms, camera_coordinates=camera_coordinates)
+    """
+    Given the labels of a frame and the radar points of a frame, 
+    this function returns all the points inside the bbox for each object
+    
+    :param radar_points: the radar points
+    :param labels: the labels of the current frame
+    :param transforms: the transform matrix of the current frame
+    :camera_coordinates: whether the coordinates of the radar_points are camera coordinates or radar coordinates
+    
+    Returns a list of tuples, with each tuple containing the labels of an object and 
+    """
+    
+    labels_3d_corners = get_placed_3d_label_corners(labels=labels, transforms=transforms, 
+                                                    camera_coordinates=camera_coordinates)
     
     matching_points: List[np.ndarray] = []
     for label in labels_3d_corners:
