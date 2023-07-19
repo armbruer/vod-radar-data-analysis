@@ -31,8 +31,12 @@ class DataAnalysisHelper:
         if isinstance(df, list):
             iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
             cpus = int(multiprocessing.cpu_count() * 0.75)
-            pool = multiprocessing.Pool(processes=cpus)
-            pool.starmap(self._prepare_data_analysis, iter)
+            try:
+                pool = multiprocessing.Pool(processes=cpus)
+                pool.starmap(self._prepare_data_analysis, iter)
+            finally:
+                pool.close()
+                pool.join()
             
             # alternatively without multiprocessing:
             
