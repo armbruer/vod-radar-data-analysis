@@ -77,7 +77,6 @@ class DataAnalysisHelper:
         for i, extremum in enumerate(list(min_max_rows)):
             frame_number = extremum[0]
             center_radar = extremum[-3:] # x, y, z
-            class_id = extremum[5]
             detections = extremum[7]
             
             visualize_frame(data_variant=data_variant, 
@@ -85,7 +84,6 @@ class DataAnalysisHelper:
                              frame_number=frame_number, 
                              center_radar=center_radar,
                              detections=detections,
-                             class_id=class_id,
                              i=i,
                              runs_counter=DataAnalysisHelper.runs_counter)
             

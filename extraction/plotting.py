@@ -313,7 +313,7 @@ class DistributionPlotter:
             df = df.round(decimals=0).astype(int)
 
             # just add a 0 everywhere
-            all_xy = {(0, z, x) for z, x in product(range(-25, 26), range(0, 53))}
+            all_xy = {(0, x, y) for x, y in product(range(-25, 26), range(0, 53))}
             # found_xy = set()
             # for _, row in df.iterrows():
             #     value = row['x'], row['y']
@@ -328,9 +328,8 @@ class DistributionPlotter:
             
             # remove outliers (don't need'em for this plot)
             # remember columns are weirdly named for this because of the camera coordinate system
-            df.drop(df[(df.x < -25) | (df.x > 25) | (df.z < 0) | (df.z > 52)].index, inplace=True)
-            df = df.pivot_table(index="z", columns="x", values="Detections [#]", aggfunc=np.sum)
-            
+            df.drop(df[(df.y < -26) | (df.y > 26) | (df.x < 0) | (df.x > 52)].index, inplace=True)
+            df = df.pivot_table(index="y", columns="x", values="Detections [#]", aggfunc=np.sum)
               
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
             ax.set_title(f'{clazz.capitalize()}s')
@@ -347,19 +346,20 @@ class DistributionPlotter:
             self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
             
     def plot_relationships(self, data_variants: List[DataVariant] = DataVariant.all_variants()):
-        data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
-                                                         data_view_type=DataViewType.EASY_PLOTABLE)
-        
-        dfs = data_view.df
-        if not isinstance(dfs, list):
-            dfs = [dfs]
+        for data_variant in data_variants:
+            data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
+                                                            data_view_type=DataViewType.EASY_PLOTABLE)
             
-        for df in dfs:
-            fig, ax = plt.subplots()
-            sns.pairplot(data=df)
-            figure_name= f'relationships-{data_view.variant.shortname()}-{data_view.view.name.lower()}'
-            self._store_figure(fig, figure_name=figure_name, subdir='relationships')
-        
+            dfs = data_view.df
+            if not isinstance(dfs, list):
+                dfs = [dfs]
+                
+            for df in dfs:
+                fig, ax = plt.subplots()
+                sns.pairplot(data=df)
+                figure_name= f'relationships-{data_view.variant.shortname()}-{data_view.view.name.lower()}'
+                self._store_figure(fig, figure_name=figure_name, subdir='relationships')
+            
     def correlation_heatmap(self, data_variant: DataVariant):
         data_view: DataView = self.data_manager.get_view(data_variant=data_variant, 
                                                          data_view_type=DataViewType.CORR_HEATMAP)
