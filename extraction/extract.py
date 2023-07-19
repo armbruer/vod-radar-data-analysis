@@ -205,10 +205,14 @@ class ParameterRangeExtractor:
             range_from_loc = ex.locs_to_distance(loc_radar)
             ranges.append(range_from_loc)
             
-            # look at Prius_sensor_setup_5 radar coordinate system to understand indexes in the next lines
-            azimuths.append(ex.azimuth_angle_from_location(loc_radar[:, :2]))
-            dopplers.append(np.mean(points_matching[:, 4]))
-            elevations.append(ex.elevation_angle_from_location(loc_radar[:, [0, 2]]))
+            # we take the mean of all detected values
+            azimuth_mean = np.mean(ex.azimuth_angle_from_location(points_matching[:, :2]))
+            elevation_mean = np.mean(ex.elevation_angle_from_location(points_matching[:, [0, 2]]))
+            doppler_mean = np.mean(points_matching[:, 4])
+            
+            azimuths.append(azimuth_mean)
+            elevations.append(elevation_mean)
+            dopplers.append(doppler_mean)
             
             x.append(loc_radar[0, 0])
             y.append(loc_radar[0, 1])
