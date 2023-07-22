@@ -328,8 +328,9 @@ class DistributionPlotter:
             
             # remove outliers (don't need'em for this plot)
             # remember columns are weirdly named for this because of the camera coordinate system
+            df["y"] = df["y"].apply(lambda y: -y)
             df.drop(df[(df.y < -26) | (df.y > 26) | (df.x < 0) | (df.x > 52)].index, inplace=True)
-            df = df.pivot_table(index="y", columns="x", values="Detections [#]", aggfunc=np.sum)
+            df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
               
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
             ax.set_title(f'{clazz.capitalize()}s')
