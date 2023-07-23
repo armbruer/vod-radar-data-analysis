@@ -505,3 +505,10 @@ def get_class_id_from_name(name: str, summarized: bool = True) -> int:
     
     name_to_class_id = {n: i for i, n in enumerate(get_class_names(summarized))}
     return name_to_class_id[name]
+
+
+def from_class_label_to_summarized_name(name: str):
+    tmp_id = get_class_id_from_name(name, False)
+    tmp_summarized_id = convert_to_summarized_class_id(tmp_id)
+    return get_name_from_class_id(tmp_summarized_id)
+                
