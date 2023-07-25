@@ -313,7 +313,8 @@ class DistributionPlotter:
             df = df.round(decimals=0).astype(int)
 
             # just add a 0 everywhere
-            all_xy = {(0, x, y) for x, y in product(range(-25, 26), range(0, 53))}
+            all_xy = {(0, x, y) 
+                      for x, y in product(range(-26, 27), range(0, 53))}
             # found_xy = set()
             # for _, row in df.iterrows():
             #     value = row['x'], row['y']
@@ -331,17 +332,17 @@ class DistributionPlotter:
             df["y"] = df["y"].apply(lambda y: -y)
             df.drop(df[(df.y < -26) | (df.y > 26) | (df.x < 0) | (df.x > 52)].index, inplace=True)
             df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
-              
-            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax)
+            df = df.fillna(0)
+            
+            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True)
             ax.set_title(f'{clazz.capitalize()}s')
-            #print(ax.get_xticks())
-            #ax.set_xticks(np.array([-20, 0, 20]))
-            # ax.set_xticklabels(np.array([-20, 0, 20]))
-            # ax.set_yticks(np.array([0, 20, 40]))
-            # ax.set_yticklabels(np.array([0, 20, 40]))
+            ax.invert_yaxis()
+            ax.set_ylim((0, 52))
+            ax.set_xlim((0, 53))
+            ax.set_xticks([6, 16, 26, 36, 46], labels=[-20, -10, 0, 10, 20], rotation=0)
+            ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0)
             ax.set_xlabel("Lat. Distance [m]")
             ax.set_ylabel("Long. Distance [m]")
-            ax.invert_yaxis()
             ax.set_facecolor('#23275b')
             
             self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
