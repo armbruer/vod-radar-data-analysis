@@ -3,6 +3,8 @@ import sys
 import os
 import logging
 
+from extraction.helpers import DataVariant
+
 
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
@@ -49,17 +51,16 @@ def main():
 
     # plotter.correlation_heatmap(data_variant=DataVariant.SEMANTIC_DATA)
 
-    # plotter.plot_syn_sem_combined()
+    plotter.plot_syn_sem_combined()
     # prepare_data_analysis(dm)
 
-    # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
+    plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
     
     # generate_stats(dm)
     
-    # plotter.plot_by_class_combined()
-    # plotter.plot_by_class_combined(most_important_only=True)
-    # plotter.plot_rade()
-    # plotter.plot_rade(data_view_type=DataViewType.RAD)
+    plotter.plot_by_class_combined()
+    plotter.plot_by_class_combined(most_important_only=True)
+    plotter.plot_rade()
     
     plotter.plot_heatmap()
     
