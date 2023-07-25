@@ -206,8 +206,8 @@ class ParameterRangeExtractor:
             ranges.append(range_from_loc)
             
             # we take the mean of all detected values
-            azimuth_mean = np.mean(ex.azimuth_angle_from_location(points_matching[:, :2]))
-            elevation_mean = np.mean(ex.elevation_angle_from_location(points_matching[:, [0, 2]]))
+            azimuth_mean = ex.azimuth_angle_from_location(loc_radar[:, :2])
+            elevation_mean = ex.elevation_angle_from_location(loc_radar[:, [0, 2]])
             doppler_mean = np.mean(points_matching[:, 4])
             
             azimuths.append(azimuth_mean)
