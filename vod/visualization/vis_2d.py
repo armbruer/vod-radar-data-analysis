@@ -100,7 +100,7 @@ Constructor of the class, which loads the required frame properties, and creates
         if selected_points is None:
             plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
         else:
-            plt.scatter(uvs[:, 0], uvs[:, 1], c='red', alpha=0.8, s=0.5)
+            plt.scatter(uvs[:, 0], uvs[:, 1], c='red', alpha=0.8, s=20)
 
     def plot_lidar_pcl(self,max_distance_threshold, min_distance_threshold):
         """
