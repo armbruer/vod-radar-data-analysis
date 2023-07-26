@@ -32,6 +32,7 @@ def visualize_frame(data_variant: DataVariant,
     :locs: the locations in the given frame_numbers to visualize (in radar coordinates)
     
     """
+    center_radar = np.atleast_2d(center_radar).astype(np.float32)
     loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
     dv_str = data_variant.shortname()
     filename_extremum = f'{dv_str}-extremum-highlighted-{i}-{runs_counter}'
@@ -48,10 +49,10 @@ def visualize_frame(data_variant: DataVariant,
         
         # center radar is here simply the extremum
         _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_extremum, 
-                        matching_points=center_radar)
+                        matching_points=center_radar, show_gt=False)
         
         _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_extremum, 
-                        matching_points=center_radar)
+                        matching_points=center_radar, annotations=False)
         return
     
     transforms = FrameTransformMatrix(loader)
@@ -141,11 +142,12 @@ def _visualize2D(vis2d: Visualization2D,
                   filename: str, 
                   lidar=False,
                   matching_points: Optional[np.ndarray]=None,
-                  selected_labels: Optional[FrameLabels]=None):
+                  selected_labels: Optional[FrameLabels]=None, 
+                  show_gt=True):
         
         vis2d.draw_plot(plot_figure=False, 
                         save_figure=True, 
-                        show_gt=True,
+                        show_gt=show_gt,
                         show_lidar=lidar, 
                         show_radar=True, 
                         subdir=subdir, 
@@ -160,13 +162,14 @@ def _visualize3D(
                 subdir: str,
                 filename: str, 
                 matching_points: Optional[np.ndarray]=None,
-                selected_labels: Optional[FrameLabels]=None):
+                selected_labels: Optional[FrameLabels]=None, 
+                annotations: bool=True):
 
     
     vis3d.draw_plot(radar_origin_plot=True,
                     camera_origin_plot=True,
                     radar_points_plot=True,
-                    annotations_plot=True,
+                    annotations_plot=annotations,
                     write_to_html=True,
                     html_name=filename,
                     subdir=subdir,
@@ -174,5 +177,5 @@ def _visualize3D(
                     selected_labels=selected_labels,
                     auto_frame=True,
                     grid_visible=True,
-                    radar_velocity_plot=True)
+                    radar_velocity_plot=annotations)
     

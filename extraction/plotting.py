@@ -257,7 +257,7 @@ class DistributionPlotter:
                         # falls into this xlim (from previous rounds of running this) range, 
                         # so just throw away the rest of the data since it is anyways not visualized
                         # the advantage here is that we will get 30 bins which are actually visualized 
-                        df = df.clip(*xlim)
+                        df[column] = df[column].clip(*xlim)
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
