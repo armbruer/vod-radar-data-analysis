@@ -33,8 +33,25 @@ def visualize_frame(data_variant: DataVariant,
     
     """
     loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
+    dv_str = data_variant.shortname()
+    filename_extremum = f'{dv_str}-extremum-highlighted-{i}-{runs_counter}'
+    dir = f'{kitti_locations.analysis_dir}'
+    subdir: str = f'{pathlib.Path(dir).name}/{dv_str}'
+    
+    vis2d = Visualization2D(frame_data_loader=loader, 
+                            classes_visualized=get_class_names(summarized=False))
+    
+    vis3d = Visualization3D(loader, origin='camera')
+    
     if data_variant not in DataVariant.semantic_variants():
         imsave(f'{dir}/{dv_str}/{frame_number}.png', loader.image)
+        
+        # center radar is here simply the extremum
+        _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_extremum, 
+                        matching_points=center_radar)
+        
+        _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_extremum, 
+                        matching_points=center_radar)
         return
     
     transforms = FrameTransformMatrix(loader)
@@ -51,21 +68,15 @@ def visualize_frame(data_variant: DataVariant,
     # An example of this bug can be seen in frame 01839
     # the bug is not relevant for us, we can use different samples for visualization in the thesis
     
-    dv_str = data_variant.shortname()
     filename_radar = f'{dv_str}-radar-{i}-{runs_counter}'
-    filename_extremum = f'{dv_str}-extremum-highlighted-{i}-{runs_counter}'
-    dir = f'{kitti_locations.analysis_dir}'
-    subdir: str = f'{pathlib.Path(dir).name}/{dv_str}'
-    
     vis2d = Visualization2D(frame_data_loader=loader, 
                             classes_visualized=get_class_names(summarized=False))
-    _draw_helper2D(vis2d=vis2d, subdir=subdir, filename=filename_radar)
-    _draw_helper2D(vis2d=vis2d, subdir=subdir, filename=filename_extremum, 
+    _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_radar)
+    _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_extremum, 
                     matching_points=matching_points, selected_labels=labels)
     
-    vis3d = Visualization3D(loader, origin='camera')
-    _draw_helper3D(vis3d=vis3d, subdir=subdir, filename=filename_radar)
-    _draw_helper3D(vis3d=vis3d, subdir=subdir, filename=filename_extremum, 
+    _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_radar)
+    _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_extremum, 
                     matching_points=matching_points, selected_labels=labels)
 
 
@@ -125,7 +136,7 @@ def _find_matching_points(labels: FrameLabels,
     return matching_points
 
      
-def _draw_helper2D(vis2d: Visualization2D,
+def _visualize2D(vis2d: Visualization2D,
                   subdir: str,
                   filename: str, 
                   lidar=False,
@@ -144,7 +155,7 @@ def _draw_helper2D(vis2d: Visualization2D,
                         max_distance_threshold=105,
                         min_distance_threshold=-10)
         
-def _draw_helper3D(
+def _visualize3D(
                 vis3d: Visualization3D, 
                 subdir: str,
                 filename: str, 

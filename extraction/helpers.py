@@ -329,7 +329,7 @@ def get_bbox_rotation_matrix(bbox_placed: np.ndarray):
     # simply take 2 as reference point for the orientation of the new basis
     # this way bbox edges around the corner 2 will be aligned with the axes of the coordinate system
     
-    # DO normalize the vectors, as we do not want to preserve distance
+    # DO not normalize the vectors, as we do not want to preserve distance
     # we want to get unit vectors in the new basis, as this will make checking
     # whether a point is inside the basis easier
     
