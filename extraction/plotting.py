@@ -201,7 +201,16 @@ class DistributionPlotter:
                 for i in range(nrows):
                     for j in range(ncols):
                         param, column, xlim = next(iter)
-                        df = pd.DataFrame(data = rad_df[param], columns=[column])
+                        data = rad_df[param]
+                        
+                        if column == 'Elevation [degree]':
+                            # this is a bit of a lazy hack, we know almost all data except for outliers
+                            # falls into this xlim (from previous rounds of running this) range, 
+                            # so just throw away the rest of the data since it is anyways not visualized
+                            # the advantage here is that we will get 30 bins which are actually visualized
+                            data = data.clip(*xlim)
+                            
+                        df = pd.DataFrame(data=data, columns=[column])
                     
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
                         g = pf(axis, df, column)
@@ -242,6 +251,13 @@ class DistributionPlotter:
                 for j in range(2):
                     
                     df, column, xlim = next(iter)
+                    
+                    if column == 'Elevation [degree]':
+                        # this is a bit of a lazy hack, we know almost all data except for outliers
+                        # falls into this xlim (from previous rounds of running this) range, 
+                        # so just throw away the rest of the data since it is anyways not visualized
+                        # the advantage here is that we will get 30 bins which are actually visualized 
+                        df = df.clip(*xlim)
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
@@ -293,9 +309,20 @@ class DistributionPlotter:
             for i in range(2):
                 for j in range(2):
                     syn_param, sem_param, column, xlim = next(iter)
+                    syn_data = syntactic_rad_df[syn_param]
+                    sem_data = semantic_rad_df[sem_param]
+                    
+                    if column == 'Elevation [degree]':
+                        # this is a bit of a lazy hack, we know almost all data except for outliers
+                        # falls into this xlim (from previous rounds of running this) range, 
+                        # so just throw away the rest of the data since it is anyways not visualized
+                        # the advantage here is that we will get 30 bins which are actually visualized
+                        xmin, xmax = xlim
+                        syn_data = syn_data.clip(xmin, xmax)
+                        sem_data = sem_data.clip(xmin, xmax)
             
-                    df_syntactic_rad = pd.DataFrame(data = syntactic_rad_df[syn_param], columns=[column]).assign(annotated = 'No')
-                    df_semantic_rad = pd.DataFrame(data = semantic_rad_df[sem_param], columns=[column]).assign(annotated = 'Yes')
+                    df_syntactic_rad = pd.DataFrame(data = syn_data, columns=[column]).assign(annotated = 'No')
+                    df_semantic_rad = pd.DataFrame(data = sem_data, columns=[column]).assign(annotated = 'Yes')
                     df = pd.concat([df_syntactic_rad, df_semantic_rad])
                     g = pf(i, j, df, column)
 
@@ -315,14 +342,6 @@ class DistributionPlotter:
             # just add a 0 everywhere
             all_xy = {(0, x, y) 
                       for x, y in product(range(-26, 27), range(0, 53))}
-            # found_xy = set()
-            # for _, row in df.iterrows():
-            #     value = row['x'], row['y']
-            #     found_xy.add(value)
-            
-            # missing_xy = all_xy - found_xy
-            # missing_xy = list(map(lambda x, y: (x, y, 0), missing_xy))
-            
             
             df_extend = pd.DataFrame(all_xy, columns=df.columns)
             df = pd.concat([df, df_extend], ignore_index=True)
