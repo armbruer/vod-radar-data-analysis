@@ -99,8 +99,16 @@ class DataAnalysisHelper:
         df_full = pd.DataFrame(data=min_max_rows, columns=df.columns)
         df_full = df_full.round(decimals=2)
         
-        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
-        df_full.to_csv(filename, index=False)
+        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}'
+        df_full.to_csv(f'{filename}.csv', index=False)
+        df_full.to_latex(
+            f'{filename}.tex',
+            float_format="%.2f",
+            label=f"table:{filename}",
+            position="htb!",
+            column_format=len(df_full.columns) * "c",
+            index=False,
+        )
         logging.info(f'Analysis data written to file:///{filename}')
 
     def _create_output_dir(self, dv_str, subvariant):
