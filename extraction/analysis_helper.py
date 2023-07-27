@@ -97,6 +97,7 @@ class DataAnalysisHelper:
         
         
         df_full = pd.DataFrame(data=min_max_rows, columns=df.columns)
+        df_full = df_full.round(decimals=2)
         
         filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
         df_full.to_csv(filename, index=False)
