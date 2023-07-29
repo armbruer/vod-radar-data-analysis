@@ -330,14 +330,14 @@ class DistributionPlotter:
             
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
-    def plot_heatmap(self):
+    def plot_azimuth_heatmap(self):
         semantic_dfs = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS, 
                                                   data_view_type=DataViewType.PLOT_LONG_LAT)
         
         for df, clazz in zip(semantic_dfs.df, get_class_names()):
             fig, ax = plt.subplots()
             
-            df = df.round(decimals=0).astype(int)
+            df = df.astype(int)
 
             # just add a 0 everywhere
             all_xy = {(0, x, y) 
@@ -364,7 +364,44 @@ class DistributionPlotter:
             ax.set_ylabel("Long. Distance [m]")
             ax.set_facecolor('#23275b')
             
-            self._store_figure(fig, figure_name=clazz, subdir='heatmaps')
+            self._store_figure(fig, figure_name=clazz, subdir='azi_heatmaps')
+            
+        
+    def plot_ele_heatmap(self):
+        semantic_dfs = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS, 
+                                                  data_view_type=DataViewType.PLOT_ALT_LONG)
+        
+        for df, clazz in zip(semantic_dfs.df, get_class_names()):
+            fig, ax = plt.subplots()
+            
+            df = df.astype(int)
+            
+            # just add a 0 everywhere
+            all_xz = {(0, x, z) 
+                       for x, z in product(range(0, 53), range(-6, 7))}
+            
+            df_extend = pd.DataFrame(all_xz, columns=df.columns)
+            df = pd.concat([df, df_extend], ignore_index=True)
+            
+            # remove outliers (don't need'em for this plot)
+            
+            df.drop(df[(df.x < 0) | (df.x > 52) | (df.z < -6) | (df.z > 6)].index, inplace=True)
+            df = df.pivot_table(index="z", columns="x", values="Detections [#]", aggfunc=np.sum)
+            df = df.fillna(0)
+            
+            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True)
+            ax.set_title(f'{clazz.capitalize()}s')
+            ax.invert_yaxis()
+            ax.set_ylim((0, 12))
+            ax.set_xlim((0, 52))
+            ax.set_yticks([1, 6, 11], labels=[-5, 0, 5], rotation=0)
+            ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0)
+            ax.set_xlabel("Long. Distance [m]")
+            ax.set_ylabel("Alt. Distance [m]")
+            ax.set_facecolor('#23275b')
+            
+            self._store_figure(fig, figure_name=clazz, subdir='ele_heatmaps')
+    
             
     def plot_relationships(self, data_variants: List[DataVariant] = DataVariant.all_variants()):
         for data_variant in data_variants:
