@@ -389,7 +389,10 @@ class DistributionPlotter:
             df = df.pivot_table(index="z", columns="x", values="Detections [#]", aggfunc=np.sum)
             df = df.fillna(0)
             
-            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True)
+            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, 
+                             cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True,
+                             cbar_kws = dict(use_gridspec=False,location="top"))
+            
             ax.set_title(f'{clazz.capitalize()}s')
             ax.invert_yaxis()
             ax.set_ylim((0, 12))
