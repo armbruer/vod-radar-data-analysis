@@ -151,7 +151,7 @@ class DataVariant(Enum):
             r = [0, 20, 40, 60, 80, 100]
             a = [-180, -135, -90, -45, 0, 45, 90, 135, 180]
             d = [-20, -10, 0, 10, 20]
-            e = [-30, 0, 30]
+            e = [-40, -20, 0, 20, 40]
             
             return to_str( [None, r, a, d, e, None, None, None, None])
         
@@ -159,7 +159,7 @@ class DataVariant(Enum):
             r = [0, 20, 40]
             a = [-90, -45, 0, 45, 90]
             d = [-20, -10, 0, 10, 20]
-            e = [-20, 0, 20]
+            e = [-40, -20, 0, 20, 40]
             
             return to_str([None, r, a, d, e, None, None, None, None, 
                            None, None, None, None, None, None, None])
@@ -168,9 +168,9 @@ class DataVariant(Enum):
     def lims(self) -> List[Tuple[int, int]]:
         # must be in the order of column_names(), see above
         if self in DataVariant.syntactic_variants():
-            return [None, (0, 105), (-180, 180), (-30, 30), (-30, 30), None, None, None, None]
+            return [None, (0, 105), (-180, 180), (-30, 30), (-40, 40), None, None, None, None]
         elif self in DataVariant.semantic_variants():
-            return [None, (0, 55), (-90, 90), (-30, 30), (-20, 20), None, 
+            return [None, (0, 55), (-90, 90), (-30, 30), (-40, 40), None, 
                     None, None, None, None, None, None, None, None, None, None]
 
         return []
@@ -197,15 +197,16 @@ class DataViewType(Enum):
     Keeps only the columns that are required 
     for creating longitute latitude plots showing the number of detections.
     """
-    PLOT_LONG_LAT = 3,
+    PLOT_ALT_LONG = 3,
+    PLOT_LONG_LAT = 4,
     """
     Keeps only columns that make sense to be plotted by the plot_data() method.
     """
-    EASY_PLOTABLE = 4,
+    EASY_PLOTABLE = 5,
     """
     Keeps columns useful for a correlation heatmap.
     """
-    CORR_HEATMAP = 5,
+    CORR_HEATMAP = 6,
     """
     Keeps only columns that are useful when computing min, max
     """
@@ -238,6 +239,11 @@ class DataViewType(Enum):
             return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
                     "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]", "Range [m]", 
                     "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
+            
+        elif self == self.PLOT_ALT_LONG:
+            return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
+                    "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]", "Range [m]", 
+                    "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "y"]
         
         elif self == self.EASY_PLOTABLE:
             return ["Frame Number", "Data Class", "Class", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
