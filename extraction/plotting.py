@@ -5,6 +5,7 @@ from datetime import datetime
 from itertools import product
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
+from extraction.estimator import KernelDensityEstimator
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
@@ -111,6 +112,7 @@ class DistributionPlotter:
         
         x_pts = [PlotType.HISTOGRAM, PlotType.HIST_KDE, PlotType.KDE]
         
+        # TODO this needs bandwiths for kde
         if PlotType.HISTOGRAM in plot_types:
             plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
             plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="count", log_scale=(False, True))))
@@ -178,11 +180,11 @@ class DistributionPlotter:
             dvt_str = data_view.view.name.lower()
             rad_df = data_view.df
             columns: List[str] = rad_df.columns.to_list()
-
+            
             plot_functions = [
-                ('hist', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
-                ('hist_kde', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True)),
-                ('kde', lambda ax, df, column: sns.kdeplot(data=df, x=column, ax=ax))
+                ('hist', lambda ax, df, column, _: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
+                ('hist_kde', lambda ax, df, column, bw: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True, kde_kws={'bw_method': bw})),
+                ('kde', lambda ax, df, column, bw: sns.kdeplot(data=df, x=column, ax=ax, bw_method=bw))
             ]
             
             if data_view_type == DataViewType.RADE:
@@ -213,7 +215,10 @@ class DistributionPlotter:
                         df = pd.DataFrame(data=data, columns=[column])
                     
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
-                        g = pf(axis, df, column)
+                        
+                        bw = self._get_single_bw(dataframe=df, column=bw)
+                        
+                        g = pf(axis, df, column, bw)
                         g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
@@ -232,7 +237,7 @@ class DistributionPlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False))
+            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, bw_method=bw))
         ]
         
         if not most_important_only:
@@ -259,7 +264,9 @@ class DistributionPlotter:
                         # the advantage here is that we will get 30 bins which are actually visualized 
                         df[column] = df[column].clip(*xlim)
                     
-                    g = pf(i, j, df, column)
+                    
+                    bw = self._get_single_bw(dataframe=column)
+                    g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
                     
                     if not most_important_only:
@@ -294,12 +301,11 @@ class DistributionPlotter:
 
         columns: List[str] = syntactic_rad_df.columns.to_list()
         
-        
         plot_functions = [
-            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
-            ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True)),
-            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
-            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
+            ('hist', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
+            ('hist_kde', lambda i, j, df, column, bw: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True, kde_kws={'bw_method': bw})),
+            ('hist_step', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
+            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False, bw_method=bw))
         ]
         
         for fig_name, pf in plot_functions:
@@ -324,8 +330,9 @@ class DistributionPlotter:
                     df_syntactic_rad = pd.DataFrame(data = syn_data, columns=[column]).assign(annotated = 'No')
                     df_semantic_rad = pd.DataFrame(data = sem_data, columns=[column]).assign(annotated = 'Yes')
                     df = pd.concat([df_syntactic_rad, df_semantic_rad])
-                    g = pf(i, j, df, column)
-
+                    
+                    bw = self._get_single_bw(dataframe=df, feature=column)
+                    g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
             
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
@@ -473,4 +480,18 @@ class DistributionPlotter:
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
         if isinstance(figure, Figure): # can also be a FacetGrid
             plt.close(figure)
-
+            
+    # def _get_hyps(self, data_view: DataView):
+    #     estimators = EstimatorCollection(data_view)
+    #     return estimators.get_hyper_params()
+    
+    # def _get_bws(self, data_view: DataView):
+    #     # only get bandwith list from hyperparameters
+    #     hyps = self._get_hyps(data_view)
+    #     firsts = lambda l: list(map(lambda x: x[0], l.values()))
+        
+    #     return list(map(firsts, hyps))
+    
+    def _get_single_bw(self, dataframe: pd.DataFrame, feature: str):
+        kde = KernelDensityEstimator(dataframe, feature)
+        return kde.bw
