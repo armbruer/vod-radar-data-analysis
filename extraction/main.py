@@ -2,6 +2,7 @@
 import sys
 import os
 import logging
+from extraction.analysis_helper import prepare_data_analysis
 
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
@@ -50,11 +51,11 @@ def main():
     # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
     # generate_stats(dm)
 
-    # prepare_data_analysis(dm)
-    plotter.plot_syn_sem_combined()
-    plotter.plot_by_class_combined()
-    plotter.plot_by_class_combined(most_important_only=True)
-    plotter.plot_rade()
+    prepare_data_analysis(dm)
+    # plotter.plot_syn_sem_combined()
+    # plotter.plot_by_class_combined()
+    # plotter.plot_by_class_combined(most_important_only=True)
+    # plotter.plot_rade()
     
     # plotter.plot_azimuth_heatmap()
     # plotter.plot_ele_heatmap()
