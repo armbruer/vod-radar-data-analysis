@@ -1,16 +1,15 @@
-from typing import List, Tuple
-from numpy import ndarray
+from typing import Dict, List, Tuple
 import pandas as pd
 from scipy import stats
 import numpy as np
+from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KernelDensity
 
-from extraction.file_manager import DataManager, DataView
-from extraction.helpers import DataVariant, DataViewType
+from extraction.file_manager import DataView
 
 """
 EstimatorCollection is intended for working with a collection 
-of estimators.
+of KernelDensityEstimators.
 """
 class EstimatorCollection:
     
@@ -19,9 +18,8 @@ class EstimatorCollection:
     
     For each column one estimator is created.
     """
-    def __init__(self, data_manager: DataManager, data_variant: DataVariant, data_view_type: DataViewType) -> None:
-        self.data_manager = data_manager
-        self.data_view = data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
+    def __init__(self, data_view: DataView):
+        self.data_view = data_view
         self.dfs: List[pd.DataFrame] = self.data_view.df
         self.estimators: List[List[KernelDensityEstimator]] = []
         
@@ -32,7 +30,33 @@ class EstimatorCollection:
             self.estimators.append([])
             
             for feature in df.columns:
-                self.estimators[i].append(KernelDensityEstimator(data_view=self.data_view, feature=feature))
+                self.estimators[i].append(KernelDensityEstimator(df=self.data_view, feature=feature))
+    
+    # no overloading in python, dont need it anysways
+    # def __init__(self, 
+    #              data_variant: DataVariant, 
+    #              data_view_type: DataViewType,
+    #              data_manager: DataManager,
+    #              data_view: DataView) -> None:
+    #     self.data_manager = data_manager
+    #     self.data_view = data_view
+    #     if self.data_view is None:
+    #         self.data_view = data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
+            
+      
+    """
+    Returns the best bandwidth, kernel found for each estimator (per feature) and for each dataframe
+    
+    Returns a dictionary of format feature:[bandwith,kernel] per dataframe. 
+    """
+    def get_hyper_params(self) -> List[Dict[str, Tuple[float, str]]]:
+        bws = []
+        for kdelist in self.estimators:
+            df_bws = {}
+            for est in kdelist:
+                df_bws[est.feature] = est.bw, est.kernel
+                
+        return bws
             
     """
     Draws n_samples from each estimator in the collection.
@@ -67,15 +91,47 @@ class KernelDensityEstimator:
     :param data_view: the data_view to use the data from
     :param feature: the feature of the data_view to create the estimate for
     """
-    def __init__(self, data_view: DataView, feature: str, bw=None) -> None:
-        self.data_view = data_view
-        self.data: ndarray = data_view.df[feature].to_numpy()
+    def __init__(self, df: pd.DataFrame, feature: str, bw=None, kernel=None) -> None:
+        self.df = df
+        self.data: np.ndarray = np.atleast_2d(df[feature].to_numpy()).T
         self.bw = bw
-        if self.bw is None:
-            # this line is directly copied from seaborn, we want to have the same bandwidth as in the plots!  
-            self.bw = stats.gaussian_kde(self.data.T).scotts_factor() * self.data.std(ddof=1)
+        self.kernel = kernel
+        self.feature = feature
+        if self.bw is None or self.kernel is None:
+            self._find_best_estimator()
         
-        self.kde = KernelDensity(kernel='gaussian', bandwidth=bw).fit(self.data)
+        self.kde = KernelDensity(kernel=self.kernel, bandwidth=self.bw).fit(self.data)
+        
+
+    """
+    Select best bandwidth using cross-validation.
+
+    See e.g. here https://aakinshin.net/posts/kde-bw/ and 
+    https://jakevdp.github.io/PythonDataScienceHandbook/05.13-kernel-density-estimation.html .
+
+    We use cross validation from sklearn.
+    """
+    def _find_best_estimator(self):
+        
+        # this line is directly copied from seaborn
+        # just throw this into bandwiths, maybe its a good default for our data
+        # let's see...
+        basic_bandwidth = stats.gaussian_kde(self.data.T).scotts_factor() * self.data.std(ddof=1)
+        
+        
+        #bandwidths = np.linspace(1e-3, 1, 9)
+        
+        bandwidths = np.array([1])
+        bandwidths = np.append(bandwidths, basic_bandwidth)
+        grid = GridSearchCV(KernelDensity(),
+                            {'bandwidth': bandwidths, 
+                             'kernel': ['gaussian']}, # , 'cosine', 'epanechnikov'
+                            # we restrict kernel to gaussian, as seaborn only plots that
+                            cv=5, n_jobs=1, verbose=3)
+        grid.fit(self.data)
+        self.bw = grid.best_params_['bandwidth']
+        self.kernel = grid.best_params_['kernel']
+
 
     """
     Samples from the KDE.
@@ -88,5 +144,4 @@ class KernelDensityEstimator:
         samples = self.kde.sample(n_samples)
         scores = self.kde.score_samples(samples)
         return samples, scores
-
 
