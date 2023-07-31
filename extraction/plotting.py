@@ -218,7 +218,8 @@ class DistributionPlotter:
                     
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
                         
-                        bw = self._get_single_bw(dataframe=df, column=bw)
+                        #bw = self._get_single_bw(dataframe=df, column=bw)
+                        bw = None
                         
                         g = pf(axis, df, column, bw)
                         g.set(xlim=xlim)
@@ -269,7 +270,8 @@ class DistributionPlotter:
                         df[column] = self._droplims(df, xlim, column)
                     
                     
-                    bw = self._get_single_bw(dataframe=column)
+                    # bw = self._get_single_bw(dataframe=column)
+                    bw = None
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
                     
