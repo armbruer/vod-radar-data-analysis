@@ -210,7 +210,9 @@ class DistributionPlotter:
                             # falls into this xlim (from previous rounds of running this) range, 
                             # so just throw away the rest of the data since it is anyways not visualized
                             # the advantage here is that we will get 30 bins which are actually visualized
-                            data = data.clip(*xlim)
+                            # this is only okay and needed because the outliers are spread accross so many degrees
+                            # if we don't do this we get only 3-4 bars in the area where we have 95% of the data
+                            data = self._droplims(data, xlim, column)
                             
                         df = pd.DataFrame(data=data, columns=[column])
                     
@@ -261,8 +263,10 @@ class DistributionPlotter:
                         # this is a bit of a lazy hack, we know almost all data except for outliers
                         # falls into this xlim (from previous rounds of running this) range, 
                         # so just throw away the rest of the data since it is anyways not visualized
-                        # the advantage here is that we will get 30 bins which are actually visualized 
-                        df[column] = df[column].clip(*xlim)
+                        # the advantage here is that we will get 30 bins which are actually visualized
+                        # this is only okay and needed because the outliers are spread accross so many degrees
+                        # if we don't do this we get only 3-4 bars in the area where we have 95% of the data
+                        df[column] = self._droplims(df, xlim, column)
                     
                     
                     bw = self._get_single_bw(dataframe=column)
@@ -318,20 +322,18 @@ class DistributionPlotter:
                     syn_data = syntactic_rad_df[syn_param]
                     sem_data = semantic_rad_df[sem_param]
                     
-                    if column == 'Elevation [degree]':
-                        # this is a bit of a lazy hack, we know almost all data except for outliers
-                        # falls into this xlim (from previous rounds of running this) range, 
-                        # so just throw away the rest of the data since it is anyways not visualized
-                        # the advantage here is that we will get 30 bins which are actually visualized
-                        xmin, xmax = xlim
-                        syn_data = syn_data.clip(xmin, xmax)
-                        sem_data = sem_data.clip(xmin, xmax)
-            
+                    # we need to cut all data to the same x-ranges so we can actually compare
+                    # the syntactic data to the semantic data
+                    # alternatively we could also leave everything cut but then we would have to show all outliers
+                    syn_data = self._droplims(syn_data, xlim, column)
+                    sem_data = self._droplims(sem_data, xlim, column)
+                    
                     df_syntactic_rad = pd.DataFrame(data = syn_data, columns=[column]).assign(annotated = 'No')
                     df_semantic_rad = pd.DataFrame(data = sem_data, columns=[column]).assign(annotated = 'Yes')
                     df = pd.concat([df_syntactic_rad, df_semantic_rad])
                     
-                    bw = self._get_single_bw(dataframe=df, feature=column)
+                    #bw = self._get_single_bw(dataframe=df, feature=column)
+                    bw = None
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
             
@@ -495,3 +497,7 @@ class DistributionPlotter:
     def _get_single_bw(self, dataframe: pd.DataFrame, feature: str):
         kde = KernelDensityEstimator(dataframe, feature)
         return kde.bw
+    
+    def _droplims(df, lims, column):
+        xmin, xmax = lims
+        return df.drop(df[(df[column] >= xmin) & (df[column] <= xmax)].index)
