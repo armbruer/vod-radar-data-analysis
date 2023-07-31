@@ -322,15 +322,13 @@ class DistributionPlotter:
                     syn_data = syntactic_rad_df[syn_param]
                     sem_data = semantic_rad_df[sem_param]
                     
-                    # we need to cut all data to the same x-ranges so we can actually compare
-                    # the syntactic data to the semantic data
-                    # alternatively we could also leave everything cut but then we would have to show all outliers
-                    syn_data = self._droplims(syn_data, xlim, column)
-                    sem_data = self._droplims(sem_data, xlim, column)
-                    
                     df_syntactic_rad = pd.DataFrame(data = syn_data, columns=[column]).assign(annotated = 'No')
                     df_semantic_rad = pd.DataFrame(data = sem_data, columns=[column]).assign(annotated = 'Yes')
                     df = pd.concat([df_syntactic_rad, df_semantic_rad])
+                    # we need to cut all data to the same x-ranges so we can actually compare
+                    # the syntactic data to the semantic data
+                    # alternatively we could also leave everything uncut but then we would have to show all outliers
+                    df = self._droplims(df, xlim, column)
                     
                     #bw = self._get_single_bw(dataframe=df, feature=column)
                     bw = None
@@ -498,6 +496,6 @@ class DistributionPlotter:
         kde = KernelDensityEstimator(dataframe, feature)
         return kde.bw
     
-    def _droplims(df, lims, column):
+    def _droplims(self, df, lims, column):
         xmin, xmax = lims
-        return df.drop(df[(df[column] >= xmin) & (df[column] <= xmax)].index)
+        return df.drop(df[(df[column] < xmin) | (df[column] > xmax)].index)
