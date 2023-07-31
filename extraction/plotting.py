@@ -267,7 +267,7 @@ class DistributionPlotter:
                         # the advantage here is that we will get 30 bins which are actually visualized
                         # this is only okay and needed because the outliers are spread accross so many degrees
                         # if we don't do this we get only 3-4 bars in the area where we have 95% of the data
-                        df[column] = self._droplims(df, xlim, column)
+                        df = self._droplims(df, xlim, column)
                     
                     
                     # bw = self._get_single_bw(dataframe=column)
