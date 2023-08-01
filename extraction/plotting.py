@@ -310,6 +310,7 @@ class DistributionPlotter:
             ('hist', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
             ('hist_kde', lambda i, j, df, column, bw: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True, kde_kws={'bw_method': bw})),
             ('hist_step', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
+            ('hist_step_kde', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="density", common_norm=False, kde=True, kde_kws={'bw_method': bw})),
             ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False, bw_method=bw))
         ]
         
