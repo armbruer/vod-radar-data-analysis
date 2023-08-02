@@ -102,8 +102,8 @@ Constructor of the class, which loads the required frame properties, and creates
         else:
             # this is needed so we get larger points when there are few to no detections
             if selected_points.size == 1:
-                amount_factor = 15
-            elif selected_points.size <= 3:
+                amount_factor = 18
+            elif selected_points.size <= 10:
                 amount_factor = 10
             else:
                 amount_factor = 1
