@@ -220,6 +220,9 @@ class DataViewType(Enum):
     """
     NONE = 9
     
+    def remaining_columns(self, data_variant: DataVariant) -> List[str]:
+        return [column for column in data_variant.column_names() if not column in self.columns_to_drop()]
+    
     def columns_to_drop(self) -> List[str]:
         """
         Returns a list of columns to drop for the current data view type.

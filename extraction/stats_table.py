@@ -58,7 +58,7 @@ class StatsTableGenerator:
             index=False,
         )
 
-        logging.info(f'Stats written to file:///{fpath}.csv')
+        logging.info(f'Stats written to "file:///{fpath}.csv"')
         
     def write_class_counter(self):
         data_view: DataView = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA, 

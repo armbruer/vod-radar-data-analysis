@@ -109,7 +109,7 @@ class DataAnalysisHelper:
             column_format=len(df_full.columns) * "c",
             index=False,
         )
-        logging.info(f'Analysis data written to file:///{filename}')
+        logging.info(f'Analysis data written to "file:///{filename}"')
 
     def _create_output_dir(self, dv_str, subvariant):
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'

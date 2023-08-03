@@ -14,6 +14,7 @@ class KittiLocations:
                  stats_dir: str = None,
                  figures_dir: str = None,
                  analysis_dir: str = None,
+                 hyperparameters_dir: str = None,
                  testing: bool = False):
         """
 Constructor which based on a few parameters defines the locations of possible data.
@@ -32,6 +33,7 @@ Constructor which based on a few parameters defines the locations of possible da
         self.stats_dir: str = stats_dir
         self.figures_dir: str = figures_dir
         self.analysis_dir: str = analysis_dir
+        self.hyperparameters_dir: str = hyperparameters_dir
         self.testing = testing
         
         if testing:
@@ -46,6 +48,8 @@ Constructor which based on a few parameters defines the locations of possible da
                 self.data_dir = f'{self.output_dir}/data'
             if self.analysis_dir is None:
                 self.analysis_dir = f'{self.output_dir}/analysis'
+            if self.hyperparameters_dir is None:
+                self.hyperparameters_dir = f'{self.hyperparameters_dir}/hyperparams'
 
         # Automatically defined variables. The location of sub-folders can be customized here.
         # Current definitions are based on the recommended locations.

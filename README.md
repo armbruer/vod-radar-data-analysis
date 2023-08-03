@@ -4,7 +4,7 @@
 
 ## Parameter Range Extraction
 
-This section is the only one not by the view-of-delft dataset authors and describes how to setup this repository 
+This section is the only one not by the view-of-delft dataset authors and describes how to setup this repository for parameter extraction.
 
 ### Setup
 
@@ -39,7 +39,7 @@ micromamba activate view-of-delft
 4. Create a python environment with the packages required for this repository using micromamba
 
 ```shell
-micromamba create -n view-of-delft -f environment.yml -c conda-forge
+micromamba create -n view-of-delft -f environment-update.yml -c conda-forge
 ```
 
 5. Use VS-code (PyCharm does not support micromamba at the time of writing)

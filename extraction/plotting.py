@@ -1,12 +1,11 @@
 from tqdm import tqdm
-from typing import List, Union
+from typing import Dict, List, Union
 from enum import Enum
 from datetime import datetime
 from itertools import product
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
-from extraction.estimator import KernelDensityEstimator
-from extraction.file_manager import DataManager, DataView
+from extraction.file_manager import DataManager, DataView, KernelDensityEstimator
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
@@ -478,7 +477,7 @@ class DistributionPlotter:
         
         #figure.savefig(f'{path}.png', format='png')
         figure.savefig(f'{path}.pdf', format='pdf', bbox_inches='tight')
-        logging.info(f'Plot generated in file:///{path}.pdf')
+        logging.info(f'Plot generated in "file:///{path}.pdf"')
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
         if isinstance(figure, Figure): # can also be a FacetGrid
             plt.close(figure)
@@ -501,3 +500,70 @@ class DistributionPlotter:
     def _droplims(self, df, lims, column):
         xmin, xmax = lims
         return df.drop(df[(df[column] < xmin) | (df[column] > xmax)].index)
+    
+    def plot_all_kdeplots(self, data_variants: List[DataVariant] = DataVariant.all_variants(), 
+                          data_view_type: DataViewType = DataViewType.RADE):
+        
+        for data_variant in data_variants:
+            data_view = self.data_manager.get_view(data_variant=data_variant, 
+                                                data_view_type=data_view_type)
+            
+            self.kde: Dict[str, KernelDensityEstimator] = {}
+            subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
+            for df in zip(self._tmp_df, subvariants):
+                for column in data_view.kde_columns:
+                    subvariant = f'-{subvariant}' if subvariant is not None else ''
+                    self.kdeplot(df, data_view, self.kde, column, subvariant)
+                    self.kdeplot(df, data_view, self.kde, column, subvariant, show_underlying_data=True)
+        
+    
+    def kdeplot(self, 
+                df: pd.DataFrame, 
+                data_view: DataView, 
+                kde: KernelDensityEstimator, 
+                feature: str,
+                subvariant: str = '', 
+                show_underlying_data: bool = False):
+        # code adapted from: https://scikit-learn.org/stable/auto_examples/neighbors/plot_kde_1d.html
+
+        with sns.plotting_context(context='paper'):
+            with sns.axes_style(style='ticks'):
+                sns.set_palette(sns.color_palette())
+
+                # prepare plot data
+                xmin, xmax = data_view.lims
+                X_plot = np.linspace(xmin, xmax)[:, np.newaxis]
+                
+                dens = np.exp(kde.kde.score_samples(X_plot))
+
+                fig, ax = plt.subplots()
+                
+                if show_underlying_data:
+                    # plot a stepwise histogram
+                    ax.hist(df[feature], ec='0.3', fc='orange', histtype='step', density=True, alpha=0.2)
+                
+                ax.plot(
+                    X_plot[:, 0],
+                    dens,
+                    color='orange',
+                    linestyle="-",
+                )                    
+                ax.legend(loc="upper right")
+
+                ax.set_xlim(xmin, xmax)
+                ax.set_ylim(0, 1.0)
+                
+                #ax.set_title(feature)
+                #ax.set_xticks(data_view.ticklabels, labels=data_view.ticklabels, rotation=0)
+                ax.set_xlabel(feature)
+                ax.set_ylabel("Density")
+                
+                hist = 'hist' if show_underlying_data else ''
+                fig_name = f'{feature}-{hist}'
+                
+                self._store_figure(fig,
+                                   figure_name=fig_name,
+                                   subdir='kdeplots',
+                                   index_name=subvariant,
+                                   data_variant=data_view.variant,
+                                   timestring=True)
