@@ -1,10 +1,10 @@
-from itertools import repeat
 import logging
 import multiprocessing
 import os
 import numpy as np
 import pandas as pd
 
+from itertools import repeat
 from typing import List, Optional
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType

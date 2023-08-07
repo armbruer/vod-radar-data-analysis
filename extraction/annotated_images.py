@@ -1,7 +1,7 @@
-from itertools import repeat
 import os
 import multiprocessing
 
+from itertools import repeat
 from typing import List
 from extraction.helpers import get_class_names
 from vod.common.file_handling import get_frame_list_from_folder

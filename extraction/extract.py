@@ -3,6 +3,8 @@ import pandas as pd
 import extraction as ex
 
 from tqdm import tqdm
+from typing import Dict, List, Optional, Tuple
+
 from extraction.helpers import DataVariant, find_matching_points_for_bboxes, prepare_radar_data
 from vod.configuration.file_locations import KittiLocations
 from vod.frame import FrameTransformMatrix
@@ -10,7 +12,6 @@ from vod.frame import FrameDataLoader
 from vod.frame.labels import FrameLabels
 from vod.frame.transformations import homogenous_transformation_cart
 from vod.common.file_handling import get_frame_list_from_folder
-from typing import Dict, List, Optional, Tuple
 
 
 class ParameterRangeExtractor:

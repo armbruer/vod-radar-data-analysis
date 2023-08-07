@@ -1,9 +1,10 @@
+import numpy as np
+
 from enum import Enum
 from typing import List, Optional, Tuple
-import numpy as np
+
 from vod.frame.data_loader import FrameDataLoader
 from vod.frame.labels import FrameLabels
-
 from vod.frame.transformations import FrameTransformMatrix
 from vod.visualization.helpers import get_placed_3d_label_corners
 

@@ -1,8 +1,9 @@
-from itertools import groupby
 import logging
 import os
 import numpy as np
 import pandas as pd
+
+from itertools import groupby
 
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, from_class_label_to_summarized_name

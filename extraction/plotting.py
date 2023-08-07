@@ -1,15 +1,3 @@
-from scipy import stats
-from tqdm import tqdm
-from typing import Dict, List, Union
-from enum import Enum
-from datetime import datetime
-from itertools import product
-from matplotlib.colors import LogNorm
-from matplotlib.figure import Figure
-from extraction.extimators import KernelDensityEstimator
-from extraction.file_manager import DataManager, DataView
-from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
-
 import matplotlib
 matplotlib.use('Agg') # disable interactive matplotlib backend
 import logging
@@ -19,6 +7,19 @@ import numpy as np
 import seaborn as sns
 import pandas as pd
 import os
+
+from scipy import stats
+from tqdm import tqdm
+from typing import Dict, List, Union
+from enum import Enum
+from datetime import datetime
+from itertools import product
+
+from matplotlib.colors import LogNorm
+from matplotlib.figure import Figure
+from extraction.extimators import KernelDensityEstimator
+from extraction.file_manager import DataManager, DataView
+from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 class PlotType(Enum):
     VIOLIN = 1,

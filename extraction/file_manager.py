@@ -1,10 +1,10 @@
 import logging
 import os
-from matplotlib import pyplot as plt
 import pandas as pd
 
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
+
 from extraction.extimators import KernelDensityEstimator
 from extraction.extract import ParameterRangeExtractor
 from extraction.helpers import DataVariant, DataViewType
