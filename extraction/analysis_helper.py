@@ -21,7 +21,6 @@ class DataAnalysisHelper:
     def prepare_data_analysis(self, 
                               data_variant: DataVariant, 
                               data_view_type: DataViewType, 
-
                               frame_numbers: Optional[List[str]]=None):
         
         DataAnalysisHelper.runs_counter += 1 # make sure they are all unique

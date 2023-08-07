@@ -105,7 +105,7 @@ def visualize_frame(data_variant: DataVariant,
     
     vis3d = Visualization3D(loader, origin='camera')
     
-    if data_variant not in DataVariant.semantic_variants():
+    if data_variant in DataVariant.syntactic_variants():
         imsave(f'{dir}/{dv_str}/{frame_number}.png', loader.image)
         
         # center radar is here simply the extremum
@@ -188,7 +188,7 @@ def _find_matching_points(labels: FrameLabels,
     matching_points = find_matching_points_for_bboxes(radar_points=radar_data_r, labels=labels, transforms=transforms)
     
     # debugging
-    for points in matching_points:
+    for _, points in matching_points:
         if points is None:
             # this indicates an error, but is not handled as such, as I want to continue execution
             logging.error("No matching points :(")
@@ -201,7 +201,7 @@ def _find_matching_points(labels: FrameLabels,
     if not matching_points:
         return None
     
-    return np.vstack(matching_points)
+    return np.vstack(list(matching_points))
 
      
 def _visualize2D(vis2d: Visualization2D,
