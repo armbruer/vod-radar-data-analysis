@@ -13,6 +13,65 @@ from vod.visualization.vis_2d import Visualization2D
 from vod.visualization.vis_3d import Visualization3D
 
 
+
+def visualize_frame_sequence(
+                    data_variant: DataVariant,
+                    kitti_locations: KittiLocations,
+                    min_frame_number: int,
+                    max_frame_number: int, 
+                    frame_labels: Optional[List[FrameLabels]]=None,
+                    tracking_id: Optional[int]=None):
+    assert max_frame_number > min_frame_number
+    
+    frame_numbers = list(range(min_frame_number, max_frame_number+1))
+    frame_numbers = map(lambda fn: str(fn).zfill(5), frame_numbers)
+    
+    visualize_frames(data_variant=data_variant, 
+                     kitti_locations=kitti_locations, 
+                     frame_numbers=frame_numbers, 
+                     frame_labels=frame_labels,
+                     tracking_id=tracking_id)
+
+
+def visualize_frames(data_variant: DataVariant, 
+                     kitti_locations: KittiLocations,
+                     frame_numbers: List[str],
+                     tracking_id: Optional[int]=None,
+                     frame_labels: Optional[List[FrameLabels]]=None):
+    
+    if frame_labels is None:
+        # if we don't already get labels, lets just load them from file
+        frame_labels: List[FrameLabels] = []
+        for frame_number in frame_numbers:
+            loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
+            labels = loader.get_labels()
+            if labels is None:
+                logging.error("One of the frame numbers has no labels")
+                return
+            
+            frame_labels.append(labels)
+
+    if tracking_id is not None:
+        # keep only those labels and frame_numbers that match the tracking id given
+        only_tracking = lambda labels: filter(lambda l: l['tracking_id'] == tracking_id, labels)
+        
+        frame_labels = [only_tracking(labels) for labels in frame_labels]
+        
+        to_be_removed = []
+        for i, (fn, fl) in enumerate(zip(frame_numbers, frame_labels)):
+            if not fl:
+                logging.info(f"Frame number {fn} has no object with tracking id {tracking_id}. \
+                             No output will be created for this frame_number!")
+            
+            to_be_removed.append(i)
+        
+        del frame_labels[to_be_removed]
+        del frame_numbers[to_be_removed]
+        
+    for fn, fl in zip(frame_numbers, frame_labels):
+        visualize_frame(data_variant=data_variant, kitti_locations=kitti_locations, frame_number=fn, frame_labels=fl)
+        
+
 def visualize_frame(data_variant: DataVariant, 
                      kitti_locations: KittiLocations, 
                      frame_number: str,

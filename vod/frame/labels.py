@@ -57,10 +57,10 @@ class FrameLabels:
 
         for act_line in self.raw_labels:  # Go line by line to split the keys
             act_line = act_line.split()
-            label, trunc, occl, alpha, left, top, right, bottom, h, w, l, x, y, z, rot, score = act_line
+            label, tracking_id, occl, alpha, left, top, right, bottom, h, w, l, x, y, z, rot, score = act_line
             alpha, left, top, right, bottom = map(float, [alpha, left, top, right, bottom])
             h, w, l, x, y, z, rot, score = map(float, [h, w, l, x, y, z, rot, score])
-            trunc, occl = map(int, [trunc, occl])
+            tracking_id, occl = map(int, [tracking_id, occl])
             
 
             labels_dict = {'label_class': label,
@@ -75,7 +75,7 @@ class FrameLabels:
             
             if complete:
                 labels_dict.update({
-                           'trunc': trunc,
+                           'tracking_id': tracking_id,
                            'occl': occl,
                            'alpha': alpha,
                            'l': left,
