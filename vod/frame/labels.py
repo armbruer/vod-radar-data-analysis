@@ -31,22 +31,8 @@ class FrameLabels:
             # Load data if it is not loaded yet.
             self._labels_dict = self.get_labels_dict()
             return self._labels_dict
-        
-    @property
-    def complete_labels_dict(self):
-        """
-        Label dictionary property containg all labels
-        :return:
-        """
-        if self._complete_labels_dict is not None:
-            # When the data is already loaded.
-            return self._complete_labels_dict
-        else:
-            # Load data if it is not loaded yet.
-            self._complete_labels_dict = self.get_labels_dict(complete=True)
-            return self._complete_labels_dict
 
-    def get_labels_dict(self, complete=False) -> List[dict]:
+    def get_labels_dict(self) -> List[dict]:
         """
         This method returns a list of dictionaries containing the label data.
         :return: List of dictionaries containing label data.
@@ -71,17 +57,14 @@ class FrameLabels:
                            'y': y,
                            'z': z,
                            'rotation': rot,
-                           'score': score}
-            
-            if complete:
-                labels_dict.update({
+                           'score': score, 
                            'tracking_id': tracking_id,
                            'occl': occl,
                            'alpha': alpha,
                            'l': left,
                            't': top,
                            'r': right,
-                           'b': bottom})
+                           'b': bottom}
             
             labels.append(labels_dict)
             
