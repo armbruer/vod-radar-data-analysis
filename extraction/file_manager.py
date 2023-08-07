@@ -1,5 +1,6 @@
 import logging
 import os
+from matplotlib import pyplot as plt
 import pandas as pd
 
 from datetime import datetime
@@ -355,7 +356,7 @@ class KernelDensityEstimator:
         self.kernel = kernel
         self.feature = feature
         if self.bw is None or self.kernel is None:
-            self._find_best_estimator()
+            self._estimate_best_hyperparameters()
         
         self.kde = KernelDensity(kernel=self.kernel, bandwidth=self.bw).fit(self.data)
         
@@ -368,7 +369,7 @@ class KernelDensityEstimator:
 
     We use cross validation from sklearn.
     """
-    def _find_best_estimator(self):
+    def _estimate_best_hyperparameters(self):
         
         # this line is directly copied from seaborn
         # just throw this into bandwiths, maybe its a good default for our data
@@ -376,14 +377,14 @@ class KernelDensityEstimator:
         basic_bandwidth = stats.gaussian_kde(self.data.T).scotts_factor() * self.data.std(ddof=1)
         
         print(f"Data size: {self.data.size}")
-        bandwidths = np.linspace(1e-3, 1.5, 9)
+        bandwidths = np.linspace(0.25, 1.5, 9)
         bandwidths = np.append(bandwidths, basic_bandwidth)
         # höhere bandwidth
         # 
         
-        grid = GridSearchCV(KernelDensity(algorithm='kd_tree'),
-                            {'bandwidth': bandwidths, 
-                             'kernel': ['epanechnikov']}, # , gaussian 'cosine', 'epanechnikov'
+        grid = GridSearchCV(KernelDensity(algorithm='kd_tree', kernel='epanechnikov'),
+                            {'bandwidth': bandwidths},
+                            # 'kernel': ['gaussian', 'cosine', 'epanechnikov']}, 
                             # we restrict ourselves to epanechnikov, as it is fast
                             # higher jobs number does not seem to improve the situation
                             # use kdtree, as we have 1 dim data
@@ -391,7 +392,14 @@ class KernelDensityEstimator:
                             cv=3, n_jobs=1, verbose=3)
         grid.fit(self.data)
         self.bw = grid.best_params_['bandwidth']
-        self.kernel = grid.best_params_['kernel']
+        self.kernel = 'epanechnikov'
+        print(f'Optimal bandwidth: {self.bw}')
+        
+        # grid_results = grid.cv_results_
+        # plt.plot(bandwidths, grid_results['mean_test_score'])
+        # plt.xlabel('Bandwidth')
+        # plt.ylabel('Cross-validation accuracy')
+        # plt.show()
 
 
     """
