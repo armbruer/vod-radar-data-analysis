@@ -98,7 +98,7 @@ class DataVariant(Enum):
             return ["Frame Number", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", 
                     "Elevation [degree]", "Data Class", "Class", "Detections [#]", 
                     "Bbox volume [m^3]", "Doppler Compensated [m/s]", 
-                    "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
+                    "Tracking ID", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
 
         return []
     
@@ -229,27 +229,27 @@ class DataViewType(Enum):
         """
         if self == self.RAD:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Elevation [degree]", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Elevation [degree]", "Tracking ID", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
             
         if self == self.RADE:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
-                    "Bbox volume [m^3]", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
+                    "Bbox volume [m^3]", "Tracking ID", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
                 
         elif self == self.STATS:
-            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Class", "Tracking ID", "x", "y", "z"]
                 
         elif self == self.PLOT_LONG_LAT:
-            return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
+            return ["Frame Number", "Class", "Data Class", "Tracking ID", "Doppler Compensated [m/s]", 
                     "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]", "Range [m]", 
-                    "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
+                    "Tracking ID", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "z"]
             
         elif self == self.PLOT_ALT_LONG:
-            return ["Frame Number", "Class", "Data Class", "Doppler Compensated [m/s]", 
+            return ["Frame Number", "Class", "Data Class", "Tracking ID", "Doppler Compensated [m/s]", 
                     "Height [m]", "Width [m]", "Length [m]", "Bbox volume [m^3]", "Range [m]", 
                     "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]", "y"]
         
         elif self == self.EASY_PLOTABLE:
-            return ["Frame Number", "Data Class", "Class", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Class", "Tracking ID", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
         
         elif self == self.MIN_MAX_USEFUL:
             return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
@@ -257,10 +257,10 @@ class DataViewType(Enum):
         elif self == self.PLOT_XYZ_ONLY:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
                     "Bbox volume [m^3]", "Range [m]", "Azimuth [degree]", "Doppler [m/s]", "Elevation [degree]",
-                    "Height [m]", "Width [m]", "Length [m]"]
+                    "Tracking ID", "Height [m]", "Width [m]", "Length [m]"]
             
         elif self == self.CORR_HEATMAP:
-            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Tracking ID", "Class", "x", "y", "z"]
 
         # NONE
         return []

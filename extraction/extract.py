@@ -141,7 +141,7 @@ class ParameterRangeExtractor:
         """
         For each object in the frame retrieve the following data: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
-        bounding box volume, relative velocity (doppler), height, width, length, x, y, z.
+        bounding box volume, relative velocity (doppler), tracking_id, height, width, length, x, y, z.
 
         :param loader: the loader of the current frame
         :param transforms: the transformation matrix of the current frame
@@ -149,15 +149,15 @@ class ParameterRangeExtractor:
 
         Returns: a list of arrays in the following order: frame number, ranges, azimuths, 
         object class, summarized class, relative velocity compensated, number of detections, 
-        bounding box volume, relative velocity (doppler), height, width, length, x, y, z
+        bounding box volume, relative velocity (doppler), tracking_id, height, width, length, x, y, z
         """
         
         radar_data_r = prepare_radar_data(loader)
         if radar_data_r is None:
             return None
         
-        frame_numbers: List[np.ndarray] = []
-        #object_ids: List[np.ndarray] = [] # TODO future work
+        tracking_ids: List[np.ndarray] = [] # tracking ids are useful for tracking objects across multiple frames
+        frame_numbers: List[np.ndarray] = [] 
         object_clazz: List[np.ndarray] = [] # this class stems from the dataset
         summarized_clazz: List[np.ndarray] = [] # we summarize multiple classes here for easier plotting
         dopplers_compensated: List[np.ndarray] = [] # avg doppler, but compensated for ego-vehicle movement, per object
@@ -187,6 +187,7 @@ class ParameterRangeExtractor:
             if points_matching is None:
                 continue
             
+            tracking_ids.append(label['tracking_id'])
             clazz_id = ex.get_class_id_from_name(label['label_class'], summarized=False)
             summarized_id = ex.convert_to_summarized_class_id(clazz_id)
             
@@ -228,6 +229,6 @@ class ParameterRangeExtractor:
         
         columns = [frame_numbers, ranges, azimuths, dopplers, elevations, 
                    object_clazz, summarized_clazz, detections, bbox_vols, dopplers_compensated, 
-                   height, width, length, x, y, z]
+                   tracking_ids, height, width, length, x, y, z]
         return list(map(np.hstack, columns))
             
