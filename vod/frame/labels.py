@@ -61,10 +61,10 @@ class FrameLabels:
                            'tracking_id': tracking_id,
                            'occl': occl,
                            'alpha': alpha,
-                           'l': left,
-                           't': top,
-                           'r': right,
-                           'b': bottom}
+                           'left': left,
+                           'top': top,
+                           'right': right,
+                           'bottom': bottom}
             
             labels.append(labels_dict)
             
