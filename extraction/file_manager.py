@@ -39,7 +39,7 @@ class DataView:
         
         self.kde: Dict[str, KernelDensityEstimator] = {}
         subvariants = self.variant.subvariant_names() if self.variant.subvariant_names() else [None]
-        for df in zip(self._tmp_df, subvariants):
+        for df, subvariant in zip(self._tmp_df, subvariants):
             for column in self.kde_columns:
                 subvariant = f'-{subvariant}' if subvariant is not None else ''
                 identifier = f'{self.variant.shortname()}:{column}{subvariant}'
@@ -74,12 +74,14 @@ class DataManager:
         """
         df = self._get_df(data_variant, refresh, frame_numbers)
         
-        subvariants = self.variant.subvariant_names() if self.variant.subvariant_names() else [None]
+        subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
         
         kde_columns = self.kde_columns.remaining_columns(data_variant)
         
+        dfs = [df] if not isinstance(df, list) else df
+            
         relevant_hyper_params_only = {}
-        for df in zip(self._tmp_df, subvariants):
+        for df, subvariant in zip(dfs, subvariants):
 
             for column in kde_columns:
                 subvariant = f'-{subvariant}' if subvariant is not None else ''
@@ -128,24 +130,20 @@ class DataManager:
             syntactic_df = self._get_df(DataVariant.SYNTACTIC_DATA)
             syntactic_by_moving = self.extractor.split_rad_by_threshold(syntactic_df)
             self.data[data_variant] = syntactic_by_moving
-
+            
+        if data_variant in DataVariant.split_variants():
+            dfs = self.data[data_variant]
+            if self.load_all_hyperparameters(dfs, data_variant):
+               return dfs
+        else:
+            dfs = [self.data[data_variant]]
+        
         # after extraction we want to determine the hyperparameters for kde for each feature
         # and store the hyperparameters, as this is expensive operation
-        dfs = self.data[data_variant]
-        if not isinstance(dfs, list):
-            dfs = [dfs]
-        
-        subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
-        for df, subvariant in zip(dfs, subvariants):
-            columns = self.kde_columns.remaining_columns(data_variant)
-            for column in columns:
-                kde = KernelDensityEstimator(df, column)
-                hyper_params = {'bw': kde.bw, 'kernel': kde.kernel}
-                
-                self.store_hyperparameters(hyper_params=hyper_params, data_variant=data_variant, feature=column, subvariant=subvariant)   
-
+        self.store_all_hyperparameters(data_variant, dfs)   
         return self.data[data_variant]
-    
+
+
     def load_dataframe(self, data_variant: DataVariant) -> Optional[pd.DataFrame]:
         """
         Loads a dataframe from the most recently saved HDF5-file for this data variant.
@@ -207,15 +205,33 @@ class DataManager:
         identifier = f'{dv_str}:{feature}{subvariant}'
         self.hyperparams[identifier] = hyper_params
         logging.info(f'Stored hyperparameters in "file:///{path}"')
+    
+    def store_all_hyperparameters(self, data_variant, dfs):
+        if not isinstance(dfs, list):
+            dfs = [dfs]
         
-    def load_all_hyperparameters(self, dfs: List[pd.DataFrame], data_variant: DataVariant):
         subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
+        for df, subvariant in zip(dfs, subvariants):
+            columns = self.kde_columns.remaining_columns(data_variant)
+            for column in columns:
+                kde = KernelDensityEstimator(df, column)
+                hyper_params = {'bw': kde.bw, 'kernel': kde.kernel}
+                
+                self.store_hyperparameters(hyper_params=hyper_params, data_variant=data_variant, feature=column, subvariant=subvariant)
+    
+
+    def load_all_hyperparameters(self, dfs: List[pd.DataFrame], data_variant: DataVariant) -> bool:
+        subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
+        hyps_missing: bool = True
+        
         for df, subvariant in zip(dfs, subvariants):
             for column in df.columns:
                 hyper_params = self.load_hyperparameters(data_variant=data_variant, feature=column, subvariant=subvariant)
                 if hyper_params is None:
-                    logging.warning(f"Missing hyperparams for {column}, {subvariant}")
-        
+                    hyps_missing = False
+                    
+        return hyps_missing
+                
     def load_hyperparameters(self, data_variant: DataVariant, feature: str, subvariant: Optional[str] = None) -> Optional[Dict[str, Any]]:
         dv_str = data_variant.shortname()
         subvariant = f'-{subvariant}' if subvariant is not None else ''
@@ -359,15 +375,20 @@ class KernelDensityEstimator:
         # let's see...
         basic_bandwidth = stats.gaussian_kde(self.data.T).scotts_factor() * self.data.std(ddof=1)
         
-        
-        bandwidths = np.linspace(1e-3, 1, 9)
+        print(f"Data size: {self.data.size}")
+        bandwidths = np.linspace(1e-3, 1.5, 9)
         bandwidths = np.append(bandwidths, basic_bandwidth)
-        grid = GridSearchCV(KernelDensity(),
+        # höhere bandwidth
+        # 
+        
+        grid = GridSearchCV(KernelDensity(algorithm='kd_tree'),
                             {'bandwidth': bandwidths, 
                              'kernel': ['epanechnikov']}, # , gaussian 'cosine', 'epanechnikov'
                             # we restrict ourselves to epanechnikov, as it is fast
-                            # according to 
-                            cv=5, n_jobs=1, verbose=3)
+                            # higher jobs number does not seem to improve the situation
+                            # use kdtree, as we have 1 dim data
+                            # https://scikit-learn.org/stable/faq.html#why-do-i-sometime-get-a-crash-freeze-with-n-jobs-1-under-osx-or-linux
+                            cv=3, n_jobs=1, verbose=3)
         grid.fit(self.data)
         self.bw = grid.best_params_['bandwidth']
         self.kernel = grid.best_params_['kernel']

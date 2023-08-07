@@ -217,7 +217,7 @@ class DistributionPlotter:
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
                         
                         #bw = self._get_single_bw(dataframe=df, column=bw)
-                        bw = None
+                        bw = 1
                         
                         g = pf(axis, df, column, bw)
                         g.set(xlim=xlim)
@@ -238,7 +238,8 @@ class DistributionPlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, bw_method=bw))
+            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, bw_method=bw)),
+            ('hist_step', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False))
         ]
         
         if not most_important_only:
@@ -269,7 +270,7 @@ class DistributionPlotter:
                     
                     
                     # bw = self._get_single_bw(dataframe=column)
-                    bw = None
+                    bw = 1
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
                     
@@ -332,7 +333,7 @@ class DistributionPlotter:
                     df = self._droplims(df, xlim, column)
                     
                     #bw = self._get_single_bw(dataframe=df, feature=column)
-                    bw = None
+                    bw = 1
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
             
