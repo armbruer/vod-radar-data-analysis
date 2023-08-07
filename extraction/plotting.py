@@ -6,7 +6,8 @@ from datetime import datetime
 from itertools import product
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
-from extraction.file_manager import DataManager, DataView, KernelDensityEstimator
+from extraction.extimators import KernelDensityEstimator
+from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
 import matplotlib
