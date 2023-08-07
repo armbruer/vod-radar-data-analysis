@@ -1,4 +1,5 @@
 import matplotlib
+from matplotlib.image import AxesImage
 matplotlib.use('Agg') # disable interactive matplotlib backend
 import logging
 import matplotlib as mpl
@@ -184,9 +185,9 @@ class DistributionPlotter:
             columns: List[str] = rad_df.columns.to_list()
             
             plot_functions = [
-                ('hist', lambda ax, df, column, _: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
-                ('hist_kde', lambda ax, df, column, bw: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True, kde_kws={'bw_method': bw})),
-                ('kde', lambda ax, df, column, bw: sns.kdeplot(data=df, x=column, ax=ax, bw_method=bw))
+                ('hist', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
+                ('hist_kde', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True)),
+                ('kde', lambda ax, df, column: sns.kdeplot(data=df, x=column, ax=AxesImage))
             ]
             
             if data_view_type == DataViewType.RADE:
@@ -219,13 +220,7 @@ class DistributionPlotter:
                     
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
                         
-                        # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
-                        # and cannot work with more than one bw
-                        # and here want to use one bw for more than one line, so it's anyways not super precise
-                        data = df.to_numpy()
-                        bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
-                        
-                        g = pf(axis, df, column, bw)
+                        g = pf(axis, df, column)
                         g.set(xlim=xlim)
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
@@ -244,8 +239,8 @@ class DistributionPlotter:
         by_column_dfs = self._map_to_single_class_column_dfs(object_class_dfs, columns, indexes)
         
         plot_functions = [
-            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False, bw_method=bw)),
-            ('hist_step', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False))
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
+            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False))
         ]
         
         if not most_important_only:
@@ -275,13 +270,7 @@ class DistributionPlotter:
                         df = self._droplims(df, xlim, column)
                     
                     
-                    # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
-                    # and cannot work with more than one bw
-                    # and here want to use one bw for more than one line, so it's anyways not super precise
-                    data = df.to_numpy()
-                    bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
-                    
-                    g = pf(i, j, df, column, bw)
+                    g = pf(i, j, df, column)
                     g.set(xlim=xlim)
                     
                     if not most_important_only:
@@ -317,11 +306,11 @@ class DistributionPlotter:
         columns: List[str] = syntactic_rad_df.columns.to_list()
         
         plot_functions = [
-            ('hist', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
-            ('hist_kde', lambda i, j, df, column, bw: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True, kde_kws={'bw_method': bw})),
-            ('hist_step', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
-            ('hist_step_kde', lambda i, j, df, column, _: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="density", common_norm=False, kde=True, kde_kws={'bw_method': bw})),
-            ('kde', lambda i, j, df, column, bw: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False, bw_method=bw))
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
+            ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True)),
+            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
+            ('hist_step_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="density", common_norm=False, kde=True)),
+            ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='annotated', ax=ax[i, j], common_norm=False))
         ]
         
         for fig_name, pf in plot_functions:
@@ -342,13 +331,7 @@ class DistributionPlotter:
                     # alternatively we could also leave everything uncut but then we would have to show all outliers
                     df = self._droplims(df, xlim, column)
                     
-                    # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
-                    # and cannot work with more than one bw
-                    # and here want to use one bw for more than one line, so it's anyways not super precise
-                    data = df.to_numpy()
-                    bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
-        
-                    g = pf(i, j, df, column, bw)
+                    g = pf(i, j, df, column)
                     g.set(xlim=xlim)
             
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
