@@ -25,7 +25,7 @@ def visualize_frame_sequence(
     assert max_frame_number > min_frame_number
     
     frame_numbers = list(range(min_frame_number, max_frame_number+1))
-    frame_numbers = map(lambda fn: str(fn).zfill(5), frame_numbers)
+    frame_numbers = list(map(lambda fn: str(fn).zfill(5), frame_numbers))
     
     visualize_frames(data_variant=data_variant, 
                      kitti_locations=kitti_locations, 
@@ -45,7 +45,7 @@ def visualize_frames(data_variant: DataVariant,
         frame_labels: List[FrameLabels] = []
         for frame_number in frame_numbers:
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
-            labels = loader.get_labels()
+            labels = FrameLabels(loader.get_labels())
             if labels is None:
                 logging.error("One of the frame numbers has no labels")
                 return
@@ -54,23 +54,31 @@ def visualize_frames(data_variant: DataVariant,
 
     if tracking_id is not None:
         # keep only those labels and frame_numbers that match the tracking id given
-        only_tracking = lambda labels: filter(lambda l: l['tracking_id'] == tracking_id, labels)
-        
-        frame_labels = [only_tracking(labels) for labels in frame_labels]
+        frame_labels = [list(filter(lambda label: label['tracking_id'] == tracking_id, labels.labels_dict)) for labels in frame_labels]
+        new_frame_labels = []
+        for fl in frame_labels:
+            resLabels = FrameLabels([]) # a bit hacky, but do not set the raw labels
+            resLabels._labels_dict = fl
+            new_frame_labels.append(resLabels)
+            
+        frame_labels = new_frame_labels
         
         to_be_removed = []
         for i, (fn, fl) in enumerate(zip(frame_numbers, frame_labels)):
-            if not fl:
+            if not fl.labels_dict:
                 logging.info(f"Frame number {fn} has no object with tracking id {tracking_id}. \
                              No output will be created for this frame_number!")
             
-            to_be_removed.append(i)
+                to_be_removed.append(i)
         
-        del frame_labels[to_be_removed]
-        del frame_numbers[to_be_removed]
+        frame_labels = [l for i, l in enumerate(frame_labels) if i not in to_be_removed]
+        frame_numbers = [l for i, l in enumerate(frame_numbers) if i not in to_be_removed]
         
     for fn, fl in zip(frame_numbers, frame_labels):
-        visualize_frame(data_variant=data_variant, kitti_locations=kitti_locations, frame_number=fn, frame_labels=fl)
+        assert len(fl.labels_dict) == 1
+        fl_dict = fl.labels_dict[0]
+        center_radar = np.array([fl_dict['x'], fl_dict['y'], fl_dict['z']])
+        visualize_frame(data_variant=data_variant, kitti_locations=kitti_locations, frame_number=fn, frame_labels=fl, center_radar=center_radar)
         
 
 def visualize_frame(data_variant: DataVariant, 
@@ -197,7 +205,7 @@ def _find_matching_points(labels: FrameLabels,
             logging.error("Detections did not match!")
     
     matching_points = map(lambda p: p[1], matching_points)
-    matching_points = filter(lambda p: p is not None, matching_points)
+    matching_points = list(filter(lambda p: p is not None, matching_points))
     if not matching_points:
         return None
     

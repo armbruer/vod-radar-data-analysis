@@ -3,6 +3,7 @@ import sys
 import os
 import logging
 from extraction import visualization
+from extraction.helpers import DataVariant
 
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
@@ -53,7 +54,7 @@ def main():
     # plotter.plot_data_simple_improved(data_variants=DataVariant.all_variants())
     # generate_stats(dm)
 
-    prepare_data_analysis(dm)
+    # prepare_data_analysis(dm)
     # plotter.plot_syn_sem_combined()
     # plotter.plot_by_class_combined()
     # plotter.plot_by_class_combined(most_important_only=True)
@@ -62,7 +63,12 @@ def main():
     # plotter.plot_azimuth_heatmap()
     # plotter.plot_ele_heatmap()
     
-    #visualization.visualize_frame_sequence()
+    visualization.visualize_frame_sequence(
+        data_variant=DataVariant.SEMANTIC_DATA,
+        kitti_locations=kitti_locations,
+        min_frame_number=3761, 
+        max_frame_number=3781,
+        tracking_id=432)
     
     #plotter.plot_all_kdeplots()
 
