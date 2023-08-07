@@ -290,32 +290,6 @@ class EstimatorCollection:
             for feature in df.columns:
                 self.estimators[i].append(KernelDensityEstimator(df=self.data_view, feature=feature))
     
-    # no overloading in python, dont need it anysways
-    # def __init__(self, 
-    #              data_variant: DataVariant, 
-    #              data_view_type: DataViewType,
-    #              data_manager: DataManager,
-    #              data_view: DataView) -> None:
-    #     self.data_manager = data_manager
-    #     self.data_view = data_view
-    #     if self.data_view is None:
-    #         self.data_view = data_manager.get_view(data_variant=data_variant, data_view_type=data_view_type)
-            
-      
-    """
-    Returns the best bandwidth, kernel found for each estimator (per feature) and for each dataframe
-    
-    Returns a dictionary of format feature:[bandwith,kernel] per dataframe. 
-    """
-    def get_hyper_params(self) -> List[Dict[str, Tuple[float, str]]]:
-        bws = []
-        for kdelist in self.estimators:
-            df_bws = {}
-            for est in kdelist:
-                df_bws[est.feature] = est.bw, est.kernel
-                
-        return bws
-            
     """
     Draws n_samples from each estimator in the collection.
     

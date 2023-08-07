@@ -1,3 +1,4 @@
+from scipy import stats
 from tqdm import tqdm
 from typing import Dict, List, Union
 from enum import Enum
@@ -216,8 +217,11 @@ class DistributionPlotter:
                     
                         axis = ax[i, j] if data_view_type == DataViewType.RADE else ax[j]
                         
-                        #bw = self._get_single_bw(dataframe=df, column=bw)
-                        bw = 1
+                        # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
+                        # and cannot work with more than one bw
+                        # and here want to use one bw for more than one line, so it's anyways not super precise
+                        data = df.to_numpy()
+                        bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
                         
                         g = pf(axis, df, column, bw)
                         g.set(xlim=xlim)
@@ -269,8 +273,12 @@ class DistributionPlotter:
                         df = self._droplims(df, xlim, column)
                     
                     
-                    # bw = self._get_single_bw(dataframe=column)
-                    bw = 1
+                    # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
+                    # and cannot work with more than one bw
+                    # and here want to use one bw for more than one line, so it's anyways not super precise
+                    data = df.to_numpy()
+                    bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
+                    
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
                     
@@ -332,8 +340,12 @@ class DistributionPlotter:
                     # alternatively we could also leave everything uncut but then we would have to show all outliers
                     df = self._droplims(df, xlim, column)
                     
-                    #bw = self._get_single_bw(dataframe=df, feature=column)
-                    bw = 1
+                    # we use the rule of thumb here as we cannot plot with seaborn any non-gaussian kernels
+                    # and cannot work with more than one bw
+                    # and here want to use one bw for more than one line, so it's anyways not super precise
+                    data = df.to_numpy()
+                    bw =  stats.gaussian_kde(data.T).scotts_factor() * data.std(ddof=1)
+        
                     g = pf(i, j, df, column, bw)
                     g.set(xlim=xlim)
             
@@ -482,21 +494,6 @@ class DistributionPlotter:
         # don't forget closing the figure, otherwise matplotlib likes to keep'em in RAM :)
         if isinstance(figure, Figure): # can also be a FacetGrid
             plt.close(figure)
-            
-    # def _get_hyps(self, data_view: DataView):
-    #     estimators = EstimatorCollection(data_view)
-    #     return estimators.get_hyper_params()
-    
-    # def _get_bws(self, data_view: DataView):
-    #     # only get bandwith list from hyperparameters
-    #     hyps = self._get_hyps(data_view)
-    #     firsts = lambda l: list(map(lambda x: x[0], l.values()))
-        
-    #     return list(map(firsts, hyps))
-    
-    def _get_single_bw(self, dataframe: pd.DataFrame, feature: str):
-        kde = KernelDensityEstimator(dataframe, feature)
-        return kde.bw
     
     def _droplims(self, df, lims, column):
         xmin, xmax = lims
