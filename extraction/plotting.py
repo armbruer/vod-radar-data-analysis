@@ -239,7 +239,7 @@ class DistributionPlotter:
         
         plot_functions = [
             ('kde', lambda i, j, df, column: sns.kdeplot(data=df, x=column, hue='clazz', ax=ax[i, j], common_norm=False)),
-            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False))
+            ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='clazz', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False))
         ]
         
         if not most_important_only:
