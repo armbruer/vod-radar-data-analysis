@@ -3,7 +3,10 @@ import multiprocessing
 import os
 import numpy as np
 import pandas as pd
+import traceback
+import multiprocessing
 
+from multiprocessing.pool import Pool
 from itertools import repeat
 from typing import List, Optional
 from extraction.file_manager import DataManager, DataView
@@ -31,8 +34,12 @@ class DataAnalysisHelper:
             iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
             cpus = int(multiprocessing.cpu_count() * 0.75)
             try:
-                pool = multiprocessing.Pool(processes=cpus)
-                pool.starmap(self._prepare_data_analysis, iter)
+                pool = LoggingPool(processes=cpus)
+                result = pool.starmap_async(self._prepare_data_analysis, iter)
+                result.wait()
+                if not result.successful():
+                    # this should make sure we get exceptions thrown outside of the starmap
+                    result.get()
             finally:
                 pool.close()
                 pool.join()
@@ -122,3 +129,33 @@ def prepare_data_analysis(data_manager: DataManager):
     
     for dv in DataVariant.all_variants():
         analysis.prepare_data_analysis(dv, DataViewType.NONE)
+        
+
+# for better debugging with multiprocessing stuff
+# https://stackoverflow.com/questions/6728236/exception-thrown-in-multiprocessing-pool-not-detected
+def error(msg, *args):
+    return multiprocessing.get_logger().error(msg, *args)
+
+class LogExceptions(object):
+    def __init__(self, callable):
+        self.__callable = callable
+
+    def __call__(self, *args, **kwargs):
+        try:
+            result = self.__callable(*args, **kwargs)
+
+        except Exception as e:
+            # Here we add some debugging help. If multiprocessing's
+            # debugging is on, it will arrange to log the traceback
+            error(traceback.format_exc())
+            # Re-raise the original exception so the Pool worker can
+            # clean up
+            raise
+
+        # It was fine, give a normal answer
+        return result
+
+class LoggingPool(Pool):
+    def apply_(self, func, iterable, chunksize=None, callback=None,
+            error_callback=None):
+        return Pool.starmap_async(self, LogExceptions(func), iterable, chunksize, callback, error_callback)
