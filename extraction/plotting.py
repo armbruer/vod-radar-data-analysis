@@ -9,7 +9,6 @@ import seaborn as sns
 import pandas as pd
 import os
 
-from scipy import stats
 from tqdm import tqdm
 from typing import Dict, List, Union
 from enum import Enum

@@ -31,23 +31,23 @@ class DataAnalysisHelper:
                                                          data_view_type=data_view_type, frame_numbers=frame_numbers)
         df = data_view.df
         if isinstance(df, list):
-            iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
-            cpus = int(multiprocessing.cpu_count() * 0.75)
-            try:
-                pool = LoggingPool(processes=cpus)
-                result = pool.starmap_async(self._prepare_data_analysis, iter)
-                result.wait()
-                if not result.successful():
-                    # this should make sure we get exceptions thrown outside of the starmap
-                    result.get()
-            finally:
-                pool.close()
-                pool.join()
+            # iter = zip(df, repeat(data_variant), data_variant.subvariant_names())
+            # cpus = int(multiprocessing.cpu_count() * 0.75)
+            # try:
+            #     pool = multiprocessing.Pool(processes=cpus)
+            #     result = pool.starmap_async(self._prepare_data_analysis, iter)
+            #     result.wait()
+            #     if not result.successful():
+            #         # this should make sure we get exceptions thrown outside of the starmap
+            #         result.get()
+            # finally:
+            #     pool.close()
+            #     pool.join()
             
             # alternatively without multiprocessing:
             
-            # for d, s in zip(df, data_variant.subvariant_names()):
-            #     self._prepare_data_analysis(d, data_variant, s)
+            for d, s in zip(df, data_variant.subvariant_names()):
+                self._prepare_data_analysis(d, data_variant, s)
             return
         
         self._prepare_data_analysis(df, data_variant)
