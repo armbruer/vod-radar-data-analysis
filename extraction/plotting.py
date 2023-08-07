@@ -186,7 +186,7 @@ class DistributionPlotter:
             plot_functions = [
                 ('hist', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="probability")),
                 ('hist_kde', lambda ax, df, column: sns.histplot(data=df, x=column, bins=30, ax=ax, stat="density", kde=True)),
-                ('kde', lambda ax, df, column: sns.kdeplot(data=df, x=column, ax=AxesImage))
+                ('kde', lambda ax, df, column: sns.kdeplot(data=df, x=column, ax=ax))
             ]
             
             if data_view_type == DataViewType.RADE:
