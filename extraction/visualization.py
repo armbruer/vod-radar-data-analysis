@@ -2,7 +2,7 @@ import logging
 import pathlib
 import numpy as np
 
-from typing import Optional
+from typing import List, Optional
 from matplotlib.image import imsave
 from extraction.helpers import DataVariant, find_matching_points_for_bboxes, get_class_names, prepare_radar_data
 from vod.configuration.file_locations import KittiLocations
@@ -17,9 +17,10 @@ def visualize_frame(data_variant: DataVariant,
                      kitti_locations: KittiLocations, 
                      frame_number: str,
                      center_radar: np.ndarray,
-                     detections: int, 
-                     i=0,
-                     runs_counter=0):
+                     detections: int = -1, 
+                     i: int = 0,
+                     runs_counter: int = 0,
+                     frame_labels: Optional[FrameLabels]=None):
     """
     Visualizes radar points and corresponding annotations in 2D and 3D for the given frames (use semantic data_variants!).
     Useful for debugging.
@@ -56,9 +57,12 @@ def visualize_frame(data_variant: DataVariant,
         return
     
     transforms = FrameTransformMatrix(loader)
-    labels: Optional[FrameLabels] = _find_matching_labels(loader=loader, transforms=transforms, center_radar=center_radar)
-    if labels is None:
-        return
+    if frame_labels is None:
+        labels: Optional[FrameLabels] = _find_matching_labels(loader=loader, transforms=transforms, center_radar=center_radar)
+        if labels is None:
+            return
+    else:
+        labels = frame_labels
     
     matching_points: Optional[np.ndarray] = _find_matching_points(labels=labels, loader=loader, transforms=transforms, detections=detections)
     if matching_points is None:
@@ -67,7 +71,6 @@ def visualize_frame(data_variant: DataVariant,
     # there is a 2D bounding box visualization bug that is part of the original VoD code
     # I double checked whether the bbox in this frame is visualized also wrongly in the original code
     # An example of this bug can be seen in frame 01839
-    # the bug is not relevant for us, we can use different samples for visualization in the thesis
     
     filename_radar = f'{dv_str}-radar-{i}-{runs_counter}'
     vis2d = Visualization2D(frame_data_loader=loader, 
@@ -117,24 +120,28 @@ def _find_matching_labels(loader: FrameDataLoader,
 def _find_matching_points(labels: FrameLabels, 
                         loader: FrameDataLoader, 
                         transforms: FrameTransformMatrix,
-                        detections: int) -> Optional[np.ndarray]:
+                        detections: int) -> Optional[List[np.ndarray]]:
     radar_data_r = prepare_radar_data(loader)
     if radar_data_r is None:
         return None
     
-    assert len(labels._labels_dict) == 1
+    matching_points = find_matching_points_for_bboxes(radar_points=radar_data_r, labels=labels, transforms=transforms)
     
-    _, matching_points = find_matching_points_for_bboxes(radar_points=radar_data_r, 
-                                                            labels=labels, transforms=transforms)[0]
-    if matching_points is None:
-        # this indicates an error, but is not handled as such, as I want to continue execution
-        logging.error("No matching points :(")
-        return None
+    # debugging
+    for points in matching_points:
+        if points is None:
+            # this indicates an error, but is not handled as such, as I want to continue execution
+            logging.error("No matching points :(")
 
-    if len(matching_points) != detections:
-        logging.error("Detections did not match!")
+        if detections != -1 and len(points) != detections:
+            logging.error("Detections did not match!")
     
-    return matching_points
+    matching_points = map(lambda p: p[1], matching_points)
+    matching_points = filter(lambda p: p is not None, matching_points)
+    if not matching_points:
+        return None
+    
+    return np.vstack(matching_points)
 
      
 def _visualize2D(vis2d: Visualization2D,
