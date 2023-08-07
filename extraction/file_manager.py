@@ -64,8 +64,9 @@ class DataManager:
         
     def get_view(self, data_variant: DataVariant, 
                  data_view_type: DataViewType = DataViewType.NONE, 
-                 refresh=False, 
-                 frame_numbers: Optional[List[str]]=None) -> DataView:
+                 refresh: bool=False, 
+                 frame_numbers: Optional[List[str]]=None,
+                 no_hyperparams: bool=True) -> DataView:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset.
 
@@ -74,7 +75,7 @@ class DataManager:
 
         Returns the dataframe containing the data requested
         """
-        df = self._get_df(data_variant, refresh, frame_numbers)
+        df = self._get_df(data_variant, refresh, frame_numbers, no_hyperparams)
         
         subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
         
@@ -83,20 +84,22 @@ class DataManager:
         dfs = [df] if not isinstance(df, list) else df
             
         relevant_hyper_params_only = {}
-        for df, subvariant in zip(dfs, subvariants):
+        if not no_hyperparams:
+            for df, subvariant in zip(dfs, subvariants):
 
-            for column in kde_columns:
-                subvariant = f'-{subvariant}' if subvariant is not None else ''
-                identifier = f'{data_variant.shortname()}:{column}{subvariant}'
-                
-                relevant_hyper_params_only[identifier] = self.hyperparams[identifier]
+                for column in kde_columns:
+                    subvariant = f'-{subvariant}' if subvariant is not None else ''
+                    identifier = f'{data_variant.shortname()}:{column}{subvariant}'
+                    
+                    relevant_hyper_params_only[identifier] = self.hyperparams[identifier]
         
         return DataView(df=df, data_variant=data_variant, data_view_type=data_view_type, hyper_params=relevant_hyper_params_only, kde_columns=kde_columns)
         
     def _get_df(self, 
                 data_variant: DataVariant,
-                refresh=False, 
-                frame_numbers: Optional[List[str]]=None) -> Union[pd.DataFrame, List[pd.DataFrame]]:
+                refresh: bool=False, 
+                frame_numbers: Optional[List[str]]=None,
+                no_hyperparams: bool=True) -> Union[pd.DataFrame, List[pd.DataFrame]]:
         """
         Gets the dataframe for the given data variant either by loading it from an HDF-5 file or by extracting it from the dataset
 
@@ -111,7 +114,8 @@ class DataManager:
             if not isinstance(dfs, list):
                 dfs = [dfs]
             
-            self.load_all_hyperparameters(dfs, data_variant)
+            if not no_hyperparams:
+                self.load_all_hyperparameters(dfs, data_variant)
             return self.data[data_variant]
 
         # data extraction takes place here
@@ -135,14 +139,15 @@ class DataManager:
             
         if data_variant in DataVariant.split_variants():
             dfs = self.data[data_variant]
-            if self.load_all_hyperparameters(dfs, data_variant):
+            if not no_hyperparams and self.load_all_hyperparameters(dfs, data_variant):
                return dfs
         else:
             dfs = [self.data[data_variant]]
         
         # after extraction we want to determine the hyperparameters for kde for each feature
         # and store the hyperparameters, as this is expensive operation
-        self.store_all_hyperparameters(data_variant, dfs)   
+        if not no_hyperparams:
+            self.store_all_hyperparameters(data_variant, dfs)   
         return self.data[data_variant]
 
 
