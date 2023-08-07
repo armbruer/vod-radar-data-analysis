@@ -70,6 +70,8 @@ class DataAnalysisHelper:
         max_indexes = np.argmax(stats_only_data, axis=0)
         min_fns = data[min_indexes, 0]
         max_fns = data[max_indexes, 0]
+        min_tracking_ids = data[min_indexes, -7]
+        max_tracking_ids = data[max_indexes, -7]
         
         min_max_indexes = list(min_indexes) + list(max_indexes)
         
@@ -93,10 +95,12 @@ class DataAnalysisHelper:
                              i=i,
                              runs_counter=DataAnalysisHelper.runs_counter)
             
-        stats = np.vstack((mins, min_fns, maxs, max_fns))
+        stats = np.vstack((mins, min_fns, min_tracking_ids, maxs, max_fns, max_tracking_ids))
 
         df_res_stats = pd.DataFrame(stats, columns=stats_only_df.columns)
-        df_res_stats.insert(0, "Name", pd.Series(["Min", "Min Frame Number", "Max", "Max Frame Number"]))
+        names = ["Min", "Min Frame Number", "Min Tracking ID", 
+                 "Max", "Max Frame Number", "Max Tracking ID"]
+        df_res_stats.insert(0, "Name", pd.Series(names))
         
         filename = f'{dir}/{dv_str}-{DataAnalysisHelper.runs_counter}.csv'
         df_res_stats.to_csv(filename, index=False)

@@ -253,7 +253,7 @@ class DataViewType(Enum):
             return ["Frame Number", "Data Class", "Class", "Tracking ID", "Height [m]", "Width [m]", "Length [m]", "x", "y", "z"]
         
         elif self == self.MIN_MAX_USEFUL:
-            return ["Frame Number", "Data Class", "Class", "x", "y", "z"]
+            return ["Frame Number", "Data Class", "Tracking ID", "Class", "x", "y", "z"]
         
         elif self == self.PLOT_XYZ_ONLY:
             return ["Frame Number", "Data Class", "Class", "Doppler Compensated [m/s]", "Detections [#]", 
