@@ -16,8 +16,8 @@ class DataView:
                  df: Union[pd.DataFrame, List[pd.DataFrame]], 
                  data_variant: DataVariant, 
                  data_view_type: DataViewType,
-                 hyper_params: Dict[str, Dict[str, Any]],
-                 kde_columns: List[str]) -> None:
+                 hyper_params: Dict[str, Dict[str, Any]] = {},
+                 kde_columns: List[str] = []) -> None:
         self.df = df
         self.variant = data_variant
         self.view = data_view_type
@@ -40,13 +40,16 @@ class DataView:
         self.df = self._tmp_df[0] if len(self._tmp_df) == 1 else self._tmp_df
         
         self.kde: Dict[str, KernelDensityEstimator] = {}
+        if not self.hyper_params:
+            return
+        
         subvariants = self.variant.subvariant_names() if self.variant.subvariant_names() else [None]
         for df, subvariant in zip(self._tmp_df, subvariants):
             for column in self.kde_columns:
                 subvariant = f'-{subvariant}' if subvariant is not None else ''
                 identifier = f'{self.variant.shortname()}:{column}{subvariant}'
                 hyper_params = self.hyper_params[identifier]
-                
+                    
                 self.kde[identifier] = KernelDensityEstimator(df, column, hyper_params['bw'], hyper_params['kernel'])
         
         
