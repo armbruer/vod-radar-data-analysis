@@ -8,7 +8,7 @@ import multiprocessing
 
 from multiprocessing.pool import Pool
 from itertools import repeat
-from typing import List, Optional
+from typing import Callable, List, Optional
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType
 from extraction.visualization import visualize_frame
@@ -121,6 +121,17 @@ class DataAnalysisHelper:
         )
         logging.info(f'Analysis data written to "file:///{filename}"')
 
+    def write_matching_data(self, df: pd.DataFrame, data_variant: DataVariant, filter: Callable, name: str):
+        df = df.round(decimals=2)
+        dv_str = data_variant.shortname()
+        dir = self._create_output_dir(dv_str, name)
+        
+        df = filter(df)
+        
+        filename = f'{dir}/full-data-{dv_str}-{DataAnalysisHelper.runs_counter}'
+        df.to_csv(f'{filename}.csv', index=False)
+        logging.info(f'Analysis data written to "file:///{filename}"')
+    
     def _create_output_dir(self, dv_str, subvariant):
         dir = f'{self.kitti_locations.analysis_dir}/{dv_str}'
         dir = dir if not subvariant else f'{dir}/{subvariant}'
@@ -133,7 +144,24 @@ def prepare_data_analysis(data_manager: DataManager):
     
     for dv in DataVariant.all_variants():
         analysis.prepare_data_analysis(dv, DataViewType.NONE)
-        
+
+
+def azi_degree_filter(df: pd.DataFrame, lower: int = 90, upper: int = 100):
+    df = df[(abs(df['Azimuth [degree]']) > lower) & (abs(df['Azimuth [degree]']) < upper)]
+    return df
+
+def azi_large_filter(df: pd.DataFrame, lower: int = 60, upper: int = 180):
+    return azi_degree_filter(df, lower, upper)
+
+def investigate_azimuth(data_manager: DataManager, name='azimuth_100_anomaly', filter=azi_degree_filter):
+    analysis = DataAnalysisHelper(data_manager)
+    data_view: DataView = data_manager.get_view(data_variant=DataVariant.SYNTACTIC_DATA, 
+                                                         data_view_type=DataViewType.NONE,
+                                                         no_hyperparams=True)
+    df = data_view.df
+
+    analysis.write_matching_data(df, DataVariant.SYNTACTIC_DATA, filter, name)
+    
 
 # for better debugging with multiprocessing stuff
 # https://stackoverflow.com/questions/6728236/exception-thrown-in-multiprocessing-pool-not-detected
