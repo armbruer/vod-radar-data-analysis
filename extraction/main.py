@@ -8,7 +8,7 @@ from extraction.helpers import DataVariant
 
 sys.path.append(os.path.abspath("../view-of-delft-dataset"))
 
-from extraction.analysis_helper import prepare_data_analysis
+from extraction.analysis_helper import azi_large_filter, investigate_azimuth, prepare_data_analysis
 from extraction.stats_table import generate_stats
 from extraction.file_manager import DataManager
 from extraction.plotting import DistributionPlotter
@@ -63,14 +63,17 @@ def main():
     # plotter.plot_azimuth_heatmap()
     # plotter.plot_ele_heatmap()
     
-    visualization.visualize_frame_sequence(
-        data_variant=DataVariant.SEMANTIC_DATA,
-        kitti_locations=kitti_locations,
-        min_frame_number=3761, 
-        max_frame_number=3781,
-        tracking_id=432)
+    # visualization.visualize_frame_sequence(
+    #     data_variant=DataVariant.SEMANTIC_DATA,
+    #     kitti_locations=kitti_locations,
+    #     min_frame_number=7000, 
+    #     max_frame_number=7020,
+    #     tracking_id=161)
     
-    #plotter.plot_all_kdeplots()
+    # plotter.plot_all_kdeplots()
+    
+    investigate_azimuth(dm)
+    investigate_azimuth(dm, 'azimuth_large', filter=azi_large_filter)
 
 if __name__ == '__main__':
     main()

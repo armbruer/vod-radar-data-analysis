@@ -45,11 +45,12 @@ def visualize_frames(data_variant: DataVariant,
         frame_labels: List[FrameLabels] = []
         for frame_number in frame_numbers:
             loader = FrameDataLoader(kitti_locations=kitti_locations, frame_number=frame_number)
-            labels = FrameLabels(loader.get_labels())
+            labels = loader.get_labels()
             if labels is None:
                 logging.error("One of the frame numbers has no labels")
                 return
             
+            labels = FrameLabels(labels)
             frame_labels.append(labels)
 
     if tracking_id is not None:

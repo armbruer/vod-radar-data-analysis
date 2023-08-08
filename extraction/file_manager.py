@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
-from extraction.extimators import KernelDensityEstimator
+from extraction.estimators import KernelDensityEstimator
 from extraction.extract import ParameterRangeExtractor
 from extraction.helpers import DataVariant, DataViewType
 from vod.configuration.file_locations import KittiLocations
@@ -18,7 +18,7 @@ class DataView:
                  data_view_type: DataViewType,
                  hyper_params: Dict[str, Dict[str, Any]] = {},
                  kde_columns: List[str] = []) -> None:
-        self.df = df
+        self.df: Union[pd.DataFrame, List[pd.DataFrame]] = df
         self.variant = data_variant
         self.view = data_view_type
         self.hyper_params = hyper_params
@@ -117,8 +117,8 @@ class DataManager:
             if not isinstance(dfs, list):
                 dfs = [dfs]
             
-            if not no_hyperparams:
-                self.load_all_hyperparameters(dfs, data_variant)
+            if not no_hyperparams and not self.load_all_hyperparameters(dfs, data_variant):
+                self.store_all_hyperparameters(data_variant, dfs)
             return self.data[data_variant]
 
         # data extraction takes place here

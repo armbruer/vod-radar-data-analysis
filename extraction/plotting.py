@@ -17,7 +17,7 @@ from itertools import product
 
 from matplotlib.colors import LogNorm
 from matplotlib.figure import Figure
-from extraction.extimators import KernelDensityEstimator
+from extraction.estimators import KernelDensityEstimator
 from extraction.file_manager import DataManager, DataView
 from extraction.helpers import DataVariant, DataViewType, get_class_id_from_name, get_class_ids, get_class_names, get_name_from_class_id
 
@@ -488,7 +488,7 @@ class DistributionPlotter:
         
         for data_variant in data_variants:
             data_view = self.data_manager.get_view(data_variant=data_variant, 
-                                                data_view_type=data_view_type)
+                                                data_view_type=data_view_type, no_hyperparams=False)
             
             self.kde: Dict[str, KernelDensityEstimator] = {}
             subvariants = data_variant.subvariant_names() if data_variant.subvariant_names() else [None]
