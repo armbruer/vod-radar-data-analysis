@@ -6,4 +6,4 @@ from .analysis_helper import *
 from .annotated_images import *
 from .stats_table import *
 from .file_manager import *
-from .extimators import *
+from .estimators import *

@@ -104,7 +104,7 @@ class KernelDensityEstimator:
                             # higher jobs number does not seem to improve the situation
                             # use kdtree, as we have 1 dim data
                             # https://scikit-learn.org/stable/faq.html#why-do-i-sometime-get-a-crash-freeze-with-n-jobs-1-under-osx-or-linux
-                            cv=3, n_jobs=1, verbose=3)
+                            cv=3, n_jobs=8, verbose=3)
         grid.fit(self.data)
         self.bw = grid.best_params_['bandwidth']
         self.kernel = 'epanechnikov'
