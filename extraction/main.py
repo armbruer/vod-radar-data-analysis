@@ -70,10 +70,10 @@ def main():
     #     max_frame_number=7020,
     #     tracking_id=161)
     
-    # plotter.plot_all_kdeplots()
+    plotter.plot_all_kdeplots()
     
-    investigate_azimuth(dm)
-    investigate_azimuth(dm, 'azimuth_large', filter=azi_large_filter)
+    # investigate_azimuth(dm)
+    # investigate_azimuth(dm, 'azimuth_large', filter=azi_large_filter)
 
 if __name__ == '__main__':
     main()

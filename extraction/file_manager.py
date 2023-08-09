@@ -202,13 +202,13 @@ class DataManager:
         logging.info(f'Data saved in "file:///{path}"')
         
     def store_hyperparameters(self, hyper_params: Dict[str, Any], data_variant: DataVariant, feature: str, subvariant: Optional[str] = None):
-        os.makedirs(self.hyper_param_dir, exist_ok=True)
-        
         dv_str = data_variant.shortname()
         subvariant = f'-{subvariant}' if subvariant is not None else ''
         
-        hyp_df = pd.DataFrame(hyper_params)
-        path = f'{self.hyper_param_dir}/{dv_str}/{feature}{subvariant}.csv'
+        hyp_df = pd.DataFrame([hyper_params])
+        dir = f'{self.hyper_param_dir}/{dv_str}'
+        os.makedirs(dir, exist_ok=True)
+        path = f'{dir}/{feature}{subvariant}.csv'
         
         hyp_df.to_csv(path, index=False)
         
@@ -250,8 +250,9 @@ class DataManager:
         if identifier in self.hyperparams:
             return self.hyperparams[identifier]
         
-        os.makedirs(self.hyper_param_dir, exist_ok=True)
-        path = f'{self.hyper_param_dir}/{dv_str}/{feature}{subvariant}.csv'
+        dir = f'{self.hyper_param_dir}/{dv_str}'
+        os.makedirs(dir, exist_ok=True)
+        path = f'{dir}/{feature}{subvariant}.csv'
         
         if not os.path.exists(path):
             return None

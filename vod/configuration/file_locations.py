@@ -49,7 +49,7 @@ Constructor which based on a few parameters defines the locations of possible da
             if self.analysis_dir is None:
                 self.analysis_dir = f'{self.output_dir}/analysis'
             if self.hyperparameters_dir is None:
-                self.hyperparameters_dir = f'{self.hyperparameters_dir}/hyperparams'
+                self.hyperparameters_dir = f'{self.output_dir}/hyperparams'
 
         # Automatically defined variables. The location of sub-folders can be customized here.
         # Current definitions are based on the recommended locations.
