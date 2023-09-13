@@ -33,6 +33,19 @@ class DistributionPlotter:
     def __init__(self, data_manager: DataManager) -> None:
         self.data_manager = data_manager
         self.kitti_locations = data_manager.kitti_locations
+        # use latex text rendering
+        # use same font as in my latex doc
+        sns.set_theme(context='paper', palette='colorblind', style='ticks')
+        sns.set(font_scale=1.3, rc={"text.usetex" : True, 
+                                    "font.family": "Palatino", 
+                                    "axes.grid" : False})
+        
+    
+    def _set_style_helper(self):
+        sns.set_style(style='ticks')
+        sns.set_context(context='paper')
+        sns.set_palette(palette='colorblind')
+    
     
     # for debugging
     def plot_xyz(self):
@@ -168,7 +181,7 @@ class DistributionPlotter:
         fig, axs = plt.subplots()
 
         sns.lineplot(data=kneeplot_df, x='Index', y='Doppler Compensated [m/s]')
-        axs.grid()
+        # axs.grid()
         
         fig.show() # you need this to zoom in
         
@@ -177,6 +190,8 @@ class DistributionPlotter:
     def plot_rade(self, 
                   data_variants: List[DataVariant] = DataVariant.basic_variants(), 
                   data_view_type: DataViewType=DataViewType.RADE):
+        self._set_style_helper()
+        
         for dv in data_variants:
             data_view: DataView = self.data_manager.get_view(dv, data_view_type)
             dvt_str = data_view.view.name.lower()
@@ -227,6 +242,8 @@ class DistributionPlotter:
     def plot_by_class_combined(self, most_important_only: bool = False):
         data_view: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA_BY_CLASS, DataViewType.RADE)
         object_class_dfs = data_view.df
+        self._set_style_helper()
+        
         
         indexes = get_class_ids()
         if most_important_only:
@@ -298,6 +315,7 @@ class DistributionPlotter:
     def plot_syn_sem_combined(self, data_view_type: DataViewType = DataViewType.RADE):
         syntactic_dv: DataView = self.data_manager.get_view(DataVariant.SYNTACTIC_DATA, data_view_type)
         semantic_dv: DataView = self.data_manager.get_view(DataVariant.SEMANTIC_DATA, data_view_type)
+        self._set_style_helper()
     
         syntactic_rad_df = syntactic_dv.df
         semantic_rad_df = semantic_dv.df
@@ -339,6 +357,8 @@ class DistributionPlotter:
         semantic_dfs = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS, 
                                                   data_view_type=DataViewType.PLOT_LONG_LAT)
         
+        self._set_style_helper()
+        
         for df, clazz in zip(semantic_dfs.df, get_class_names()):
             fig, ax = plt.subplots()
             
@@ -359,7 +379,7 @@ class DistributionPlotter:
             df = df.fillna(0)
             
             ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True)
-            ax.set_title(f'{clazz.capitalize()}s')
+            #ax.set_title(f'{clazz.capitalize()}s')
             ax.invert_yaxis()
             ax.set_ylim((0, 52))
             ax.set_xlim((0, 53))
@@ -375,6 +395,8 @@ class DistributionPlotter:
     def plot_ele_heatmap(self):
         semantic_dfs = self.data_manager.get_view(data_variant=DataVariant.SEMANTIC_DATA_BY_CLASS, 
                                                   data_view_type=DataViewType.PLOT_ALT_LONG)
+        
+        self._set_style_helper()
         
         for df, clazz in zip(semantic_dfs.df, get_class_names()):
             fig, ax = plt.subplots()
@@ -398,7 +420,7 @@ class DistributionPlotter:
                              cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True,
                              cbar_kws = dict(use_gridspec=False,location="top"))
             
-            ax.set_title(f'{clazz.capitalize()}s')
+            #ax.set_title(f'{clazz.capitalize()}s')
             ax.invert_yaxis()
             ax.set_ylim((0, 12))
             ax.set_xlim((0, 52))

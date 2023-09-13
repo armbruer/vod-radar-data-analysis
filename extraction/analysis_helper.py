@@ -139,10 +139,10 @@ class DataAnalysisHelper:
         return dir
 
 
-def prepare_data_analysis(data_manager: DataManager):
+def prepare_data_analysis(data_manager: DataManager, variants=DataVariant.all_variants()):
     analysis = DataAnalysisHelper(data_manager)
     
-    for dv in DataVariant.all_variants():
+    for dv in variants:
         analysis.prepare_data_analysis(dv, DataViewType.NONE)
 
 

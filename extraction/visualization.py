@@ -139,14 +139,20 @@ def visualize_frame(data_variant: DataVariant,
     
     # there is a 2D bounding box visualization bug that is part of the original VoD code
     # I double checked whether the bbox in this frame is visualized also wrongly in the original code
-    # An example of this bug can be seen in frame 01839
+    # An example of this bug can be seen in frame 01839, 08757, 03771
+    
+    show_gt = True
+    if frame_number == '08757' or frame_number == '03771':
+        # these two frames are bugged, as described above
+        # we want to only visualize the radar overlay without the bounding boxes
+        show_gt = False
     
     filename_radar = f'{dv_str}-radar-{i}-{runs_counter}'
     vis2d = Visualization2D(frame_data_loader=loader, 
                             classes_visualized=get_class_names(summarized=False))
-    _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_radar)
+    _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_radar, show_gt=show_gt)
     _visualize2D(vis2d=vis2d, subdir=subdir, filename=filename_extremum, 
-                    matching_points=matching_points, selected_labels=labels)
+                    matching_points=matching_points, selected_labels=labels, show_gt=show_gt)
     
     _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_radar)
     _visualize3D(vis3d=vis3d, subdir=subdir, filename=filename_extremum, 
