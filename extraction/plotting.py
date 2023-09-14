@@ -35,14 +35,14 @@ class DistributionPlotter:
         self.kitti_locations = data_manager.kitti_locations
         # use latex text rendering
         # use same font as in my latex doc
-        sns.set_theme(style='whitegrid', rc={"text.usetex" : True, 
+        sns.set_theme(style='ticks', rc={"text.usetex" : True, 
                                     "font.family": "Palatino", 
                                     "axes.grid" : False,
                                     "font.weight": "heavy"}) 
         
     
     def _set_style_helper(self):
-        sns.set_style(style='whitegrid')
+        sns.set_style(style='ticks')
     
     
     # for debugging
@@ -106,7 +106,7 @@ class DistributionPlotter:
                     elif pt == PlotType.BOXPLOT:
                         gfg = sns.boxplot(y=content, ax=axis)
                     elif pt == PlotType.HISTOGRAM:
-                        gfg = sns.histplot(x=content, ax=axis, bins=30)
+                        gfg = sns.histplot(x=content, ax=axis, bins=30, edgecolor="k", linewidth=2)
                         gfg.set_yscale('log')
 
 
@@ -127,8 +127,8 @@ class DistributionPlotter:
         
         # TODO this needs bandwiths for kde
         if PlotType.HISTOGRAM in plot_types:
-            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability")))
-            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="count", log_scale=(False, True))))
+            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="probability", edgecolor="k", linewidth=2)))
+            plot_functions.append((PlotType.HISTOGRAM, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="count", log_scale=(False, True), edgecolor="k", linewidth=2)))
         if PlotType.HIST_KDE in plot_types:   
             plot_functions.append((PlotType.HIST_KDE, lambda g: g.map_dataframe(sns.histplot, x="value", bins=30, stat="density", kde=True)))
         if PlotType.KDE in plot_types:
@@ -266,7 +266,8 @@ class DistributionPlotter:
             # hack: haven't found the proper way to access these properties :(
             # so set them globally and then reset them afterwards
             mpl.rcParams['legend.labelspacing'] = 0.2
-            mpl.rcParams['legend.handlelength'] = 1.0
+            mpl.rcParams['legend.handlelength'] = 0.8
+            mpl.rcParams['legend.handletextpad'] = 0.5
         
         name = 'classes-rade' if not most_important_only else 'main-classes-rade'
         
@@ -292,11 +293,6 @@ class DistributionPlotter:
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
                     
-                    if not most_important_only:
-                        plt.setp(g.get_legend().get_texts(), fontsize='8') 
-                        plt.setp(g.get_legend().get_title(), fontsize='9', text="Class")
-                    else: 
-                        plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
                     
                     
@@ -304,13 +300,28 @@ class DistributionPlotter:
                     g.set_xticks(g.get_xticks(), labels=g.get_xticklabels(), size=16, fontweight='heavy')
                     g.set_xlabel(g.get_xlabel(), size=16, fontweight='heavy')
                     g.set_ylabel(g.get_ylabel(), size=16, fontweight='heavy')
+                    
+                    legend_ax = g.axes
+                    texts = legend_ax.get_legend().get_texts()
+                    for t in texts:
+                        t.set(fontsize='13', fontweight='heavy')
+                    title = legend_ax.get_legend().get_title()
+                    title.set(text="Class", fontsize='16', fontweight='heavy')
+                    
+                    # if not most_important_only:
+                    #     plt.setp(g.get_legend().get_texts(), fontsize='32', fontweight='heavy') 
+                    #     plt.setp(g.get_legend().get_title(), fontsize='32', fontweight='heavy', text="Class")
+                    # else: 
+                    #     plt.setp(g.get_legend().get_title(), text="Class")
         
             self._store_figure(fig, figure_name=f'{name}-{fig_name}', subdir=f'{name}')
+            
             
         if not most_important_only:
             # reset global stuff to default
             mpl.rcParams['legend.labelspacing'] = 0.5
             mpl.rcParams['legend.handlelength'] = 2.0
+            mpl.rcParams['legend.handletextpad'] = 0.8
 
     def _map_to_single_class_column_dfs(self, object_class_dfs, columns, class_ids):
         by_column_dfs: List[List[pd.DataFrame]] = [[], [], [], []]
@@ -332,7 +343,7 @@ class DistributionPlotter:
         columns: List[str] = syntactic_rad_df.columns.to_list()
         
         plot_functions = [
-            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False)),
+            ('hist', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="probability", common_norm=False, edgecolor="k", linewidth=2)),
             ('hist_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], multiple="dodge", stat="density", common_norm=False, kde=True)),
             ('hist_step', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="probability", common_norm=False)),
             ('hist_step_kde', lambda i, j, df, column: sns.histplot(data=df, x=column, hue='annotated', bins=30, ax=ax[i, j], element="step", stat="density", common_norm=False, kde=True)),
@@ -365,9 +376,17 @@ class DistributionPlotter:
                     g.set_ylabel(g.get_ylabel(), size=16, fontweight='heavy')
                     
                     # the legend is its own axis
+                    
+                    
                     legend = g.figure.axes[-1]
-                    legend.set_title(legend.get_title(), size=16, fontweight='heavy')
                     legend.tick_params(labelsize=16)
+                    
+                    legend_ax = g.axes
+                    texts = legend_ax.get_legend().get_texts()
+                    for t in texts:
+                        t.set(fontsize='16', fontweight='heavy')
+                    title = legend_ax.get_legend().get_title()
+                    title.set(text=title.get_text(), fontsize='16', fontweight='heavy')
             
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         

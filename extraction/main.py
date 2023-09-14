@@ -52,7 +52,6 @@ def main():
     generate_stats(dm)
     prepare_data_analysis(dm, variants=DataVariant.basic_variants())
     plotter.plot_syn_sem_combined()
-    plotter.plot_by_class_combined()
     plotter.plot_by_class_combined(most_important_only=True)
     plotter.plot_rade()
     plotter.plot_azimuth_heatmap()
