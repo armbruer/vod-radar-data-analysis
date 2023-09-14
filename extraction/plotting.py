@@ -420,15 +420,15 @@ class DistributionPlotter:
             ax.invert_yaxis()
             ax.set_ylim((0, 52))
             ax.set_xlim((0, 53))
-            ax.set_xticks([6, 16, 26, 36, 46], labels=[-20, -10, 0, 10, 20], rotation=0, size=16, fontweight='heavy')
-            ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=16, fontweight='heavy')
-            ax.set_xlabel("Lat. Distance [m]", size=18, fontweight='heavy')
-            ax.set_ylabel("Long. Distance [m]", size=18, fontweight='heavy')
+            ax.set_xticks([6, 16, 26, 36, 46], labels=[-20, -10, 0, 10, 20], rotation=0, size=20, fontweight='heavy')
+            ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=20, fontweight='heavy')
+            ax.set_xlabel("Lat. Distance [m]", size=20, fontweight='heavy')
+            ax.set_ylabel("Long. Distance [m]", size=20, fontweight='heavy')
             ax.set_facecolor('#23275b')
             
             # the color bar is its own axes...
             cbar_axes = ax.figure.axes[-1]
-            cbar_axes.tick_params(labelsize=18)
+            cbar_axes.tick_params(labelsize=20)
             self._store_figure(fig, figure_name=clazz, subdir='azi_heatmaps')
             
         
@@ -464,15 +464,15 @@ class DistributionPlotter:
             ax.invert_yaxis()
             ax.set_ylim((0, 12))
             ax.set_xlim((0, 52))
-            ax.set_yticks([1, 6, 11], labels=[-5, 0, 5], rotation=0, size=16, fontweight='heavy')
-            ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=16, fontweight='heavy')
-            ax.set_xlabel("Long. Distance [m]", size=18, fontweight='heavy')
-            ax.set_ylabel("Alt. Distance [m]", size=18, fontweight='heavy')
+            ax.set_yticks([1, 6, 11], labels=[-5, 0, 5], rotation=0, size=24, fontweight='heavy')
+            ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=24, fontweight='heavy')
+            ax.set_xlabel("Long. Distance [m]", size=24, fontweight='heavy')
+            ax.set_ylabel("Alt. Distance [m]", size=24, fontweight='heavy')
             ax.set_facecolor('#23275b')
             
             # the color bar is its own axes...
             cbar_axes = ax.figure.axes[-1]
-            cbar_axes.tick_params(labelsize=18)
+            cbar_axes.tick_params(labelsize=24)
             self._store_figure(fig, figure_name=clazz, subdir='ele_heatmaps')
     
             

@@ -49,11 +49,11 @@ def main():
     # these analyses are actually used in the master thesis
     # I only verified these work in the final commit
     
-    generate_stats(dm)
-    prepare_data_analysis(dm, variants=DataVariant.basic_variants())
-    plotter.plot_syn_sem_combined()
-    plotter.plot_by_class_combined(most_important_only=True)
-    plotter.plot_rade()
+    # generate_stats(dm)
+    # prepare_data_analysis(dm, variants=DataVariant.basic_variants())
+    # plotter.plot_syn_sem_combined()
+    # plotter.plot_by_class_combined(most_important_only=True)
+    # plotter.plot_rade()
     plotter.plot_azimuth_heatmap()
     plotter.plot_ele_heatmap()
     
