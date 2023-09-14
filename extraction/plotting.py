@@ -35,16 +35,14 @@ class DistributionPlotter:
         self.kitti_locations = data_manager.kitti_locations
         # use latex text rendering
         # use same font as in my latex doc
-        sns.set_theme(context='paper', palette='colorblind', style='ticks')
-        sns.set(font_scale=1.3, rc={"text.usetex" : True, 
+        sns.set_theme(style='whitegrid', rc={"text.usetex" : True, 
                                     "font.family": "Palatino", 
-                                    "axes.grid" : False})
+                                    "axes.grid" : False,
+                                    "font.weight": "heavy"}) 
         
     
     def _set_style_helper(self):
-        sns.set_style(style='ticks')
-        sns.set_context(context='paper')
-        sns.set_palette(palette='colorblind')
+        sns.set_style(style='whitegrid')
     
     
     # for debugging
@@ -236,6 +234,11 @@ class DistributionPlotter:
                         
                         g = pf(axis, df, column)
                         g.set(xlim=xlim)
+                        
+                        g.set_yticks(g.get_yticks(), labels=g.get_yticklabels(), size=16, fontweight='heavy')
+                        g.set_xticks(g.get_xticks(), labels=g.get_xticklabels(), size=16, fontweight='heavy')
+                        g.set_xlabel(g.get_xlabel(), size=16, fontweight='heavy')
+                        g.set_ylabel(g.get_ylabel(), size=16, fontweight='heavy')
             
                 self._store_figure(fig, figure_name=f'{dv.shortname()}-{dvt_str}-{fig_name}', subdir=f'{dvt_str}')
         
@@ -295,6 +298,12 @@ class DistributionPlotter:
                     else: 
                         plt.setp(g.get_legend().get_title(), text="Class")
                     #sns.move_legend(g, loc=1, bbox_to_anchor=(1, 1))
+                    
+                    
+                    g.set_yticks(g.get_yticks(), labels=g.get_yticklabels(), size=16, fontweight='heavy')
+                    g.set_xticks(g.get_xticks(), labels=g.get_xticklabels(), size=16, fontweight='heavy')
+                    g.set_xlabel(g.get_xlabel(), size=16, fontweight='heavy')
+                    g.set_ylabel(g.get_ylabel(), size=16, fontweight='heavy')
         
             self._store_figure(fig, figure_name=f'{name}-{fig_name}', subdir=f'{name}')
             
@@ -350,6 +359,15 @@ class DistributionPlotter:
                     
                     g = pf(i, j, df, column)
                     g.set(xlim=xlim)
+                    g.set_yticks(g.get_yticks(), labels=g.get_yticklabels(), size=16, fontweight='heavy')
+                    g.set_xticks(g.get_xticks(), labels=g.get_xticklabels(), size=16, fontweight='heavy')
+                    g.set_xlabel(g.get_xlabel(), size=16, fontweight='heavy')
+                    g.set_ylabel(g.get_ylabel(), size=16, fontweight='heavy')
+                    
+                    # the legend is its own axis
+                    legend = g.figure.axes[-1]
+                    legend.set_title(legend.get_title(), size=16, fontweight='heavy')
+                    legend.tick_params(labelsize=16)
             
             self._store_figure(fig, figure_name=f'syn_sem_combined-{fig_name}', subdir='syn_sem_combined')
         
@@ -378,17 +396,20 @@ class DistributionPlotter:
             df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
             df = df.fillna(0)
             
-            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True)
+            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True, cbar_kws = dict(use_gridspec=False))
             #ax.set_title(f'{clazz.capitalize()}s')
             ax.invert_yaxis()
             ax.set_ylim((0, 52))
             ax.set_xlim((0, 53))
-            ax.set_xticks([6, 16, 26, 36, 46], labels=[-20, -10, 0, 10, 20], rotation=0)
-            ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0)
-            ax.set_xlabel("Lat. Distance [m]")
-            ax.set_ylabel("Long. Distance [m]")
+            ax.set_xticks([6, 16, 26, 36, 46], labels=[-20, -10, 0, 10, 20], rotation=0, size=16, fontweight='heavy')
+            ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=16, fontweight='heavy')
+            ax.set_xlabel("Lat. Distance [m]", size=18, fontweight='heavy')
+            ax.set_ylabel("Long. Distance [m]", size=18, fontweight='heavy')
             ax.set_facecolor('#23275b')
             
+            # the color bar is its own axes...
+            cbar_axes = ax.figure.axes[-1]
+            cbar_axes.tick_params(labelsize=18)
             self._store_figure(fig, figure_name=clazz, subdir='azi_heatmaps')
             
         
@@ -424,12 +445,15 @@ class DistributionPlotter:
             ax.invert_yaxis()
             ax.set_ylim((0, 12))
             ax.set_xlim((0, 52))
-            ax.set_yticks([1, 6, 11], labels=[-5, 0, 5], rotation=0)
-            ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0)
-            ax.set_xlabel("Long. Distance [m]")
-            ax.set_ylabel("Alt. Distance [m]")
+            ax.set_yticks([1, 6, 11], labels=[-5, 0, 5], rotation=0, size=16, fontweight='heavy')
+            ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=16, fontweight='heavy')
+            ax.set_xlabel("Long. Distance [m]", size=18, fontweight='heavy')
+            ax.set_ylabel("Alt. Distance [m]", size=18, fontweight='heavy')
             ax.set_facecolor('#23275b')
             
+            # the color bar is its own axes...
+            cbar_axes = ax.figure.axes[-1]
+            cbar_axes.tick_params(labelsize=18)
             self._store_figure(fig, figure_name=clazz, subdir='ele_heatmaps')
     
             
