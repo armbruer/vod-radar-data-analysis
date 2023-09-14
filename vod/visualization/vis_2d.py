@@ -109,7 +109,7 @@ Constructor of the class, which loads the required frame properties, and creates
             #     amount_factor = 1
             
             # s = (70 / (points_depth * (1/amount_factor))) ** 2
-            s = ((70 / points_depth) ** 2) * 1.8
+            s = ((90 / points_depth) ** 2) * 4
             plt.scatter(uvs[:, 0], uvs[:, 1], c='red', alpha=0.8, s=s)
 
     def plot_lidar_pcl(self,max_distance_threshold, min_distance_threshold):
