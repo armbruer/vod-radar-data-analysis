@@ -25,6 +25,13 @@ def set_logger():
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     root.addHandler(handler)
+    
+def overall_dataset_stats(dm: DataManager):
+    sem_view = dm.get_view(DataVariant.SEMANTIC_DATA)
+    syn_view = dm.get_view(DataVariant.SYNTACTIC_DATA)
+    
+    print(f"Semantic Data Length: {sem_view.df.shape[0]}")
+    print(f"Syntactic Data Length: {syn_view.df.shape[0]}")
 
 def main():
     set_logger()
@@ -43,8 +50,10 @@ def main():
     logging.info(f"Output directory: {abs(kitti_locations.output_dir)}")
 
     dm = DataManager(kitti_locations=kitti_locations)
-    plotter = DistributionPlotter(data_manager=dm)
     
+
+    plotter = DistributionPlotter(data_manager=dm)
+    overall_dataset_stats(dm)
 
     # these analyses are actually used in the master thesis
     # I only verified these work in the final commit
