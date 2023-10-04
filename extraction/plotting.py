@@ -426,7 +426,7 @@ class DistributionPlotter:
             ax.set_yticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=20, fontweight='heavy')
             ax.set_xlabel("Lat. Distance [m]", size=20, fontweight='heavy')
             ax.set_ylabel("Long. Distance [m]", size=20, fontweight='heavy')
-            ax.set_facecolor('#23275b')
+            ax.set_facecolor('#2C3172')
             
             # the color bar is its own axes...
             cbar_axes = ax.figure.axes[-1]
@@ -472,7 +472,7 @@ class DistributionPlotter:
             ax.set_xticks([0, 10, 20, 30, 40, 50], labels=[0, 10, 20, 30, 40, 50], rotation=0, size=24, fontweight='heavy')
             ax.set_xlabel("Long. Distance [m]", size=24, fontweight='heavy')
             ax.set_ylabel("Alt. Distance [m]", size=24, fontweight='heavy')
-            ax.set_facecolor('#23275b')
+            ax.set_facecolor('#2C3172')
             
             # the color bar is its own axes...
             cbar_axes = ax.figure.axes[-1]
