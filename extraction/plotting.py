@@ -15,7 +15,7 @@ from enum import Enum
 from datetime import datetime
 from itertools import product
 
-from matplotlib.colors import LogNorm
+from matplotlib.colors import SymLogNorm
 from matplotlib.figure import Figure
 from extraction.estimators import KernelDensityEstimator
 from extraction.file_manager import DataManager, DataView
@@ -412,10 +412,12 @@ class DistributionPlotter:
             # remember columns are weirdly named for this because of the camera coordinate system
             df["y"] = df["y"].apply(lambda y: -y)
             df.drop(df[(df.y < -26) | (df.y > 26) | (df.x < 0) | (df.x > 52)].index, inplace=True)
-            df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc=np.sum)
+            df = df.pivot_table(index="x", columns="y", values="Detections [#]", aggfunc="sum")
             df = df.fillna(0)
             
-            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True, cbar_kws = dict(use_gridspec=False))
+            # use a symlognorm so the zero is shown correctly in plot and colormap legend
+            # https://matplotlib.org/stable/users/explain/colors/colormapnorms.html#symmetric-logarithmic
+            ax = sns.heatmap(df, norm=SymLogNorm(1), cbar=True, cmap=sns.cm._cmap_r, ax=ax, vmin = np.amin(df), vmax = np.amax(df), square=True, cbar_kws = dict(use_gridspec=False))
             #ax.set_title(f'{clazz.capitalize()}s')
             ax.invert_yaxis()
             ax.set_ylim((0, 52))
@@ -453,11 +455,13 @@ class DistributionPlotter:
             # remove outliers (don't need'em for this plot)
             
             df.drop(df[(df.x < 0) | (df.x > 52) | (df.z < -6) | (df.z > 6)].index, inplace=True)
-            df = df.pivot_table(index="z", columns="x", values="Detections [#]", aggfunc=np.sum)
+            df = df.pivot_table(index="z", columns="x", values="Detections [#]", aggfunc="sum")
             df = df.fillna(0)
             
-            ax = sns.heatmap(df, norm=LogNorm(), cbar=True, 
-                             cmap=sns.cm._cmap_r, ax=ax, vmin=0, square=True,
+            # use a symlognorm so the zero is shown correctly in plot and colormap legend
+            # https://matplotlib.org/stable/users/explain/colors/colormapnorms.html#symmetric-logarithmic
+            ax = sns.heatmap(df, norm=SymLogNorm(1), cbar=True, 
+                             cmap=sns.cm._cmap_r, ax=ax, vmin = np.amin(df), vmax = np.amax(df), square=True,
                              cbar_kws = dict(use_gridspec=False,location="top"))
             
             #ax.set_title(f'{clazz.capitalize()}s')
