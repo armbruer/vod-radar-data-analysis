@@ -76,7 +76,8 @@ Constructor of the class, which loads the required frame properties, and creates
     def plot_radar_pcl(self, 
                        max_distance_threshold, 
                        min_distance_threshold, 
-                       selected_points: Optional[np.ndarray]):
+                       selected_points: Optional[np.ndarray],
+                       filename: str = ''):
         """
         This method plots the radar pcl on the frame. It colors the points based on distance.
         :param max_distance_threshold: The maximum distance where points are rendered.
@@ -100,16 +101,10 @@ Constructor of the class, which loads the required frame properties, and creates
         if selected_points is None:
             plt.scatter(uvs[:, 0], uvs[:, 1], c=-points_depth, alpha=0.8, s=(70 / points_depth) ** 2, cmap='jet')
         else:
-            # this is needed so we get larger points when there are few to no detections
-            # if selected_points.size == 1:
-            #     amount_factor = 18
-            # elif selected_points.size <= 10:
-            #     amount_factor = 10
-            # else:
-            #     amount_factor = 1
-            
-            # s = (70 / (points_depth * (1/amount_factor))) ** 2
             s = ((90 / points_depth) ** 2) * 4
+            if 'syn' in filename:
+                # HACK: for better visualization enlarge the syntactic dots
+                s = 100 # use a fixed value for syntactic extremes 
             plt.scatter(uvs[:, 0], uvs[:, 1], c='red', alpha=0.8, s=s)
 
     def plot_lidar_pcl(self,max_distance_threshold, min_distance_threshold):
@@ -177,7 +172,7 @@ This method plots the lidar pcl on the frame. It colors the points based on dist
         if show_radar:
             self.plot_radar_pcl(max_distance_threshold=max_distance_threshold,
                                 min_distance_threshold=min_distance_threshold, 
-                                selected_points=selected_points)
+                                selected_points=selected_points, filename=filename)
 
         plt.imshow(self.image_copy, alpha=1)
         plt.axis('off')

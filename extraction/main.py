@@ -133,7 +133,7 @@ def main():
     plotter = DistributionPlotter(data_manager=dm)
     overall_dataset_stats(dm)
 
-    run_mt_analysis(plotter, dm, False, False, False, False, False)
+    run_mt_analysis(plotter, dm, False, False, True, False, False, False, False)
 
 if __name__ == '__main__':
     main()
