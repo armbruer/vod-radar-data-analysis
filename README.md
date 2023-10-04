@@ -32,7 +32,7 @@ sudo aura -A micromamba-bin
 3. Create a python environment with the packages required for this repository using micromamba
 
 ```shell
-micromamba create -n view-of-delft -f environment-update.yml -c conda-forge
+micromamba create -n view-of-delft -f environment-udpate.yml -c conda-forge
 ```
 
 4. Activate the environment 
