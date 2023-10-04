@@ -2,6 +2,7 @@
 venv/
 mt/extractor/output/
 output/
+output_old/
 .vscode/
 output_test/
 # Byte-compiled / optimized / DLL files
