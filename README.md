@@ -10,7 +10,7 @@ See [DATASET-README](./DATASET-README.md) (default README of the dataset) and [V
 
 Follow these steps to setup the repository:
 
-**Warning:** Do not use anaconda or miniconda to setup this repository. It's horribly slow!**
+**Warning:** Do not use anaconda or miniconda to setup this repository. It's horribly slow!
 
 Instead use [micromamba](https://mamba.readthedocs.io/en/latest/user_guide/micromamba.html).
 
