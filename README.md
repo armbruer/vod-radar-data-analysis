@@ -62,3 +62,5 @@ Your directory layout needs to look like this:
 ```
 
 7. Run [main.py](./extraction/main.py).
+
+The error ``` Exception ignored in: <function Widget.__del__ at 0x7f466f0f4ee0>``` can be safely ignored. It should only appear after all the anlyzes have finished running.
